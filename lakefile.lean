@@ -18,7 +18,7 @@ lean_lib «Leanml» {
 
 @[default_target]
 lean_exe «leanml» {
-  root := `Main
+  root := `Leanml
 }
 
 target ffi.o pkg : FilePath := do
