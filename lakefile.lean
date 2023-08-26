@@ -1,5 +1,5 @@
 import Lake
-open Lake DSL
+open Lake DSL System
 
 package «leanml» {
   -- add package configuration options here
@@ -12,4 +12,5 @@ lean_lib «Leanml» {
 @[default_target]
 lean_exe «leanml» {
   root := `Main
+  -- supportInterpreter := true
 }
