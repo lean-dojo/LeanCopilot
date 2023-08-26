@@ -1,2 +1,6 @@
 /build
 /lake-packages/*
+
+.vscode
+
+onnx-leandojo-lean4-tacgen-byt5-small
