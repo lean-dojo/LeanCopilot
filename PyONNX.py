@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoTokenizer
 from optimum.onnxruntime import ORTModelForSeq2SeqLM
 
 
@@ -13,3 +13,5 @@ model = ORTModelForSeq2SeqLM.from_pretrained(
 
 model.save_pretrained(inference_name)
 tokenizer.save_pretrained(tokenizer_name)
+
+print("Success!")
