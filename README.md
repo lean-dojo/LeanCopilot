@@ -47,6 +47,13 @@ package «lean4-example» {
   ]
 }
 ```
+If you are using vscode, you can also add necessary include paths to your vscode config file. E.g., in your `c_cpp_properties.lean` you can add the following paths to your default `includePath`:
+```
+"/home/peiyang/.elan/toolchains/leanprover--lean4---nightly-2023-05-31/include",
+"/home/peiyang/onnxruntime/include/onnxruntime/core/session",
+"/home/peiyang/onnxruntime/include/onnxruntime/core/session/**",
+"/home/peiyang/onnxruntime/build/Linux/RelWithDebInfo"
+```
 The next `lake build` or `lake update` will install the whole package for you.
 
 ## Usage
