@@ -22,6 +22,11 @@
     ./build.sh --skip_tests --config Release --build_shared_lib
     ```
     Note that the compilation on GPU may need more args than the command above.
+    Upon completion, one should verify if the installation added the necessary path to `LD_LIBRARY_PATH`. Do
+    ```
+    export LD_LIBRARY_PATH=/home/peiyang/onnxruntime/build/Linux/RelWithDebInfo/:$LD_LIBRARY_PATH
+    ```
+    if this path has yet to be in `echo $LD_LIBRARY_PATH`.
     A good sign for having gone through a successful installation is that you can find both `libonnxruntime.so.1.8.0` and `libonnxruntime.so` being compiled.
     Please do refer to ONNX Runtime's official documents and releases for detailed installation process.
 
