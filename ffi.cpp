@@ -30,13 +30,30 @@ Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(
     OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
 
 // Set hyperparameters
-const int NUM_TOKENS = 384;
+const int NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
+const int EOS_TOKEN_ID = 1;
+const int VOCAB_SIZE = 384;
 const int BATCH_SIZE = 1;
+
+
+/* Simulated Byt5 tokenizer */
+std::vector<int64_t> tokenize(const wchar_t *input) {
+  std::vector<int64_t> tokenized;
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+
+  for (unsigned char byte : converter.to_bytes(input)) {
+    tokenized.push_back(static_cast<int64_t>(byte) + NUM_SPECIAL_TOKENS);
+  }
+  tokenized.push_back(EOS_TOKEN_ID);
+
+  return tokenized;
+}
+
 
 /* Greedy search algorithm with multinomial sampling */
 int64_t sample(float *logits) {
-  std::vector<float> probabilities(NUM_TOKENS);
-  std::copy(logits, logits + NUM_TOKENS, probabilities.begin());
+  std::vector<float> probabilities(VOCAB_SIZE);
+  std::copy(logits, logits + VOCAB_SIZE, probabilities.begin());
 
   for (float &probability : probabilities) {
     probability = std::exp(probability);
@@ -56,19 +73,6 @@ int64_t sample(float *logits) {
   return sampled_token;
 }
 
-/* Simulated Byt5 tokenizer */
-std::vector<int64_t> tokenize(const wchar_t *curr_ts) {
-  std::vector<int64_t> tokenized;
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  std::string utf8_input = converter.to_bytes(curr_ts);
-
-  for (unsigned char byte : utf8_input) {
-    tokenized.push_back(static_cast<int64_t>(byte) + 3);
-  }
-  tokenized.push_back(1);
-
-  return tokenized;
-}
 
 /* Simulated Byt5 detokenizer that reverses the effects of it tokenizer */
 wchar_t *detokenize(std::vector<int64_t> &tokenized) {
@@ -111,7 +115,7 @@ void tensor_int64_t_append(std::vector<Ort::Value> &host_tensor,
 }
 
 /* Run inference on the transformers model */
-char *run_inference(std::vector<int64_t> tokenized_input, uint32_t max_length) {
+std::pair<char *, double> run_inference(std::vector<int64_t> tokenized_input, uint64_t max_length) {
   // Run encoder
   const std::vector<const char *> encoder_input_names = {"input_ids",
                                                          "attention_mask"};
@@ -318,7 +322,7 @@ char *run_inference(std::vector<int64_t> tokenized_input, uint32_t max_length) {
   char *utf8_string = (char *)malloc(utf8_length);
   wcstombs(utf8_string, tactic_suggestion, utf8_length + 1);
   // utf8_string[utf8_length] = '\0';
-  return utf8_string;
+  return std::make_pair(utf8_string, 0.5);
 }
 
 static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
@@ -328,28 +332,62 @@ static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
   return r;
 }
 
-extern "C" lean_obj_res text_to_text(lean_obj_arg input,
-                                     uint32_t num_return_sequences,
-                                     uint32_t max_length, uint32_t num_beams) {
+extern "C" lean_obj_res generate(lean_obj_arg input, uint64_t num_return_sequences, uint64_t max_length, double temperature, double top_p, uint64_t num_beams) {
+  // Check the arguments.
+  if (num_return_sequences <= 0) {
+    throw std::invalid_argument("num_return_sequences must be positive.");
+  }
+  if (max_length <= 0) {
+    throw std::invalid_argument("max_length must be positive.");
+  }
+  if (temperature <= 0) {
+    throw std::invalid_argument("temperature must be positive.");
+  }
+  if (top_p <= 0 || top_p > 1) {
+    throw std::invalid_argument("top_p must be in (0, 1].");
+  }
+  if (num_beams <= 0) {
+    throw std::invalid_argument("num_beams must be positive.");
+  }
+  if (num_beams > 1) {
+    throw std::invalid_argument("Beam search is not supported yet.");
+  }
+
   // Fetch and tokenize input.
   const char *input_narrow = lean_string_cstr(input);
   setlocale(LC_ALL, "");
   size_t len = strlen(input_narrow) + 1;
-  wchar_t *wide_input = new wchar_t[len];
-  mbstowcs(wide_input, input_narrow, len);
-  std::vector<int64_t> tokenized_input = tokenize(wide_input);
+  wchar_t *input_wide = new wchar_t[len];
+  mbstowcs(input_wide, input_narrow, len);
+  std::vector<int64_t> tokenized_input = tokenize(input_wide);
+  delete[] input_wide;
 
   // Run the tactic generator and return Lean strings.
   // Don't worry about duplications. It can be handled in Lean.
   lean_array_object *arr = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_return_sequences, num_return_sequences));
+
   for (int i = 0; i < num_return_sequences; i++) {
-    const char *tac = run_inference(tokenized_input, max_length);
-    arr->m_data[i] = lean_mk_pair(lean_mk_string(tac), lean_box_float(0.5));
+    auto p = run_inference(tokenized_input, max_length);
+    char *tac = p.first;
+    double s = p.second;
+    arr->m_data[i] = lean_mk_pair(lean_mk_string(tac), lean_box_float(s));
   }
 
   return reinterpret_cast<lean_obj_res>(arr);
 }
+
+
+extern "C" lean_obj_res encode(lean_obj_arg input) {
+  lean_object *arr = lean_mk_empty_float_array(lean_box(10));
+  lean_float_array_push(arr, 0.34);
+  lean_float_array_push(arr, 0.84);
+  lean_float_array_push(arr, 0.57);
+  lean_float_array_push(arr, 2.63);
+  lean_float_array_push(arr, 0.67);
+  return arr;
+}
+
 
 // extern "C" lean_object * core_fun(lean_obj_arg input) {
 
@@ -358,10 +396,10 @@ extern "C" lean_obj_res text_to_text(lean_obj_arg input,
 
 //     setlocale(LC_ALL, "");
 //     size_t buffered_length = strlen(input_narrow) + 1;
-//     wchar_t* wide_input = new wchar_t[buffered_length];
-//     mbstowcs(wide_input, input_narrow, buffered_length);
+//     wchar_t* input_wide = new wchar_t[buffered_length];
+//     mbstowcs(input_wide, input_narrow, buffered_length);
 
-//     std::vector<int64_t> tokenized_input = tokenize(wide_input);
+//     std::vector<int64_t> tokenized_input = tokenize(input_wide);
 
 //     // Run encoder
 //     const std::vector<const char *> encoder_input_names = {
