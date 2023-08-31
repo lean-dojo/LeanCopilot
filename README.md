@@ -9,14 +9,14 @@ Neural network inference in Lean 4.
 * Supported platform: Linux and macOS
 * GCC or Clang
 * [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
-* [ONNX Runtime](https://onnxruntime.ai/) for optimized inference in C++
+* [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
 
 ## Using LeanInfer in Your Project
 
 1. Download [the ONNX model](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small) into the root of your repo (`./onnx-leandojo-lean4-tacgen-byt5-small`). If you have [Git LFS](https://git-lfs.com/), this can be done by `git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. See [here](https://huggingface.co/docs/hub/models-downloading) for details.
 1. Edit your `lakefile.lean`. Add a dependency `require leanml from git "https://github.com/Peiyang-Song/leanml.git" @ "kaiyu"` and package configuration option `moreLinkArgs := #["-lonnxruntime"]`.
-1. Prepend the ONNX Runtime source directory (containing `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Prepend the ONNX Runtime library directory (containing `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (MacOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode. 
+1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode. 
 1. Run `lake update` and `lake build`.
 
 
