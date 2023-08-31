@@ -29,3 +29,6 @@ extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
   let ffiO ← fetch <| pkg.target ``ffi.o
   buildStaticLib (pkg.nativeLibDir / name) #[ffiO]
+
+
+require std from git "https://github.com/leanprover/std4" @ "main"

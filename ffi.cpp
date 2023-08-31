@@ -30,10 +30,8 @@ Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(
     OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
 
 // Set hyperparameters
-const int MAX_TIMESTEPS = 256;
 const int NUM_TOKENS = 384;
 const int BATCH_SIZE = 1;
-const int NUM_SUGGESTIONS = 5;
 
 /* Greedy search algorithm with multinomial sampling */
 int64_t sample(float *logits) {
@@ -113,7 +111,7 @@ void tensor_int64_t_append(std::vector<Ort::Value> &host_tensor,
 }
 
 /* Run inference on the transformers model */
-char *run_inference(std::vector<int64_t> tokenized_input) {
+char *run_inference(std::vector<int64_t> tokenized_input, uint32_t max_length) {
   // Run encoder
   const std::vector<const char *> encoder_input_names = {"input_ids",
                                                          "attention_mask"};
@@ -216,7 +214,7 @@ char *run_inference(std::vector<int64_t> tokenized_input) {
   float *curr_logits;
   std::vector<int64_t> model_outputs;
 
-  for (int timestep = 0; timestep < MAX_TIMESTEPS; timestep++) {
+  for (int timestep = 0; timestep < max_length; timestep++) {
     if (timestep == 0) {
       decoder_raw_output_tensors = decoder_raw_session.Run(
           Ort::RunOptions{nullptr}, decoder_raw_input_names.data(),
@@ -323,67 +321,45 @@ char *run_inference(std::vector<int64_t> tokenized_input) {
   return utf8_string;
 }
 
-extern "C" lean_object *core_fun(lean_obj_arg curr_tactic_state) {
-  // Fetch and tokenize input tactic state
-  const char *narrow_input = lean_string_cstr(curr_tactic_state);
-
-  setlocale(LC_ALL, "");
-  size_t buffered_length = strlen(narrow_input) + 1;
-  wchar_t *wide_input = new wchar_t[buffered_length];
-  mbstowcs(wide_input, narrow_input, buffered_length);
-
-  std::vector<int64_t> tokenized_input = tokenize(wide_input);
-
-  // Run tactic generator and return Lean string
-  std::unordered_set<const char *> tactic_suggestion;
-  size_t tactic_suggestion_length = 0;
-  int curr_num_tactic = 0;
-
-  while (curr_num_tactic < NUM_SUGGESTIONS) {
-    const char *curr_tactic = run_inference(tokenized_input);
-    bool check_duplication = false;
-    for (const char *prev_tactic : tactic_suggestion) {
-      if (strcmp(curr_tactic, prev_tactic) == 0) {
-        check_duplication = true;
-        break;
-      }
-    }
-    if (!check_duplication) {
-      tactic_suggestion.insert(curr_tactic);
-      tactic_suggestion_length += strlen(curr_tactic);
-      curr_num_tactic++;
-    }
-  }
-  tactic_suggestion_length += NUM_SUGGESTIONS;
-
-  char *tactic_suggestions = (char *)malloc(tactic_suggestion_length);
-  int tactic_suggestions_index = 0;
-  for (const char *tactic_candidate : tactic_suggestion) {
-    if (tactic_suggestions_index == 0) {
-      strcpy(tactic_suggestions, tactic_candidate);
-    } else {
-      strcat(tactic_suggestions, tactic_candidate);
-    }
-    if (tactic_suggestions_index != NUM_SUGGESTIONS - 1) {
-      strcat(tactic_suggestions, "\n");
-    } else {
-      strcat(tactic_suggestions, "\0");
-    }
-    tactic_suggestions_index++;
-  }
-
-  return lean_mk_string(tactic_suggestions);
+static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
+  lean_object *r = lean_alloc_ctor(0, 2, 0);
+  lean_ctor_set(r, 0, a);
+  lean_ctor_set(r, 1, b);
+  return r;
 }
 
-// extern "C" lean_object * core_fun(lean_obj_arg curr_tactic_state) {
+extern "C" lean_obj_res text_to_text(lean_obj_arg input,
+                                     uint32_t num_return_sequences,
+                                     uint32_t max_length, uint32_t num_beams) {
+  // Fetch and tokenize input.
+  const char *input_narrow = lean_string_cstr(input);
+  setlocale(LC_ALL, "");
+  size_t len = strlen(input_narrow) + 1;
+  wchar_t *wide_input = new wchar_t[len];
+  mbstowcs(wide_input, input_narrow, len);
+  std::vector<int64_t> tokenized_input = tokenize(wide_input);
+
+  // Run the tactic generator and return Lean strings.
+  // Don't worry about duplications. It can be handled in Lean.
+  lean_array_object *arr = reinterpret_cast<lean_array_object *>(
+      lean_alloc_array(num_return_sequences, num_return_sequences));
+  for (int i = 0; i < num_return_sequences; i++) {
+    const char *tac = run_inference(tokenized_input, max_length);
+    arr->m_data[i] = lean_mk_pair(lean_mk_string(tac), lean_box_float(0.5));
+  }
+
+  return reinterpret_cast<lean_obj_res>(arr);
+}
+
+// extern "C" lean_object * core_fun(lean_obj_arg input) {
 
 //     // Fetch and tokenize input tactic state
-//     const char * narrow_input = lean_string_cstr(curr_tactic_state);
+//     const char * input_narrow = lean_string_cstr(input);
 
 //     setlocale(LC_ALL, "");
-//     size_t buffered_length = strlen(narrow_input) + 1;
+//     size_t buffered_length = strlen(input_narrow) + 1;
 //     wchar_t* wide_input = new wchar_t[buffered_length];
-//     mbstowcs(wide_input, narrow_input, buffered_length);
+//     mbstowcs(wide_input, input_narrow, buffered_length);
 
 //     std::vector<int64_t> tokenized_input = tokenize(wide_input);
 
