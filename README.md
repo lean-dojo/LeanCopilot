@@ -9,7 +9,7 @@ Neural network inference in Lean 4.
 * Supported platform: Linux and macOS
 * GCC or Clang
 * [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
-* [ONNX Runtime](https://onnxruntime.ai/) for optimized inference in C++
+* [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
 
 ## Using LeanInfer in Your Project
