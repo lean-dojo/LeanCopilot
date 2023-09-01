@@ -270,7 +270,7 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   // Weird behavior: If you move this inside the loop, the program will produce nan.
   std::vector<Ort::Value> with_past_output_tensors;
 
-  for (int timestep = 0; timestep < max_length; timestep++) {
+  for (int timestep = 1; timestep < max_length; timestep++) {
     with_past_output_tensors = decoder_with_past_session.Run(
         Ort::RunOptions{nullptr}, DECODER_WITH_PAST_INPUT_NAMES.data(),
         input_tensors.data(), DECODER_WITH_PAST_INPUT_NAMES.size(),
