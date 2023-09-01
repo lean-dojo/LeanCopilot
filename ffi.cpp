@@ -197,17 +197,12 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
                                  std::vector<int64_t> &encoder_input_dim,
                                  size_t max_length) {
   std::vector<int64_t> input_ids = {DECODER_START_TOKEN_ID};
-  size_t decoder_input_tensor_size = input_ids.size();
-  std::vector<int64_t> decoder_input_dim = {
-      BATCH_SIZE, static_cast<int64_t>(decoder_input_tensor_size)};
+  int64_t l = input_ids.size();
+  std::vector<int64_t> dim = {BATCH_SIZE, l};
 
   std::vector<Ort::Value> input_tensors;
-  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      mem_info, attention_mask.data(), encoder_input_length,
-      encoder_input_dim.data(), encoder_input_dim.size()));
-  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      mem_info, input_ids.data(), decoder_input_tensor_size,
-      decoder_input_dim.data(), decoder_input_dim.size()));
+  input_tensors.push_back(create_long_tensor(attention_mask, encoder_input_dim));
+  input_tensors.push_back(create_long_tensor(input_ids, dim));
   tensor_float_append(input_tensors, last_hidden_state);
 
   std::vector<Ort::Value> decoder_raw_output_tensors;
@@ -237,12 +232,9 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
       input_ids.push_back(curr_token);
 
       input_tensors.clear();
-      input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-          mem_info, attention_mask.data(), encoder_input_length,
-          encoder_input_dim.data(), encoder_input_dim.size()));
-      input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-          mem_info, input_ids.data(), decoder_input_tensor_size,
-          decoder_input_dim.data(), decoder_input_dim.size()));
+      
+      input_tensors.push_back(create_long_tensor(attention_mask, encoder_input_dim));
+      input_tensors.push_back(create_long_tensor(input_ids, dim));
       tensor_float_append(input_tensors, last_hidden_state);
 
       for (int i = 1; i < decoder_raw_output_tensors.size(); i++) {
@@ -278,9 +270,7 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
         if (i == 0) {
           tensor_int64_t_append(temporary_tensors, input_tensors.at(i));
         } else if (i == 1) {
-          temporary_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-              mem_info, input_ids.data(), decoder_input_tensor_size,
-              decoder_input_dim.data(), decoder_input_dim.size()));
+          temporary_tensors.push_back(create_long_tensor(input_ids, dim));
         } else if (i == 2 || i == 5 || i == 6 || i == 9 || i == 10 || i == 13 ||
                    i == 14 || i == 17 || i == 18) {
           tensor_float_append(temporary_tensors, input_tensors.at(i));
