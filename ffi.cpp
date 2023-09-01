@@ -12,7 +12,9 @@
 
 /* Constants */
 constexpr int64_t NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
+constexpr int64_t PAD_TOKEN_ID = 0;
 constexpr int64_t EOS_TOKEN_ID = 1;
+constexpr int64_t UNK_TOKEN_ID = 2;
 constexpr int64_t DECODER_START_TOKEN_ID = 0;
 constexpr int64_t VOCAB_SIZE = 384;
 constexpr int64_t BATCH_SIZE = 1;
@@ -131,32 +133,44 @@ std::vector<float> get_logits(std::vector<Ort::Value> &output_tensors) {
   return std::vector<float>(p, p + VOCAB_SIZE);
 }
 
+double sum(const std::vector <double> &v) {
+  return std::accumulate(v.cbegin(), v.cend(), 0.0);
+}
+
 /* Greedy search algorithm with multinomial sampling */
 int64_t sample(const std::vector<float> &logits) {
-  assert(logits.size() == VOCAB_SIZE);
-
   // Calculate `probs` as the softmax of `logits`.
-  std::vector<float> probs;
-  for (float v : logits) {
+  assert(logits.size() == VOCAB_SIZE);
+  std::vector<double> probs;
+
+  for (int i = 0; i < VOCAB_SIZE; i++) {
+    if (i == PAD_TOKEN_ID || i == UNK_TOKEN_ID) {
+      probs.push_back(0.0);
+      continue;
+    }
+    double v = static_cast<double>(logits[i]);
+    assert(std::isnormal(v));
     probs.push_back(std::exp(v));
   }
-  float sum_probs = std::accumulate(probs.begin(), probs.end(), 0.0f);
-  for (float &p : probs) {
+
+  double eps = 1e-5;
+  double sum_probs = sum(probs);
+  assert (sum_probs > eps);
+  for (double &p : probs) {
     p /= sum_probs;
   }
-  assert(std::abs(std::accumulate(probs.begin(), probs.end(), 0.0f) - 1.0f) <
-         1e-5);
+  assert(std::abs(sum(probs) - 1.0) < eps);
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::discrete_distribution<int64_t> distribution(probs.begin(), probs.end());
+  std::discrete_distribution<int64_t> distribution(probs.cbegin(), probs.cend());
 
   int64_t sampled_token = distribution(gen);
   assert(0 <= sampled_token && sampled_token < VOCAB_SIZE);
   return sampled_token;
 }
 
-template <class T>
+template <typename T>
 void append_tensor(std::vector<Ort::Value> &a, Ort::Value &x) {
   a.push_back(Ort::Value::CreateTensor<T>(
       mem_info, x.GetTensorMutableData<T>(),
