@@ -163,17 +163,22 @@ void tensor_int64_t_append(std::vector<Ort::Value> &host_tensor,
       guest_tensor.GetTensorTypeAndShapeInfo().GetShape().size()));
 }
 
+
+Ort::Value create_long_tensor(std::vector<int64_t> &v, std::vector<int64_t> &dim) {
+  assert(v.size() == std::accumulate(begin(dim), end(dim), 1, std::multiplies<int64_t>()));
+  return Ort::Value::CreateTensor<int64_t>(mem_info, v.data(), v.size(), dim.data(), dim.size());
+}
+
+
 Ort::Value run_encoder(std::vector<int64_t> &input_ids,
                        std::vector<int64_t> &attention_mask) {
   // Prepare the encoder's input.
-  size_t length = input_ids.size();
-  std::vector<int64_t> dim = {BATCH_SIZE, static_cast<int64_t>(length)};
+  int64_t l = input_ids.size();
+  std::vector<int64_t> dim = {BATCH_SIZE, l};
 
   std::vector<Ort::Value> input_tensors;
-  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      mem_info, input_ids.data(), length, dim.data(), dim.size()));
-  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      mem_info, attention_mask.data(), length, dim.data(), dim.size()));
+  input_tensors.push_back(create_long_tensor(input_ids, dim));
+  input_tensors.push_back(create_long_tensor(attention_mask, dim));
 
   // Run the encoder.
   std::vector<Ort::Value> output_tensors = encoder_session.Run(
@@ -182,7 +187,8 @@ Ort::Value run_encoder(std::vector<int64_t> &input_ids,
       ENCODER_OUTPUT_NAMES.data(), ENCODER_OUTPUT_NAMES.size());
 
   // Return last_hidden_state.
-  return std::move(output_tensors.front());
+  Ort::Value last_hidden_state = std::move(output_tensors.front());
+  return last_hidden_state;
 }
 
 std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
@@ -195,14 +201,14 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   std::vector<int64_t> decoder_input_dim = {
       BATCH_SIZE, static_cast<int64_t>(decoder_input_tensor_size)};
 
-  std::vector<Ort::Value> decoder_input_tensors;
-  decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+  std::vector<Ort::Value> input_tensors;
+  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
       mem_info, attention_mask.data(), encoder_input_length,
       encoder_input_dim.data(), encoder_input_dim.size()));
-  decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
       mem_info, input_ids.data(), decoder_input_tensor_size,
       decoder_input_dim.data(), decoder_input_dim.size()));
-  tensor_float_append(decoder_input_tensors, last_hidden_state);
+  tensor_float_append(input_tensors, last_hidden_state);
 
   std::vector<Ort::Value> decoder_raw_output_tensors;
   std::vector<Ort::Value> decoder_with_past_output_tensors;
@@ -213,7 +219,7 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
     if (timestep == 0) {
       decoder_raw_output_tensors = decoder_raw_session.Run(
           Ort::RunOptions{nullptr}, DECODER_RAW_INPUT_NAMES.data(),
-          decoder_input_tensors.data(), DECODER_RAW_INPUT_NAMES.size(),
+          input_tensors.data(), DECODER_RAW_INPUT_NAMES.size(),
           DECODER_RAW_OUTPUT_NAMES.data(), DECODER_RAW_OUTPUT_NAMES.size());
 
       bool allTensorsValid = std::all_of(
@@ -230,23 +236,23 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
       input_ids.clear();
       input_ids.push_back(curr_token);
 
-      decoder_input_tensors.clear();
-      decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+      input_tensors.clear();
+      input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
           mem_info, attention_mask.data(), encoder_input_length,
           encoder_input_dim.data(), encoder_input_dim.size()));
-      decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+      input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
           mem_info, input_ids.data(), decoder_input_tensor_size,
           decoder_input_dim.data(), decoder_input_dim.size()));
-      tensor_float_append(decoder_input_tensors, last_hidden_state);
+      tensor_float_append(input_tensors, last_hidden_state);
 
       for (int i = 1; i < decoder_raw_output_tensors.size(); i++) {
-        tensor_float_append(decoder_input_tensors,
+        tensor_float_append(input_tensors,
                             decoder_raw_output_tensors.at(i));
       }
     } else {
       decoder_with_past_output_tensors = decoder_with_past_session.Run(
           Ort::RunOptions{nullptr}, DECODER_WITH_PAST_INPUT_NAMES.data(),
-          decoder_input_tensors.data(), DECODER_WITH_PAST_INPUT_NAMES.size(),
+          input_tensors.data(), DECODER_WITH_PAST_INPUT_NAMES.size(),
           DECODER_WITH_PAST_OUTPUT_NAMES.data(),
           DECODER_WITH_PAST_OUTPUT_NAMES.size());
 
@@ -268,16 +274,16 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
       input_ids.push_back(curr_token);
 
       std::vector<Ort::Value> temporary_tensors;
-      for (int i = 0; i < decoder_input_tensors.size(); i++) {
+      for (int i = 0; i < input_tensors.size(); i++) {
         if (i == 0) {
-          tensor_int64_t_append(temporary_tensors, decoder_input_tensors.at(i));
+          tensor_int64_t_append(temporary_tensors, input_tensors.at(i));
         } else if (i == 1) {
           temporary_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
               mem_info, input_ids.data(), decoder_input_tensor_size,
               decoder_input_dim.data(), decoder_input_dim.size()));
         } else if (i == 2 || i == 5 || i == 6 || i == 9 || i == 10 || i == 13 ||
                    i == 14 || i == 17 || i == 18) {
-          tensor_float_append(temporary_tensors, decoder_input_tensors.at(i));
+          tensor_float_append(temporary_tensors, input_tensors.at(i));
         } else {
           assert(i == 3 || i == 4 || i == 7 || i == 8 || i == 11 || i == 12 ||
                  i == 15 || i == 16);
@@ -286,21 +292,21 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
         }
       }
 
-      assert(temporary_tensors.size() == decoder_input_tensors.size());
+      assert(temporary_tensors.size() == input_tensors.size());
       for (int i = 0; i < temporary_tensors.size(); i++) {
         assert(temporary_tensors.at(i)
                    .GetTensorTypeAndShapeInfo()
-                   .GetElementType() == decoder_input_tensors.at(i)
+                   .GetElementType() == input_tensors.at(i)
                                             .GetTensorTypeAndShapeInfo()
                                             .GetElementType());
       }
 
-      decoder_input_tensors.clear();
+      input_tensors.clear();
       for (int i = 0; i < temporary_tensors.size(); i++) {
         if (i == 0 || i == 1) {
-          tensor_int64_t_append(decoder_input_tensors, temporary_tensors.at(i));
+          tensor_int64_t_append(input_tensors, temporary_tensors.at(i));
         } else {
-          tensor_float_append(decoder_input_tensors, temporary_tensors.at(i));
+          tensor_float_append(input_tensors, temporary_tensors.at(i));
         }
       }
     }
