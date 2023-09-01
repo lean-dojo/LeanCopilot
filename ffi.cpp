@@ -34,6 +34,7 @@ const int NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
 const int EOS_TOKEN_ID = 1;
 const int VOCAB_SIZE = 384;
 const int BATCH_SIZE = 1;
+const int ATTENTION_MASL_VALID = 1;
 
 
 /* Simulated Byt5 tokenizer */
@@ -114,38 +115,40 @@ void tensor_int64_t_append(std::vector<Ort::Value> &host_tensor,
       guest_tensor.GetTensorTypeAndShapeInfo().GetShape().size()));
 }
 
+
+Ort::Value run_encoder(std::vector<int64_t> &input_ids, std::vector<int64_t> &attention_mask) {
+  const std::vector<const char *> input_names = {"input_ids", "attention_mask"};
+  const std::vector<const char *> output_names = {"last_hidden_state"};
+  size_t length = input_ids.size();
+  std::vector<int64_t> dim = {BATCH_SIZE, static_cast<int64_t>(length)};
+
+  std::vector<Ort::Value> input_tensors;
+  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+      memory_info, input_ids.data(), length,
+      dim.data(), dim.size()));
+  input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
+      memory_info, attention_mask.data(), length,
+      dim.data(), dim.size()));
+
+  std::vector<Ort::Value> output_tensors =
+      encoder_session.Run(Ort::RunOptions{nullptr}, input_names.data(),
+                          input_tensors.data(), input_names.size(),
+                          output_names.data(), output_names.size());
+  return std::move(output_tensors.front());
+}
+
+/*
+std::vector<int64_t> run_decoder() {
+
+}*/
+
 /* Run inference on the transformers model */
-std::pair<char *, double> run_inference(std::vector<int64_t> tokenized_input, uint64_t max_length) {
+std::pair<char *, double> run_inference(std::vector<int64_t> input_ids, uint64_t max_length) {
   // Run encoder
-  const std::vector<const char *> encoder_input_names = {"input_ids",
-                                                         "attention_mask"};
-  const std::vector<const char *> encoder_output_names = {"last_hidden_state"};
-
-  const int encoder_num_inputs = 2;
-  const int encoder_num_outputs = 1;
-
-  std::vector<int64_t> input_ids = tokenized_input;
-  size_t encoder_input_tensor_size = input_ids.size();
-  std::vector<int64_t> attention_mask(encoder_input_tensor_size, 1);
-  std::vector<int64_t> encoder_input_dim = {
-      BATCH_SIZE, static_cast<int64_t>(encoder_input_tensor_size)};
-
-  std::vector<Ort::Value> encoder_input_tensors;
-  encoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      memory_info, input_ids.data(), encoder_input_tensor_size,
-      encoder_input_dim.data(), encoder_input_dim.size()));
-  encoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      memory_info, attention_mask.data(), encoder_input_tensor_size,
-      encoder_input_dim.data(), encoder_input_dim.size()));
-
-  std::vector<Ort::Value> encoder_output_tensors =
-      encoder_session.Run(Ort::RunOptions{nullptr}, encoder_input_names.data(),
-                          encoder_input_tensors.data(), encoder_num_inputs,
-                          encoder_output_names.data(), encoder_num_outputs);
-  assert(encoder_output_tensors.size() == encoder_num_outputs);
-  assert(encoder_output_tensors.front().IsTensor());
-
-  Ort::Value &last_hidden_state = encoder_output_tensors.front();
+  size_t encoder_input_length = input_ids.size();
+  std::vector<int64_t> encoder_input_dim = {BATCH_SIZE, static_cast<int64_t>(encoder_input_length)};
+  std::vector<int64_t> attention_mask(encoder_input_length, ATTENTION_MASL_VALID);
+  Ort::Value last_hidden_state = run_encoder(input_ids, attention_mask);
 
   // Run decoder
   const std::vector<const char *> decoder_raw_input_names = {
@@ -206,7 +209,7 @@ std::pair<char *, double> run_inference(std::vector<int64_t> tokenized_input, ui
 
   std::vector<Ort::Value> decoder_input_tensors;
   decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-      memory_info, attention_mask.data(), encoder_input_tensor_size,
+      memory_info, attention_mask.data(), encoder_input_length,
       encoder_input_dim.data(), encoder_input_dim.size()));
   decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
       memory_info, input_ids.data(), decoder_input_tensor_size,
@@ -242,7 +245,7 @@ std::pair<char *, double> run_inference(std::vector<int64_t> tokenized_input, ui
 
       decoder_input_tensors.clear();
       decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
-          memory_info, attention_mask.data(), encoder_input_tensor_size,
+          memory_info, attention_mask.data(), encoder_input_length,
           encoder_input_dim.data(), encoder_input_dim.size()));
       decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
           memory_info, input_ids.data(), decoder_input_tensor_size,
@@ -414,25 +417,25 @@ extern "C" lean_obj_res encode(lean_obj_arg input) {
 //     const int encoder_num_outputs = 1;
 
 //     std::vector<int64_t> input_ids = tokenized_input;
-//     size_t encoder_input_tensor_size = input_ids.size();
-//     std::vector<int64_t> attention_mask(encoder_input_tensor_size, 1);
+//     size_t encoder_input_length = input_ids.size();
+//     std::vector<int64_t> attention_mask(encoder_input_length, 1);
 //     std::vector<int64_t> encoder_input_dim = {
 //         BATCH_SIZE,
-//         static_cast<int64_t>(encoder_input_tensor_size)
+//         static_cast<int64_t>(encoder_input_length)
 //     };
 
 //     std::vector<Ort::Value> encoder_input_tensors;
 //     encoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
 //         memory_info,
 //         input_ids.data(),
-//         encoder_input_tensor_size,
+//         encoder_input_length,
 //         encoder_input_dim.data(),
 //         encoder_input_dim.size()
 //     ));
 //     encoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
 //         memory_info,
 //         attention_mask.data(),
-//         encoder_input_tensor_size,
+//         encoder_input_length,
 //         encoder_input_dim.data(),
 //         encoder_input_dim.size()
 //     ));
@@ -525,7 +528,7 @@ extern "C" lean_obj_res encode(lean_obj_arg input) {
 //     decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
 //         memory_info,
 //         attention_mask.data(),
-//         encoder_input_tensor_size,
+//         encoder_input_length,
 //         encoder_input_dim.data(),
 //         encoder_input_dim.size()
 //     ));
@@ -576,7 +579,7 @@ extern "C" lean_obj_res encode(lean_obj_arg input) {
 //             decoder_input_tensors.push_back(Ort::Value::CreateTensor<int64_t>(
 //                 memory_info,
 //                 attention_mask.data(),
-//                 encoder_input_tensor_size,
+//                 encoder_input_length,
 //                 encoder_input_dim.data(),
 //                 encoder_input_dim.size()
 //             ));
