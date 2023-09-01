@@ -246,23 +246,12 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
                                  size_t encoder_input_length,
                                  std::vector<int64_t> &encoder_input_dim,
                                  size_t max_length) {
-  std::vector<int64_t> input_ids = {DECODER_START_TOKEN_ID};
-  std::vector<int64_t> dim = {BATCH_SIZE, 1};
+  
+  std::vector<Ort::Value> raw_output_tensors = run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
+  check_tensors(raw_output_tensors);
 
-  std::vector<Ort::Value> input_tensors;
-  input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
-  input_tensors.push_back(create_tensor(input_ids, dim));
-  append_tensor<float>(input_tensors, last_hidden_state);
-
-  std::vector<Ort::Value> raw_output_tensors;
   std::vector<Ort::Value> with_past_output_tensors;
   std::vector<int64_t> tokens;
-
-  raw_output_tensors = decoder_raw_session.Run(
-      Ort::RunOptions{nullptr}, DECODER_RAW_INPUT_NAMES.data(),
-      input_tensors.data(), DECODER_RAW_INPUT_NAMES.size(),
-      DECODER_RAW_OUTPUT_NAMES.data(), DECODER_RAW_OUTPUT_NAMES.size());
-  check_tensors(raw_output_tensors);
 
   int64_t curr_token = sample(get_logits(raw_output_tensors));
   
@@ -272,11 +261,11 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   }
   tokens.push_back(curr_token);
 
-  input_ids.clear();
-  input_ids.push_back(curr_token);
-  
+  std::vector<int64_t> input_ids = {curr_token};
+  std::vector<int64_t> dim = {BATCH_SIZE, 1};
 
-  input_tensors.clear();
+
+  std::vector<Ort::Value> input_tensors;
 
   input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
   input_tensors.push_back(create_tensor(input_ids, dim));
