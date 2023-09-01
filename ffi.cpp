@@ -250,23 +250,15 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   std::vector<Ort::Value> raw_output_tensors = run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
   check_tensors(raw_output_tensors);
 
-  std::vector<Ort::Value> with_past_output_tensors;
-  std::vector<int64_t> tokens;
-
-  int64_t curr_token = sample(get_logits(raw_output_tensors));
-  
-
-  if (curr_token == EOS_TOKEN_ID) {
-    return tokens;
+  int64_t next_token = sample(get_logits(raw_output_tensors));
+  if (next_token == EOS_TOKEN_ID) {
+    return {};
   }
-  tokens.push_back(curr_token);
+  std::vector<int64_t> tokens = {next_token};
 
-  std::vector<int64_t> input_ids = {curr_token};
+  std::vector<int64_t> input_ids = {next_token};
   std::vector<int64_t> dim = {BATCH_SIZE, 1};
-
-
   std::vector<Ort::Value> input_tensors;
-
   input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
   input_tensors.push_back(create_tensor(input_ids, dim));
   append_tensor<float>(input_tensors, last_hidden_state);
@@ -274,6 +266,9 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   for (int i = 1; i < raw_output_tensors.size(); i++) {
     append_tensor<float>(input_tensors, raw_output_tensors.at(i));
   }
+
+  // Weird behavior: If you move this inside the loop, the program will produce nan.
+  std::vector<Ort::Value> with_past_output_tensors;
 
   for (int timestep = 0; timestep < max_length; timestep++) {
     with_past_output_tensors = decoder_with_past_session.Run(
