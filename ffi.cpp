@@ -103,12 +103,12 @@ std::vector<int64_t> tokenize(const char *input) {
 
 /* Simulated Byt5 detokenizer that reverses the effects of it tokenizer */
 const char *detokenize(const std::vector<int64_t> &tokens) {
-  assert(!tokens.empty() && tokens.back() == EOS_TOKEN_ID);
+  assert(!tokens.empty());
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
 
   for (size_t i = 0; i < tokens.size() - 1; i++) {
-    assert(tokens[i] != EOS_TOKEN_ID);
+    assert(tokens[i] >= NUM_SPECIAL_TOKENS);
     s_utf8.push_back(
         static_cast<unsigned char>(tokens[i] - NUM_SPECIAL_TOKENS));
   }
@@ -253,11 +253,12 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
       check_tensors(raw_output_tensors);
 
       int64_t curr_token = sample(get_logits(raw_output_tensors));
-      tokens.push_back(curr_token);
+      
 
       if (curr_token == EOS_TOKEN_ID) {
         break;
       }
+      tokens.push_back(curr_token);
 
       input_ids.clear();
       input_ids.push_back(curr_token);
@@ -281,11 +282,12 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
       check_tensors(with_past_output_tensors);
 
       int64_t curr_token = sample(get_logits(with_past_output_tensors));
-      tokens.push_back(curr_token);
+      
 
       if (curr_token == EOS_TOKEN_ID) {
         break;
       }
+      tokens.push_back(curr_token);
       input_ids.clear();
       input_ids.push_back(curr_token);
 
@@ -317,9 +319,6 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
     }
   }
 
-  if (tokens.back() != EOS_TOKEN_ID) {
-    tokens.push_back(EOS_TOKEN_ID);
-  }
   return tokens;
 }
 
