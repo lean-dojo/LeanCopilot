@@ -11,12 +11,12 @@
 #include <vector>
 
 /* Constants */
-constexpr int NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
-constexpr int EOS_TOKEN_ID = 1;
-constexpr int DECODER_START_TOKEN_ID = 0;
-constexpr int VOCAB_SIZE = 384;
-constexpr int BATCH_SIZE = 1;
-constexpr int ATTENTION_MASL_VALID = 1;
+constexpr int64_t NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
+constexpr int64_t EOS_TOKEN_ID = 1;
+constexpr int64_t DECODER_START_TOKEN_ID = 0;
+constexpr int64_t VOCAB_SIZE = 384;
+constexpr int64_t BATCH_SIZE = 1;
+constexpr int64_t ATTENTION_MASL_VALID = 1;
 
 const std::string DECODER_WITH_PAST_PATH =
     "onnx-leandojo-lean4-tacgen-byt5-small/decoder_with_past_model.onnx";
@@ -120,55 +120,72 @@ const char *detokenize(const std::vector<int64_t> &tokens) {
   return s;
 }
 
-/* Greedy search algorithm with multinomial sampling */
-int64_t sample(float *logits) {
-  std::vector<float> probabilities(VOCAB_SIZE);
-  std::copy(logits, logits + VOCAB_SIZE, probabilities.begin());
+inline bool str_eq(const char *s1, const char *s2) {
+  return strcmp(s1, s2) == 0;
+}
 
-  for (float &probability : probabilities) {
-    probability = std::exp(probability);
+std::vector<float> get_logits(std::vector<Ort::Value> &output_tensors) {
+  assert(str_eq(DECODER_RAW_OUTPUT_NAMES[0], "logits") &&
+         str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[0], "logits"));
+  const float *p = output_tensors[0].GetTensorMutableData<float>();
+  return std::vector<float>(p, p + VOCAB_SIZE);
+}
+
+/* Greedy search algorithm with multinomial sampling */
+int64_t sample(const std::vector<float> &logits) {
+  assert(logits.size() == VOCAB_SIZE);
+
+  // Calculate `probs` as the softmax of `logits`.
+  std::vector<float> probs;
+  for (float v : logits) {
+    probs.push_back(std::exp(v));
   }
-  const float sum_probs =
-      std::accumulate(probabilities.begin(), probabilities.end(), 0.0f);
-  for (float &prob : probabilities) {
-    prob /= sum_probs;
+  float sum_probs = std::accumulate(probs.begin(), probs.end(), 0.0f);
+  for (float &p : probs) {
+    p /= sum_probs;
   }
+  assert(std::abs(std::accumulate(probs.begin(), probs.end(), 0.0f) - 1.0f) <
+         1e-5);
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::discrete_distribution<int64_t> distribution(probabilities.begin(),
-                                                   probabilities.end());
+  std::discrete_distribution<int64_t> distribution(probs.begin(), probs.end());
 
   int64_t sampled_token = distribution(gen);
+  assert(0 <= sampled_token && sampled_token < VOCAB_SIZE);
   return sampled_token;
 }
 
-/* Append a tensor of float to a vector */
-void tensor_float_append(std::vector<Ort::Value> &host_tensor,
-                         Ort::Value &guest_tensor) {
-  host_tensor.push_back(Ort::Value::CreateTensor<float>(
-      mem_info, guest_tensor.GetTensorMutableData<float>(),
-      guest_tensor.GetTensorTypeAndShapeInfo().GetElementCount(),
-      guest_tensor.GetTensorTypeAndShapeInfo().GetShape().data(),
-      guest_tensor.GetTensorTypeAndShapeInfo().GetShape().size()));
+template <class T>
+void append_tensor(std::vector<Ort::Value> &a, Ort::Value &x) {
+  a.push_back(Ort::Value::CreateTensor<T>(
+      mem_info, x.GetTensorMutableData<T>(),
+      x.GetTensorTypeAndShapeInfo().GetElementCount(),
+      x.GetTensorTypeAndShapeInfo().GetShape().data(),
+      x.GetTensorTypeAndShapeInfo().GetShape().size()));
 }
 
-/* Append a tensor of int64_t to a vector */
-void tensor_int64_t_append(std::vector<Ort::Value> &host_tensor,
-                           Ort::Value &guest_tensor) {
-  host_tensor.push_back(Ort::Value::CreateTensor<int64_t>(
-      mem_info, guest_tensor.GetTensorMutableData<int64_t>(),
-      guest_tensor.GetTensorTypeAndShapeInfo().GetElementCount(),
-      guest_tensor.GetTensorTypeAndShapeInfo().GetShape().data(),
-      guest_tensor.GetTensorTypeAndShapeInfo().GetShape().size()));
+void check_tensors(const std::vector<Ort::Value> &ts) {
+  assert(std::all_of(ts.begin(), ts.end(),
+                     [](const Ort::Value &t) { return t.IsTensor(); }));
 }
 
-
-Ort::Value create_long_tensor(std::vector<int64_t> &v, std::vector<int64_t> &dim) {
-  assert(v.size() == std::accumulate(begin(dim), end(dim), 1, std::multiplies<int64_t>()));
-  return Ort::Value::CreateTensor<int64_t>(mem_info, v.data(), v.size(), dim.data(), dim.size());
+template <typename T>
+Ort::Value create_tensor(std::vector<T> &v, std::vector<T> &dim) {
+  assert(v.size() ==
+         std::accumulate(begin(dim), end(dim), 1, std::multiplies<T>()));
+  return Ort::Value::CreateTensor<T>(mem_info, v.data(), v.size(), dim.data(),
+                                     dim.size());
 }
 
+inline std::vector<Ort::Value> run_onnx(
+    Ort::Session &sess, const std::vector<Ort::Value> &input_tensors,
+    const std::vector<const char *> &input_names,
+    const std::vector<const char *> &output_names) {
+  return sess.Run(Ort::RunOptions{nullptr}, input_names.data(),
+                  input_tensors.data(), input_names.size(), output_names.data(),
+                  output_names.size());
+}
 
 Ort::Value run_encoder(std::vector<int64_t> &input_ids,
                        std::vector<int64_t> &attention_mask) {
@@ -177,18 +194,37 @@ Ort::Value run_encoder(std::vector<int64_t> &input_ids,
   std::vector<int64_t> dim = {BATCH_SIZE, l};
 
   std::vector<Ort::Value> input_tensors;
-  input_tensors.push_back(create_long_tensor(input_ids, dim));
-  input_tensors.push_back(create_long_tensor(attention_mask, dim));
+  input_tensors.push_back(create_tensor(input_ids, dim));
+  input_tensors.push_back(create_tensor(attention_mask, dim));
 
   // Run the encoder.
-  std::vector<Ort::Value> output_tensors = encoder_session.Run(
-      Ort::RunOptions{nullptr}, ENCODER_INPUT_NAMES.data(),
-      input_tensors.data(), ENCODER_INPUT_NAMES.size(),
-      ENCODER_OUTPUT_NAMES.data(), ENCODER_OUTPUT_NAMES.size());
+  std::vector<Ort::Value> output_tensors =
+      run_onnx(encoder_session, input_tensors, ENCODER_INPUT_NAMES,
+               ENCODER_OUTPUT_NAMES);
 
   // Return last_hidden_state.
   Ort::Value last_hidden_state = std::move(output_tensors.front());
   return last_hidden_state;
+}
+
+std::vector<Ort::Value> run_decoder_raw(
+    Ort::Value &last_hidden_state, std::vector<int64_t> &attention_mask,
+    std::vector<int64_t> &encoder_input_dim) {
+  // Prepare the decoder's input.
+  std::vector<int64_t> input_ids = {DECODER_START_TOKEN_ID};
+  std::vector<int64_t> dim = {BATCH_SIZE, 1};
+
+  std::vector<Ort::Value> input_tensors;
+  input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
+  input_tensors.push_back(create_tensor(input_ids, dim));
+  append_tensor<float>(input_tensors, last_hidden_state);
+
+  // Run the decoder.
+  std::vector<Ort::Value> output_tensors =
+      run_onnx(decoder_raw_session, input_tensors, DECODER_RAW_INPUT_NAMES,
+               DECODER_RAW_OUTPUT_NAMES);
+  check_tensors(output_tensors);
+  return output_tensors;
 }
 
 std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
@@ -197,112 +233,94 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
                                  std::vector<int64_t> &encoder_input_dim,
                                  size_t max_length) {
   std::vector<int64_t> input_ids = {DECODER_START_TOKEN_ID};
-  int64_t l = input_ids.size();
-  std::vector<int64_t> dim = {BATCH_SIZE, l};
+  std::vector<int64_t> dim = {BATCH_SIZE, 1};
 
   std::vector<Ort::Value> input_tensors;
-  input_tensors.push_back(create_long_tensor(attention_mask, encoder_input_dim));
-  input_tensors.push_back(create_long_tensor(input_ids, dim));
-  tensor_float_append(input_tensors, last_hidden_state);
+  input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
+  input_tensors.push_back(create_tensor(input_ids, dim));
+  append_tensor<float>(input_tensors, last_hidden_state);
 
-  std::vector<Ort::Value> decoder_raw_output_tensors;
-  std::vector<Ort::Value> decoder_with_past_output_tensors;
-  float *curr_logits;
-  std::vector<int64_t> model_outputs;
+  std::vector<Ort::Value> raw_output_tensors;
+  std::vector<Ort::Value> with_past_output_tensors;
+  std::vector<int64_t> tokens;
 
   for (int timestep = 0; timestep < max_length; timestep++) {
     if (timestep == 0) {
-      decoder_raw_output_tensors = decoder_raw_session.Run(
+      raw_output_tensors = decoder_raw_session.Run(
           Ort::RunOptions{nullptr}, DECODER_RAW_INPUT_NAMES.data(),
           input_tensors.data(), DECODER_RAW_INPUT_NAMES.size(),
           DECODER_RAW_OUTPUT_NAMES.data(), DECODER_RAW_OUTPUT_NAMES.size());
+      check_tensors(raw_output_tensors);
 
-      bool allTensorsValid = std::all_of(
-          decoder_raw_output_tensors.begin(), decoder_raw_output_tensors.end(),
-          [](const Ort::Value &tensor) { return tensor.IsTensor(); });
-      assert(allTensorsValid);
+      int64_t curr_token = sample(get_logits(raw_output_tensors));
+      tokens.push_back(curr_token);
 
-      curr_logits =
-          decoder_raw_output_tensors.at(0).GetTensorMutableData<float>();
-      int64_t curr_token = sample(curr_logits);
-      model_outputs.push_back(curr_token);
+      if (curr_token == EOS_TOKEN_ID) {
+        break;
+      }
 
-      if (curr_token == 1) break;
       input_ids.clear();
       input_ids.push_back(curr_token);
+      ;
 
       input_tensors.clear();
-      
-      input_tensors.push_back(create_long_tensor(attention_mask, encoder_input_dim));
-      input_tensors.push_back(create_long_tensor(input_ids, dim));
-      tensor_float_append(input_tensors, last_hidden_state);
 
-      for (int i = 1; i < decoder_raw_output_tensors.size(); i++) {
-        tensor_float_append(input_tensors,
-                            decoder_raw_output_tensors.at(i));
+      input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
+      input_tensors.push_back(create_tensor(input_ids, dim));
+      append_tensor<float>(input_tensors, last_hidden_state);
+
+      for (int i = 1; i < raw_output_tensors.size(); i++) {
+        append_tensor<float>(input_tensors, raw_output_tensors.at(i));
       }
     } else {
-      decoder_with_past_output_tensors = decoder_with_past_session.Run(
+      with_past_output_tensors = decoder_with_past_session.Run(
           Ort::RunOptions{nullptr}, DECODER_WITH_PAST_INPUT_NAMES.data(),
           input_tensors.data(), DECODER_WITH_PAST_INPUT_NAMES.size(),
           DECODER_WITH_PAST_OUTPUT_NAMES.data(),
           DECODER_WITH_PAST_OUTPUT_NAMES.size());
+      check_tensors(with_past_output_tensors);
 
-      assert(decoder_with_past_output_tensors.size() ==
-             DECODER_WITH_PAST_OUTPUT_NAMES.size());
-      bool allTensorsValid = std::all_of(
-          decoder_with_past_output_tensors.begin(),
-          decoder_with_past_output_tensors.end(),
-          [](const Ort::Value &tensor) { return tensor.IsTensor(); });
-      assert(allTensorsValid);
+      int64_t curr_token = sample(get_logits(with_past_output_tensors));
+      tokens.push_back(curr_token);
 
-      curr_logits =
-          decoder_with_past_output_tensors.at(0).GetTensorMutableData<float>();
-      int64_t curr_token = sample(curr_logits);
-      model_outputs.push_back(curr_token);
-
-      if (curr_token == 1) break;
+      if (curr_token == EOS_TOKEN_ID) {
+        break;
+      }
       input_ids.clear();
       input_ids.push_back(curr_token);
 
       std::vector<Ort::Value> temporary_tensors;
       for (int i = 0; i < input_tensors.size(); i++) {
         if (i == 0) {
-          tensor_int64_t_append(temporary_tensors, input_tensors.at(i));
+          append_tensor<int64_t>(temporary_tensors, input_tensors.at(i));
         } else if (i == 1) {
-          temporary_tensors.push_back(create_long_tensor(input_ids, dim));
+          temporary_tensors.push_back(create_tensor(input_ids, dim));
         } else if (i == 2 || i == 5 || i == 6 || i == 9 || i == 10 || i == 13 ||
                    i == 14 || i == 17 || i == 18) {
-          tensor_float_append(temporary_tensors, input_tensors.at(i));
+          append_tensor<float>(temporary_tensors, input_tensors.at(i));
         } else {
           assert(i == 3 || i == 4 || i == 7 || i == 8 || i == 11 || i == 12 ||
                  i == 15 || i == 16);
-          tensor_float_append(temporary_tensors,
-                              decoder_with_past_output_tensors.at(i / 2));
+          append_tensor<float>(temporary_tensors,
+                               with_past_output_tensors.at(i / 2));
         }
-      }
-
-      assert(temporary_tensors.size() == input_tensors.size());
-      for (int i = 0; i < temporary_tensors.size(); i++) {
-        assert(temporary_tensors.at(i)
-                   .GetTensorTypeAndShapeInfo()
-                   .GetElementType() == input_tensors.at(i)
-                                            .GetTensorTypeAndShapeInfo()
-                                            .GetElementType());
       }
 
       input_tensors.clear();
       for (int i = 0; i < temporary_tensors.size(); i++) {
         if (i == 0 || i == 1) {
-          tensor_int64_t_append(input_tensors, temporary_tensors.at(i));
+          append_tensor<int64_t>(input_tensors, temporary_tensors.at(i));
         } else {
-          tensor_float_append(input_tensors, temporary_tensors.at(i));
+          append_tensor<float>(input_tensors, temporary_tensors.at(i));
         }
       }
     }
   }
 
-  return model_outputs;
+  if (tokens.back() != EOS_TOKEN_ID) {
+    tokens.push_back(EOS_TOKEN_ID);
+  }
+  return tokens;
 }
 
 /* Run inference on the transformers model */
@@ -317,12 +335,12 @@ std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
   Ort::Value last_hidden_state = run_encoder(input_ids, attention_mask);
 
   // Run decoder
-  std::vector<int64_t> model_outputs =
+  std::vector<int64_t> tokens =
       run_decoder(last_hidden_state, attention_mask, encoder_input_length,
                   encoder_input_dim, max_length);
 
   // Detokenize output and return as a Lean string
-  const char *tac = detokenize(model_outputs);
+  const char *tac = detokenize(tokens);
   return std::make_pair(tac, 0.5);
 }
 
