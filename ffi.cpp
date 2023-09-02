@@ -110,7 +110,8 @@ const char *detokenize(const std::vector<int64_t> &tokens) {
   std::string s_utf8;
 
   for (size_t i = 0; i < tokens.size(); i++) {
-    assert(NUM_SPECIAL_TOKENS <= tokens[i] && tokens[i] < NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS);
+    assert(NUM_SPECIAL_TOKENS <= tokens[i] &&
+           tokens[i] < NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS);
     s_utf8.push_back(
         static_cast<unsigned char>(tokens[i] - NUM_SPECIAL_TOKENS));
   }
@@ -144,13 +145,14 @@ int64_t sample(const std::vector<float> &logits, double temperature) {
   std::vector<double> probs;
 
   for (int i = 0; i < VOCAB_SIZE; i++) {
-    if (i == PAD_TOKEN_ID || i == UNK_TOKEN_ID || i > NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS) {
+    if (i == PAD_TOKEN_ID || i == UNK_TOKEN_ID ||
+        i > NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS) {
       probs.push_back(0.0);
       continue;
     }
     double v = static_cast<double>(logits[i]);
     assert(std::isnormal(v));
-    probs.push_back(std::exp(v));
+    probs.push_back(std::exp(v / temperature));
   }
 
   double eps = 1e-5;
@@ -211,24 +213,22 @@ inline std::vector<Ort::Value> run_onnx(
                   output_names.size());
 }
 
-Ort::Value run_encoder(std::vector<int64_t> &input_ids,
-                       std::vector<int64_t> &attention_mask) {
+std::vector<Ort::Value> run_encoder(std::vector<int64_t> &input_ids,
+                                    std::vector<int64_t> &attention_mask,
+                                    int64_t batch_size) {
   // Prepare the encoder's input.
   int64_t l = input_ids.size();
-  std::vector<int64_t> dim = {BATCH_SIZE, l};
+  std::vector<int64_t> dim = {batch_size, l};
 
   std::vector<Ort::Value> input_tensors;
   input_tensors.push_back(create_tensor(input_ids, dim));
   input_tensors.push_back(create_tensor(attention_mask, dim));
 
-  // Run the encoder.
+  // Run the encoder and eturn last_hidden_state.
   std::vector<Ort::Value> output_tensors =
       run_onnx(encoder_session, input_tensors, ENCODER_INPUT_NAMES,
                ENCODER_OUTPUT_NAMES);
-
-  // Return last_hidden_state.
-  Ort::Value last_hidden_state = std::move(output_tensors.front());
-  return last_hidden_state;
+  return output_tensors;
 }
 
 std::vector<Ort::Value> run_decoder_raw(
@@ -253,7 +253,6 @@ std::vector<Ort::Value> run_decoder_raw(
 
 std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
                                  std::vector<int64_t> &attention_mask,
-                                 size_t encoder_input_length,
                                  std::vector<int64_t> &encoder_input_dim,
                                  size_t max_length, double temperature) {
   std::vector<Ort::Value> raw_output_tensors =
@@ -350,21 +349,29 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   return tokens;
 }
 
+/*
+std::vector<std::pair<const char *, double>>
+run_batch_inference(std::vector<int64_t> input_ids, uint64_t max_length, double
+temperature) {
+  // Run the encoder.
+}
+*/
+
 /* Run inference on the transformers model */
 std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
-                                              uint64_t max_length, double temperature) {
-  // Run encoder
-  size_t encoder_input_length = input_ids.size();
-  std::vector<int64_t> encoder_input_dim = {
-      BATCH_SIZE, static_cast<int64_t>(encoder_input_length)};
-  std::vector<int64_t> attention_mask(encoder_input_length,
-                                      ATTENTION_MASL_VALID);
-  Ort::Value last_hidden_state = run_encoder(input_ids, attention_mask);
+                                              uint64_t max_length,
+                                              double temperature) {
+  // Run the encoder.
+  int64_t l = input_ids.size();
+  std::vector<int64_t> encoder_input_dim = {1, l};
+  std::vector<int64_t> attention_mask(l, ATTENTION_MASL_VALID);
+  Ort::Value last_hidden_state =
+      std::move(run_encoder(input_ids, attention_mask, 1).front());
 
-  // Run decoder
+  // Run the decoder.
   std::vector<int64_t> tokens =
-      run_decoder(last_hidden_state, attention_mask, encoder_input_length,
-                  encoder_input_dim, max_length, temperature);
+      run_decoder(last_hidden_state, attention_mask, encoder_input_dim,
+                  max_length, temperature);
 
   // Detokenize output and return as a Lean string
   const char *tac = detokenize(tokens);
@@ -380,7 +387,8 @@ static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
 
 extern "C" lean_obj_res generate(lean_obj_arg input,
                                  uint64_t num_return_sequences,
-                                 uint64_t max_length, double temperature, uint64_t num_beams) {
+                                 uint64_t max_length, double temperature,
+                                 uint64_t num_beams) {
   // Check the arguments.
   if (num_return_sequences <= 0) {
     throw std::invalid_argument("num_return_sequences must be positive.");
