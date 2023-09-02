@@ -133,7 +133,7 @@ std::vector<float> get_logits(std::vector<Ort::Value> &output_tensors) {
   return std::vector<float>(p, p + VOCAB_SIZE);
 }
 
-double sum(const std::vector <double> &v) {
+double sum(const std::vector<double> &v) {
   return std::accumulate(v.cbegin(), v.cend(), 0.0);
 }
 
@@ -155,7 +155,7 @@ int64_t sample(const std::vector<float> &logits) {
 
   double eps = 1e-5;
   double sum_probs = sum(probs);
-  assert (sum_probs > eps);
+  assert(sum_probs > eps);
   for (double &p : probs) {
     p /= sum_probs;
   }
@@ -163,11 +163,21 @@ int64_t sample(const std::vector<float> &logits) {
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::discrete_distribution<int64_t> distribution(probs.cbegin(), probs.cend());
+  std::discrete_distribution<int64_t> distribution(probs.cbegin(),
+                                                   probs.cend());
 
   int64_t sampled_token = distribution(gen);
   assert(0 <= sampled_token && sampled_token < VOCAB_SIZE);
   return sampled_token;
+}
+
+template <typename T>
+void set_tensor(std::vector<Ort::Value> &a, int i, Ort::Value &x) {
+  a[i] = Ort::Value::CreateTensor<T>(
+      mem_info, x.GetTensorMutableData<T>(),
+      x.GetTensorTypeAndShapeInfo().GetElementCount(),
+      x.GetTensorTypeAndShapeInfo().GetShape().data(),
+      x.GetTensorTypeAndShapeInfo().GetShape().size());
 }
 
 template <typename T>
@@ -241,13 +251,83 @@ std::vector<Ort::Value> run_decoder_raw(
   return output_tensors;
 }
 
+std::vector<Ort::Value> prepare_decoder_with_past_inputs(
+    int64_t curr_token, Ort::Value &last_hidden_state,
+    std::vector<int64_t> &attention_mask,
+    std::vector<int64_t> &encoder_input_dim,
+    std::vector<Ort::Value> &raw_output_tensors,
+    std::vector<Ort::Value> *p_last_with_past_output_tensors) {
+  std::vector<int64_t> input_ids = {curr_token};
+  std::vector<int64_t> dim = {BATCH_SIZE, 1};
+
+  std::vector<Ort::Value> input_tensors;
+  input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
+  input_tensors.push_back(create_tensor(input_ids, dim));
+  append_tensor<float>(input_tensors, last_hidden_state);
+
+  // past_key_values.
+  for (int i = 1; i < raw_output_tensors.size(); i++) {
+    assert(strncmp(DECODER_RAW_OUTPUT_NAMES[i], "present.", 8) == 0);
+    append_tensor<float>(input_tensors, raw_output_tensors[i]);
+  }
+
+  // decoder past_key_values.
+  if (p_last_with_past_output_tensors != nullptr) {
+    assert(
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[1], "present.0.decoder.key") &&
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[2], "present.0.decoder.value"));
+    assert(str_eq(DECODER_WITH_PAST_INPUT_NAMES[3],
+                  "past_key_values.0.decoder.key") &&
+           str_eq(DECODER_WITH_PAST_INPUT_NAMES[4],
+                  "past_key_values.0.decoder.value"));
+    set_tensor<float>(input_tensors, 3, p_last_with_past_output_tensors->at(1));
+    set_tensor<float>(input_tensors, 4, p_last_with_past_output_tensors->at(2));
+
+    assert(
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[3], "present.1.decoder.key") &&
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[4], "present.1.decoder.value"));
+    assert(str_eq(DECODER_WITH_PAST_INPUT_NAMES[7],
+                  "past_key_values.1.decoder.key") &&
+           str_eq(DECODER_WITH_PAST_INPUT_NAMES[8],
+                  "past_key_values.1.decoder.value"));
+    set_tensor<float>(input_tensors, 7, p_last_with_past_output_tensors->at(3));
+    set_tensor<float>(input_tensors, 8, p_last_with_past_output_tensors->at(4));
+
+    assert(
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[5], "present.2.decoder.key") &&
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[6], "present.2.decoder.value"));
+    assert(str_eq(DECODER_WITH_PAST_INPUT_NAMES[11],
+                  "past_key_values.2.decoder.key") &&
+           str_eq(DECODER_WITH_PAST_INPUT_NAMES[12],
+                  "past_key_values.2.decoder.value"));
+    set_tensor<float>(input_tensors, 11,
+                      p_last_with_past_output_tensors->at(5));
+    set_tensor<float>(input_tensors, 12,
+                      p_last_with_past_output_tensors->at(6));
+
+    assert(
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[7], "present.3.decoder.key") &&
+        str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[8], "present.3.decoder.value"));
+    assert(str_eq(DECODER_WITH_PAST_INPUT_NAMES[15],
+                  "past_key_values.3.decoder.key") &&
+           str_eq(DECODER_WITH_PAST_INPUT_NAMES[16],
+                  "past_key_values.3.decoder.value"));
+    set_tensor<float>(input_tensors, 15,
+                      p_last_with_past_output_tensors->at(7));
+    set_tensor<float>(input_tensors, 16,
+                      p_last_with_past_output_tensors->at(8));
+  }
+
+  return input_tensors;
+}
+
 std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
                                  std::vector<int64_t> &attention_mask,
                                  size_t encoder_input_length,
                                  std::vector<int64_t> &encoder_input_dim,
                                  size_t max_length) {
-  
-  std::vector<Ort::Value> raw_output_tensors = run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
+  std::vector<Ort::Value> raw_output_tensors =
+      run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
   check_tensors(raw_output_tensors);
 
   int64_t next_token = sample(get_logits(raw_output_tensors));
@@ -256,35 +336,25 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   }
   std::vector<int64_t> tokens = {next_token};
 
-  std::vector<int64_t> input_ids = {next_token};
-  std::vector<int64_t> dim = {BATCH_SIZE, 1};
-  std::vector<Ort::Value> input_tensors;
-  input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
-  input_tensors.push_back(create_tensor(input_ids, dim));
-  append_tensor<float>(input_tensors, last_hidden_state);
-
-  for (int i = 1; i < raw_output_tensors.size(); i++) {
-    append_tensor<float>(input_tensors, raw_output_tensors.at(i));
-  }
-
-  // Weird behavior: If you move this inside the loop, the program will produce nan.
+  std::vector<Ort::Value> input_tensors = prepare_decoder_with_past_inputs(next_token, last_hidden_state, attention_mask, encoder_input_dim, raw_output_tensors, nullptr);
+  // If you move this inside the loop, the program will produce nan.
   std::vector<Ort::Value> with_past_output_tensors;
+  std::vector<int64_t> input_ids;
+  std::vector<int64_t> dim = {BATCH_SIZE, 1};
 
   for (int timestep = 1; timestep < max_length; timestep++) {
-    with_past_output_tensors = decoder_with_past_session.Run(
-        Ort::RunOptions{nullptr}, DECODER_WITH_PAST_INPUT_NAMES.data(),
-        input_tensors.data(), DECODER_WITH_PAST_INPUT_NAMES.size(),
-        DECODER_WITH_PAST_OUTPUT_NAMES.data(),
-        DECODER_WITH_PAST_OUTPUT_NAMES.size());
+    with_past_output_tensors =
+        run_onnx(decoder_with_past_session, input_tensors,
+                 DECODER_WITH_PAST_INPUT_NAMES, DECODER_WITH_PAST_OUTPUT_NAMES);
     check_tensors(with_past_output_tensors);
 
     int64_t curr_token = sample(get_logits(with_past_output_tensors));
-    
 
     if (curr_token == EOS_TOKEN_ID) {
       break;
     }
     tokens.push_back(curr_token);
+
     input_ids.clear();
     input_ids.push_back(curr_token);
 
@@ -295,13 +365,13 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
       } else if (i == 1) {
         temporary_tensors.push_back(create_tensor(input_ids, dim));
       } else if (i == 2 || i == 5 || i == 6 || i == 9 || i == 10 || i == 13 ||
-                  i == 14 || i == 17 || i == 18) {
+                 i == 14 || i == 17 || i == 18) {
         append_tensor<float>(temporary_tensors, input_tensors.at(i));
       } else {
         assert(i == 3 || i == 4 || i == 7 || i == 8 || i == 11 || i == 12 ||
-                i == 15 || i == 16);
+               i == 15 || i == 16);
         append_tensor<float>(temporary_tensors,
-                              with_past_output_tensors.at(i / 2));
+                             with_past_output_tensors.at(i / 2));
       }
     }
 
@@ -313,7 +383,6 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
         append_tensor<float>(input_tensors, temporary_tensors.at(i));
       }
     }
-    
   }
 
   return tokens;
