@@ -17,6 +17,7 @@ constexpr int64_t EOS_TOKEN_ID = 1;
 constexpr int64_t UNK_TOKEN_ID = 2;
 constexpr int64_t DECODER_START_TOKEN_ID = 0;
 constexpr int64_t VOCAB_SIZE = 384;
+constexpr int64_t NUM_VALID_TOKENS = 256;
 constexpr int64_t BATCH_SIZE = 1;
 constexpr int64_t ATTENTION_MASL_VALID = 1;
 
@@ -105,12 +106,11 @@ std::vector<int64_t> tokenize(const char *input) {
 
 /* Simulated Byt5 detokenizer that reverses the effects of it tokenizer */
 const char *detokenize(const std::vector<int64_t> &tokens) {
-  assert(!tokens.empty());
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
 
-  for (size_t i = 0; i < tokens.size() - 1; i++) {
-    assert(tokens[i] >= NUM_SPECIAL_TOKENS);
+  for (size_t i = 0; i < tokens.size(); i++) {
+    assert(NUM_SPECIAL_TOKENS <= tokens[i] && tokens[i] < NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS);
     s_utf8.push_back(
         static_cast<unsigned char>(tokens[i] - NUM_SPECIAL_TOKENS));
   }
@@ -138,13 +138,13 @@ double sum(const std::vector<double> &v) {
 }
 
 /* Greedy search algorithm with multinomial sampling */
-int64_t sample(const std::vector<float> &logits) {
+int64_t sample(const std::vector<float> &logits, double temperature) {
   // Calculate `probs` as the softmax of `logits`.
   assert(logits.size() == VOCAB_SIZE);
   std::vector<double> probs;
 
   for (int i = 0; i < VOCAB_SIZE; i++) {
-    if (i == PAD_TOKEN_ID || i == UNK_TOKEN_ID) {
+    if (i == PAD_TOKEN_ID || i == UNK_TOKEN_ID || i > NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS) {
       probs.push_back(0.0);
       continue;
     }
@@ -251,28 +251,61 @@ std::vector<Ort::Value> run_decoder_raw(
   return output_tensors;
 }
 
-std::vector<Ort::Value> prepare_decoder_with_past_inputs(
-    int64_t curr_token, Ort::Value &last_hidden_state,
-    std::vector<int64_t> &attention_mask,
-    std::vector<int64_t> &encoder_input_dim,
-    std::vector<Ort::Value> &raw_output_tensors,
-    std::vector<Ort::Value> *p_last_with_past_output_tensors) {
-  std::vector<int64_t> input_ids = {curr_token};
-  std::vector<int64_t> dim = {BATCH_SIZE, 1};
+std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
+                                 std::vector<int64_t> &attention_mask,
+                                 size_t encoder_input_length,
+                                 std::vector<int64_t> &encoder_input_dim,
+                                 size_t max_length, double temperature) {
+  std::vector<Ort::Value> raw_output_tensors =
+      run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
+  check_tensors(raw_output_tensors);
 
+  std::vector<float> logits = get_logits(raw_output_tensors);
+  int64_t next_token = sample(logits, temperature);
+  if (next_token == EOS_TOKEN_ID) {
+    return {};
+  }
+
+  std::vector<int64_t> input_ids = {next_token};
+  std::vector<int64_t> dim = {BATCH_SIZE, 1};
   std::vector<Ort::Value> input_tensors;
   input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
   input_tensors.push_back(create_tensor(input_ids, dim));
   append_tensor<float>(input_tensors, last_hidden_state);
-
-  // past_key_values.
   for (int i = 1; i < raw_output_tensors.size(); i++) {
     assert(strncmp(DECODER_RAW_OUTPUT_NAMES[i], "present.", 8) == 0);
     append_tensor<float>(input_tensors, raw_output_tensors[i]);
   }
 
-  // decoder past_key_values.
-  if (p_last_with_past_output_tensors != nullptr) {
+  // If you move this inside the loop, the program will produce nan.
+  std::vector<Ort::Value> with_past_output_tensors;
+  std::vector<int64_t> tokens = {next_token};
+
+  for (int n_step = 1; n_step < max_length; n_step++) {
+    with_past_output_tensors =
+        run_onnx(decoder_with_past_session, input_tensors,
+                 DECODER_WITH_PAST_INPUT_NAMES, DECODER_WITH_PAST_OUTPUT_NAMES);
+    check_tensors(with_past_output_tensors);
+
+    logits = get_logits(with_past_output_tensors);
+    next_token = sample(logits, temperature);
+    if (next_token == EOS_TOKEN_ID) {
+      break;
+    }
+    tokens.push_back(next_token);
+
+    input_ids.clear();
+    input_ids.push_back(next_token);
+    input_tensors.clear();
+    input_tensors.push_back(create_tensor(attention_mask, encoder_input_dim));
+    input_tensors.push_back(create_tensor(input_ids, dim));
+    append_tensor<float>(input_tensors, last_hidden_state);
+
+    for (int i = 1; i < raw_output_tensors.size(); i++) {
+      assert(strncmp(DECODER_RAW_OUTPUT_NAMES[i], "present.", 8) == 0);
+      append_tensor<float>(input_tensors, raw_output_tensors[i]);
+    }
+
     assert(
         str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[1], "present.0.decoder.key") &&
         str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[2], "present.0.decoder.value"));
@@ -280,8 +313,8 @@ std::vector<Ort::Value> prepare_decoder_with_past_inputs(
                   "past_key_values.0.decoder.key") &&
            str_eq(DECODER_WITH_PAST_INPUT_NAMES[4],
                   "past_key_values.0.decoder.value"));
-    set_tensor<float>(input_tensors, 3, p_last_with_past_output_tensors->at(1));
-    set_tensor<float>(input_tensors, 4, p_last_with_past_output_tensors->at(2));
+    set_tensor<float>(input_tensors, 3, with_past_output_tensors[1]);
+    set_tensor<float>(input_tensors, 4, with_past_output_tensors[2]);
 
     assert(
         str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[3], "present.1.decoder.key") &&
@@ -290,8 +323,8 @@ std::vector<Ort::Value> prepare_decoder_with_past_inputs(
                   "past_key_values.1.decoder.key") &&
            str_eq(DECODER_WITH_PAST_INPUT_NAMES[8],
                   "past_key_values.1.decoder.value"));
-    set_tensor<float>(input_tensors, 7, p_last_with_past_output_tensors->at(3));
-    set_tensor<float>(input_tensors, 8, p_last_with_past_output_tensors->at(4));
+    set_tensor<float>(input_tensors, 7, with_past_output_tensors[3]);
+    set_tensor<float>(input_tensors, 8, with_past_output_tensors[4]);
 
     assert(
         str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[5], "present.2.decoder.key") &&
@@ -300,10 +333,8 @@ std::vector<Ort::Value> prepare_decoder_with_past_inputs(
                   "past_key_values.2.decoder.key") &&
            str_eq(DECODER_WITH_PAST_INPUT_NAMES[12],
                   "past_key_values.2.decoder.value"));
-    set_tensor<float>(input_tensors, 11,
-                      p_last_with_past_output_tensors->at(5));
-    set_tensor<float>(input_tensors, 12,
-                      p_last_with_past_output_tensors->at(6));
+    set_tensor<float>(input_tensors, 11, with_past_output_tensors[5]);
+    set_tensor<float>(input_tensors, 12, with_past_output_tensors[6]);
 
     assert(
         str_eq(DECODER_WITH_PAST_OUTPUT_NAMES[7], "present.3.decoder.key") &&
@@ -312,77 +343,8 @@ std::vector<Ort::Value> prepare_decoder_with_past_inputs(
                   "past_key_values.3.decoder.key") &&
            str_eq(DECODER_WITH_PAST_INPUT_NAMES[16],
                   "past_key_values.3.decoder.value"));
-    set_tensor<float>(input_tensors, 15,
-                      p_last_with_past_output_tensors->at(7));
-    set_tensor<float>(input_tensors, 16,
-                      p_last_with_past_output_tensors->at(8));
-  }
-
-  return input_tensors;
-}
-
-std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
-                                 std::vector<int64_t> &attention_mask,
-                                 size_t encoder_input_length,
-                                 std::vector<int64_t> &encoder_input_dim,
-                                 size_t max_length) {
-  std::vector<Ort::Value> raw_output_tensors =
-      run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
-  check_tensors(raw_output_tensors);
-
-  int64_t next_token = sample(get_logits(raw_output_tensors));
-  if (next_token == EOS_TOKEN_ID) {
-    return {};
-  }
-  std::vector<int64_t> tokens = {next_token};
-
-  std::vector<Ort::Value> input_tensors = prepare_decoder_with_past_inputs(next_token, last_hidden_state, attention_mask, encoder_input_dim, raw_output_tensors, nullptr);
-  // If you move this inside the loop, the program will produce nan.
-  std::vector<Ort::Value> with_past_output_tensors;
-  std::vector<int64_t> input_ids;
-  std::vector<int64_t> dim = {BATCH_SIZE, 1};
-
-  for (int timestep = 1; timestep < max_length; timestep++) {
-    with_past_output_tensors =
-        run_onnx(decoder_with_past_session, input_tensors,
-                 DECODER_WITH_PAST_INPUT_NAMES, DECODER_WITH_PAST_OUTPUT_NAMES);
-    check_tensors(with_past_output_tensors);
-
-    int64_t curr_token = sample(get_logits(with_past_output_tensors));
-
-    if (curr_token == EOS_TOKEN_ID) {
-      break;
-    }
-    tokens.push_back(curr_token);
-
-    input_ids.clear();
-    input_ids.push_back(curr_token);
-
-    std::vector<Ort::Value> temporary_tensors;
-    for (int i = 0; i < input_tensors.size(); i++) {
-      if (i == 0) {
-        append_tensor<int64_t>(temporary_tensors, input_tensors.at(i));
-      } else if (i == 1) {
-        temporary_tensors.push_back(create_tensor(input_ids, dim));
-      } else if (i == 2 || i == 5 || i == 6 || i == 9 || i == 10 || i == 13 ||
-                 i == 14 || i == 17 || i == 18) {
-        append_tensor<float>(temporary_tensors, input_tensors.at(i));
-      } else {
-        assert(i == 3 || i == 4 || i == 7 || i == 8 || i == 11 || i == 12 ||
-               i == 15 || i == 16);
-        append_tensor<float>(temporary_tensors,
-                             with_past_output_tensors.at(i / 2));
-      }
-    }
-
-    input_tensors.clear();
-    for (int i = 0; i < temporary_tensors.size(); i++) {
-      if (i == 0 || i == 1) {
-        append_tensor<int64_t>(input_tensors, temporary_tensors.at(i));
-      } else {
-        append_tensor<float>(input_tensors, temporary_tensors.at(i));
-      }
-    }
+    set_tensor<float>(input_tensors, 15, with_past_output_tensors[7]);
+    set_tensor<float>(input_tensors, 16, with_past_output_tensors[8]);
   }
 
   return tokens;
@@ -390,7 +352,7 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
 
 /* Run inference on the transformers model */
 std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
-                                              uint64_t max_length) {
+                                              uint64_t max_length, double temperature) {
   // Run encoder
   size_t encoder_input_length = input_ids.size();
   std::vector<int64_t> encoder_input_dim = {
@@ -402,7 +364,7 @@ std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
   // Run decoder
   std::vector<int64_t> tokens =
       run_decoder(last_hidden_state, attention_mask, encoder_input_length,
-                  encoder_input_dim, max_length);
+                  encoder_input_dim, max_length, temperature);
 
   // Detokenize output and return as a Lean string
   const char *tac = detokenize(tokens);
@@ -418,8 +380,7 @@ static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
 
 extern "C" lean_obj_res generate(lean_obj_arg input,
                                  uint64_t num_return_sequences,
-                                 uint64_t max_length, double temperature,
-                                 double top_p, uint64_t num_beams) {
+                                 uint64_t max_length, double temperature, uint64_t num_beams) {
   // Check the arguments.
   if (num_return_sequences <= 0) {
     throw std::invalid_argument("num_return_sequences must be positive.");
@@ -429,9 +390,6 @@ extern "C" lean_obj_res generate(lean_obj_arg input,
   }
   if (temperature <= 0) {
     throw std::invalid_argument("temperature must be positive.");
-  }
-  if (top_p <= 0 || top_p > 1) {
-    throw std::invalid_argument("top_p must be in (0, 1].");
   }
   if (num_beams <= 0) {
     throw std::invalid_argument("num_beams must be positive.");
@@ -448,8 +406,10 @@ extern "C" lean_obj_res generate(lean_obj_arg input,
   lean_array_object *arr = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_return_sequences, num_return_sequences));
 
+  // TODO: Run the tactic generator in a batch.
+  // TODO: Calculate the score.
   for (int i = 0; i < num_return_sequences; i++) {
-    auto p = run_inference(tokenized_input, max_length);
+    auto p = run_inference(tokenized_input, max_length, temperature);
     const char *tac = p.first;
     double s = p.second;
     arr->m_data[i] = lean_mk_pair(lean_mk_string(tac), lean_box_float(s));
