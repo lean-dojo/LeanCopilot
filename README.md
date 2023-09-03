@@ -59,3 +59,8 @@ Neural network inference in Lean 4.
   howpublished = {\url{https://github.com/lean-dojo/LeanInfer}},
 }
 ```
+
+
+## FAQ
+
+`libc++abi: terminating with uncaught exception of type Ort::Exception: Load model from onnx-leandojo-lean4-tacgen-byt5-small/encoder_model.onnx failed:Load model onnx-leandojo-lean4-tacgen-byt5-small/encoder_model.onnx failed. File doesn't exist`: Make sure you have downloaded the ONNX model.
