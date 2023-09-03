@@ -349,10 +349,11 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   return tokens;
 }
 
+/*
 std::vector<std::pair<const char *, double>> run_batch_inference(
     std::vector<int64_t> input_ids, uint64_t max_length, double temperature) {
   // Run the encoder.
-}
+}*/
 
 /* Run inference on the transformers model */
 std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
@@ -382,7 +383,7 @@ static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
   return r;
 }
 
-extern "C" lean_obj_res generate(lean_obj_arg input,
+extern "C" lean_obj_res generate(b_lean_obj_arg input,
                                  uint64_t num_return_sequences,
                                  uint64_t max_length, double temperature,
                                  uint64_t num_beams) {
@@ -423,7 +424,7 @@ extern "C" lean_obj_res generate(lean_obj_arg input,
   return reinterpret_cast<lean_obj_res>(arr);
 }
 
-extern "C" lean_obj_res encode(lean_obj_arg input) {
+extern "C" lean_obj_res encode(b_lean_obj_arg input) {
   lean_object *arr = lean_mk_empty_float_array(lean_box(10));
   lean_float_array_push(arr, 0.34);
   lean_float_array_push(arr, 0.84);

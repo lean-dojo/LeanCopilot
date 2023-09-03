@@ -12,12 +12,12 @@ namespace Core
 
 -- https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/text_generation
 @[extern "generate"]
-private opaque generate (input : String) (numReturnSequences : UInt64) (maxLength : UInt64) 
+private opaque generate (input : @& String) (numReturnSequences : UInt64) (maxLength : UInt64) 
 (temperature : Float) (numBeams : UInt64) : Array (String × Float)
 
 
 @[extern "encode"]
-private opaque encode (input : String) : FloatArray
+private opaque encode (input : @& String) : FloatArray
 
 
 end Core
