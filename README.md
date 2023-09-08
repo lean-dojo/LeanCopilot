@@ -1,67 +1,67 @@
-# leanml
+LeanInfer
+=========
 
-## Prerequisites
+Neural network inference in Lean 4.
 
-* Supported platform: Linux
-* Git >= 2.25
-* Lean 4
-* 3.9 <= Python < 3.11
-  * Packages: transformers, optimum.onnxruntime
-* Clang+llvm 12.0.0
-  * We heard that Clang might not be backward compatible
-* ONNX Runtime 1.8.0
-  * Our tool is built upon this specific version of ONNX Runtime. Other (especially later) versions may not be compatible
-  * Here are some scripts that worked for my Linux platform. To obtain it,
-    ```
-    git clone --recursive https://github.com/Microsoft/onnxruntime
-    cd onnxruntime/
-    git checkout v1.8.0
-    ```
-    Then to compile the modules,
-    ```
-    ./build.sh --skip_tests --config Release --build_shared_lib
-    ```
-    Note that the compilation on GPU may need more args than the command above.
-    Upon completion, one should verify if the installation added the necessary path to `LD_LIBRARY_PATH`. Do
-    ```
-    export LD_LIBRARY_PATH=/home/peiyang/onnxruntime/build/Linux/RelWithDebInfo/:$LD_LIBRARY_PATH
-    ```
-    if this path has yet to be in `echo $LD_LIBRARY_PATH`.
-    A good sign for having gone through a successful installation is that you can find both `libonnxruntime.so.1.8.0` and `libonnxruntime.so` being compiled.
-    Please do refer to ONNX Runtime's official documents and releases for detailed installation process.
 
-## Installation
+## Requirements
 
-In an existing Lean project, you can include our tool as simple as by adding
-```
-require leanml from git
-  "https://github.com/Peiyang-Song/leanml.git" @ "main"
-```
-to your lakefile.
-Also, we would recommend adding a direct linker argument for the ONNX Runtime dynamic libraries to your package config. E.g.,
-```
-package «lean4-example» {
-  precompileModules := true
-  moreLinkArgs := #[
-    "-L", "/home/peiyang/onnxruntime/build/Linux/RelWithDebInfo", "-lonnxruntime"
-  ]
+* Supported platform: Linux and macOS
+* Clang or GCC
+* [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
+* [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
+
+
+## Using LeanInfer in Your Project
+
+1. Download [the ONNX model](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small) into the root of your repo (`./onnx-leandojo-lean4-tacgen-byt5-small`). If you have [Git LFS](https://git-lfs.com/), this can be done by `git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. See [here](https://huggingface.co/docs/hub/models-downloading) for details.
+1. Edit your `lakefile.lean`. Add a dependency `require leanml from git "https://github.com/Peiyang-Song/leanml.git" @ "peiyang"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]`.
+1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode.
+2. If you are working on Linux, also add the C++ standard library directory (the directory that contains "libc++.so") to `LD_LIBRARY_PATH` and `LIBRARY_PATH`. If you are using Lean in VSCode, also add this additional environment path to the `Lean4: Server Env` setting in VSCode.
+1. Run `lake update` and `lake build`.
+
+
+## Code Format
+
+`clang-format --style Google -i ffi.cpp`
+
+
+
+## Questions and Bugs
+
+* For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanInfer/discussions).  
+* To report a potential bug, please open an issue. In the issue, please include your OS information, the version of LeanInfer, and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
+
+
+## Related Links
+
+* [LeanDojo Website](https://leandojo.org/)
+* [LeanDojo](https://github.com/lean-dojo/LeanDojo) 
+* [ReProver](https://github.com/lean-dojo/ReProver)
+
+
+## Acknowledgements
+
+* [llmstep](https://github.com/wellecks/llmstep)
+* [lean-gptf](https://github.com/jesse-michael-han/lean-gptf)
+* [Sagredo](https://www.youtube.com/watch?v=CEwRMT0GpKo)
+
+
+
+## Citation
+
+```bibtex
+@misc{leaninfer,
+  author = {Song, Peiyang and Yang, Kaiyu and Anandkumar, Anima},
+  title = {LeanInfer: Neural Network Inference in Lean 4},
+  year = {2023},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/lean-dojo/LeanInfer}},
 }
 ```
-If you are using vscode, you can also add necessary include paths to your vscode config file. E.g., in your `c_cpp_properties.lean` you can add the following paths to your default `includePath`:
-```
-"/home/peiyang/.elan/toolchains/leanprover--lean4---nightly-2023-05-31/include",
-"/home/peiyang/onnxruntime/include/onnxruntime/core/session",
-"/home/peiyang/onnxruntime/include/onnxruntime/core/session/**",
-"/home/peiyang/onnxruntime/build/Linux/RelWithDebInfo"
-```
-The next `lake build` or `lake update` will install the whole package for you.
 
-## Usage
 
-In this project, we choose to use [ReProver](https://github.com/lean-dojo/ReProver) for tactic suggestion, which will be the assuption for the guides below. However, you can easily adopt another model by changing the model names in both `PyONNX.py` and `ffi.cpp`. Both can be set by directly changing the one constant at the beginning of the file.
+## FAQ
 
-Assuming you are using ReProver, first run `python lake-packages/leanml/PyONNX.py` to get the ONNX intermediate representation of the model. Then you are ready to import `import Leanml` and insert `trace_goal_state` at any point of your Lean 4 proof file. See [this repo](https://github.com/yangky11/lean4-example/tree/peiyang-leanml-demo) for a simple example.
-
-## Current status
-
-Our ultimate goal is that wherever you call `trace_goal_state` in a Lean 4 proof file, we should be able to output you a list of tactic suggestions, displayed under `messages` in the InfoView. The current status is that the general code pipeline is indeed working, as `lake build` does give the desired outputs in step 3 via stdout. However the InfoView is not working since the file cannot compile.
+`libc++abi: terminating with uncaught exception of type Ort::Exception: Load model from onnx-leandojo-lean4-tacgen-byt5-small/encoder_model.onnx failed:Load model onnx-leandojo-lean4-tacgen-byt5-small/encoder_model.onnx failed. File doesn't exist`: Make sure you have downloaded the ONNX model.
