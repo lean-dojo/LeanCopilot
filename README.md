@@ -14,7 +14,7 @@ Neural network inference in Lean 4 via FFI.
 
 ## Building LeanInfer
 
-1. Download [the ONNX model](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small) into the root of the repo (`./onnx-leandojo-lean4-tacgen-byt5-small`). If you have [Git LFS](https://git-lfs.com/), this can be done by `git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. See [here](https://huggingface.co/docs/hub/models-downloading) for details.
+1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. See [here](https://huggingface.co/docs/hub/models-downloading) for details.
 1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode.
 1. If your default C++ compiler is not Clang (e.g., most Linux systems), add LLVM's libc++ directory (the directory that contains `libc++.so`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH`. If you are using Lean in VSCode, also add it to `Lean4: Server Env`.
 1. Run `lake script run check` and fix problems (if any).
@@ -23,9 +23,9 @@ Neural network inference in Lean 4 via FFI.
 
 ## Using LeanInfer in Your Project
 
-1. Edit your `lakefile.lean`. Add a dependency `require leanml from git "https://github.com/Peiyang-Song/leanml.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]`.
+1. Edit `lakefile.lean` to add the dependency `require leanml from git "https://github.com/Peiyang-Song/leanml.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]`.
 1. Run `lake update`.
-1. Follow the steps above to download the model, set the environment variables, run checks, and run `lake build`. 
+1. Follow the steps above to download the model, set environment variables, run checks, and build the project.
 
 
 
@@ -45,9 +45,7 @@ Neural network inference in Lean 4 via FFI.
 
 ## Acknowledgements
 
-* [llmstep](https://github.com/wellecks/llmstep)
-* [lean-gptf](https://github.com/jesse-michael-han/lean-gptf)
-* [Sagredo](https://www.youtube.com/watch?v=CEwRMT0GpKo)
+* Our frontend for displaying tactic suggestions is from [llmstep](https://github.com/wellecks/llmstep).
 
 
 
