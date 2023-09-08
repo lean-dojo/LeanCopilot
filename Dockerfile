@@ -3,7 +3,7 @@ FROM ubuntu:latest
 WORKDIR /workspace
 
 # Install dependencies.
-RUN apt-get update && apt-get install -y git git-lfs clang lld libc++-dev curl wget
+RUN apt-get update && apt-get install -y curl wget git git-lfs clang lld libc++-dev
 
 # Install elan.
 ENV ELAN_HOME="/.elan"
