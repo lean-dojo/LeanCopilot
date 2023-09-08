@@ -1,7 +1,7 @@
 LeanInfer
 =========
 
-Neural network inference in Lean 4.
+Neural network inference in Lean 4 via FFI.
 
 
 ## Requirements
