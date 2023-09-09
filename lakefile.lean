@@ -3,7 +3,7 @@ open Lake DSL System
 
 package LeanInfer {
   precompileModules := true
-  buildType := BuildType.debug  -- TODO: Change to release.
+  buildType := BuildType.release
   moreLinkArgs := #["-lonnxruntime", "-lstdc++"]
 }
 
