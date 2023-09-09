@@ -39,7 +39,7 @@ LeanInfer is in an early stage of development. We have used it to build a tactic
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanInfer/discussions).  
 * To report a potential bug, please open an issue. In the issue, please include your OS information, the version of LeanInfer, and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
-* If you cannot build the project, our [Dockerfile](./Dockerfile) may be helpful.
+* If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful.
 
 
 ## Related Links
@@ -75,3 +75,10 @@ The C++ code in this project is formatted using [ClangFormat](https://clang.llvm
 ```bash
 clang-format --style Google -i ffi.cpp
 ```
+
+
+## TODOs
+
+* Add instructions on the `suggest_tactics` tactic.
+* Add generation paremters to the `suggest_tactics` tactic.
+* Deduplicate the generated tactics.

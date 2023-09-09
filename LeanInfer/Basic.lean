@@ -17,8 +17,8 @@ private opaque encode (input : @& String) : FloatArray
 
 end Core
 
-def generate (input : String) (numReturnSequences : UInt64 := 10) 
-(maxLength : UInt64 := 1024) (temperature : Float := 1.0) 
+def generate (input : String) (numReturnSequences : UInt64 := 8) 
+(maxLength : UInt64 := 512) (temperature : Float := 1.0) 
 (numBeams : UInt64 := 1) : IO (Array (String × Float)) := do
   return Core.generate input numReturnSequences maxLength temperature numBeams
 
