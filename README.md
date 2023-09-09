@@ -81,5 +81,4 @@ clang-format --style Google -i ffi.cpp
 
 * Add instructions on the `suggest_tactics` tactic.
 * Add generation paremters to the `suggest_tactics` tactic.
-* Deduplicate the generated tactics.
 * Update lean4-example

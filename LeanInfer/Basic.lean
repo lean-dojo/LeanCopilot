@@ -18,7 +18,7 @@ private opaque encode (input : @& String) : FloatArray
 end Core
 
 def generate (input : String) (numReturnSequences : UInt64 := 8) 
-(maxLength : UInt64 := 512) (temperature : Float := 1.0) 
+(maxLength : UInt64 := 256) (temperature : Float := 1.0) 
 (numBeams : UInt64 := 1) : IO (Array (String × Float)) := do
   return Core.generate input numReturnSequences maxLength temperature numBeams
 
@@ -45,12 +45,12 @@ elab_rules : tactic
   | `(tactic | trace_encode $input:str) => do
     logInfo s!"{← encode input.getString}"
 
-syntax "suggest_tactics" str: tactic
+syntax "suggest_tactics": tactic
 elab_rules : tactic
-  | `(tactic | suggest_tactics%$tac $pfx:str) => do
+  | `(tactic | suggest_tactics%$tac) => do
     let input ← getPpTacticState
     let suggestions ← timeit s!"Time for generating tactics:" (generate input)
     let tactics := suggestions.map (·.1)
-    addSuggestions tac pfx tactics.toList
+    addSuggestions tac tactics.toList
 
 end LeanInfer

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <locale>
 #include <random>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -105,7 +106,7 @@ std::vector<int64_t> tokenize(const char *input) {
 }
 
 /* Simulated Byt5 detokenizer that reverses the effects of its tokenizer */
-const char *detokenize(const std::vector<int64_t> &tokens) {
+std::string detokenize(const std::vector<int64_t> &tokens) {
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
 
@@ -118,8 +119,10 @@ const char *detokenize(const std::vector<int64_t> &tokens) {
 
   std::wstring ws = converter.from_bytes(s_utf8);
   int l = wcstombs(nullptr, ws.c_str(), 0);
-  char *s = new char[l + 1];
-  wcstombs(s, ws.c_str(), l + 1);
+  char *buf = new char[l + 1];
+  wcstombs(buf, ws.c_str(), l + 1);
+  std::string s(buf);
+  delete[] buf;
   return s;
 }
 
@@ -350,9 +353,8 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
 }
 
 /* Run inference on the transformers model */
-std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
-                                              uint64_t max_length,
-                                              double temperature) {
+std::string run_inference(std::vector<int64_t> input_ids, uint64_t max_length,
+                          double temperature) {
   // Run the encoder.
   int64_t l = input_ids.size();
   std::vector<int64_t> encoder_input_dim = {1, l};
@@ -366,8 +368,7 @@ std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
                   max_length, temperature);
 
   // Detokenize output and return as a Lean string
-  const char *tac = detokenize(tokens);
-  return std::make_pair(tac, 0.5);
+  return detokenize(tokens);
 }
 
 static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
@@ -401,18 +402,24 @@ extern "C" lean_obj_res generate(b_lean_obj_arg input,
   // Tokenization.
   std::vector<int64_t> tokenized_input = tokenize(lean_string_cstr(input));
 
-  // Run the tactic generator and return Lean strings.
-  // Don't worry about duplications. It can be handled in Lean.
+  // Run the tactic generator.
+  // TODO: Run the tactic generator in a batch.
+  // TODO: Calculate the score.
+  std::set<std::string> tactics;
+  while (tactics.size() < num_return_sequences) {
+    std::string tac = run_inference(tokenized_input, max_length, temperature);
+    tactics.emplace(tac);
+  }
+  assert(tactics.size() == num_return_sequences);
+
+  // Return Lean strings.
   lean_array_object *arr = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_return_sequences, num_return_sequences));
 
-  // TODO: Run the tactic generator in a batch.
-  // TODO: Calculate the score.
-  for (int i = 0; i < num_return_sequences; i++) {
-    auto p = run_inference(tokenized_input, max_length, temperature);
-    const char *tac = p.first;
-    double s = p.second;
-    arr->m_data[i] = lean_mk_pair(lean_mk_string(tac), lean_box_float(s));
+  int i = 0;
+  for (auto it = tactics.begin(); it != tactics.end(); it++, i++) {
+    arr->m_data[i] =
+        lean_mk_pair(lean_mk_string(it->c_str()), lean_box_float(1.0));
   }
 
   return reinterpret_cast<lean_obj_res>(arr);
