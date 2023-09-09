@@ -17,7 +17,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 * [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
 
-## Adding LeanInfer as a Dependency of Your Project
+## Adding LeanInfer as a Dependency to Your Project
 
 1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]` (see [this example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/lakefile.lean)). Run `lake update` for the changes to take effect.
 1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. Otherwise, see [here](https://huggingface.co/docs/hub/models-downloading).
