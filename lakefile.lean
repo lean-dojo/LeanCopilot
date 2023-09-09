@@ -2,7 +2,7 @@ import Lake
 open Lake DSL System
 
 
-package «leanml» {
+package «LeanInfer» {
   precompileModules := true
   buildType := BuildType.debug  -- TODO: Change to release.
   moreLinkArgs := #["-lonnxruntime", "-lstdc++"]
@@ -10,7 +10,7 @@ package «leanml» {
 
 
 @[default_target]
-lean_lib «Leanml» {
+lean_lib «LeanInfer» {
 }
 
 

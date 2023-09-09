@@ -1,5 +1,5 @@
 import Lean
-import Leanml.Frontend
+import LeanInfer.Frontend
 
 open Lean Elab Tactic
 
