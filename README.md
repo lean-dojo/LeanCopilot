@@ -11,7 +11,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 
 ## Requirements
 
-* Supported platforms: Linux and macOS
+* Supported platforms: Linux and macOS (:warning: maybe also Windows, but not tested)
 * [Clang](https://clang.llvm.org/) (:warning: GCC not supported)
 * [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
 * [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
