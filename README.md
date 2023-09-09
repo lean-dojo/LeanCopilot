@@ -19,20 +19,18 @@ LeanInfer is in an early stage of development. We have used it to build a tactic
 * [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
 
-## Building LeanInfer
+## Adding LeanInfer as a Dependency of Your Project
 
-1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. See [here](https://huggingface.co/docs/hub/models-downloading) for details.
+1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]` (see [this example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/lakefile.lean)). Run `lake update` for the changes to take effect.
+1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. Otherwise, see [here](https://huggingface.co/docs/hub/models-downloading).
 1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode.
 1. If your default C++ compiler is not Clang (e.g., in most Linux systems), add LLVM's libc++ directory (the directory that contains `libc++.so`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH`. If you are using Lean in VSCode, also add it to `Lean4: Server Env`.
-1. Run `lake script run LeanInfer/check` and fix problems (if any).
-1. Run `lake build`.
+1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
 
-## Using LeanInfer in Your Project
+## Using LeanInfer's Tactic Generator
 
-1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]`. Run `lake update`.
-1. Follow the steps above to download the model, set environment variables, run checks, and build the project.
-
+After `import LeanInfer`, you can use the tactic `suggest_tactics` (shown in the image above). Here is an [example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/Lean4Example.lean).
 
 
 ## Questions and Bugs
@@ -76,8 +74,3 @@ The C++ code in this project is formatted using [ClangFormat](https://clang.llvm
 clang-format --style Google -i ffi.cpp
 ```
 
-
-## TODOs
-
-* Add instructions on the `suggest_tactics` tactic.
-* Update lean4-example
