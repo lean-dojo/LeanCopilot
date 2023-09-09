@@ -1,9 +1,12 @@
-LeanInfer
-=========
+LeanInfer: Neural Network Inference in Lean 4
+=============================================
 
-Neural network inference in Lean 4 via FFI.
 
-LeanInfer aims to integrate Lean and machine learning by providing a simple and efficient way to run the inference of neural networks (including LLMs) in Lean. The neural network can be trained in Python. It is designed to be used in LeanDojo's [ReProver](
+
+LeanInfer integrates Lean and machine learning by providing a simple and efficient way to run the inference of neural networks in Lean. It aims to support neural networks of arbitrary model architectures and trained in arbitrary deep learning frameworks. After training, the network is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/). We have used LeanInfer to build a tactic for suggesting proof steps. 
+
+<img width="1191" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/b98c7003-7d5b-4bd9-9a5c-0a34dd144371">
+
 
 ## Requirements
 
@@ -46,7 +49,7 @@ LeanInfer aims to integrate Lean and machine learning by providing a simple and 
 
 ## Acknowledgements
 
-* Our frontend for displaying tactic suggestions is from [llmstep](https://github.com/wellecks/llmstep).
+* Our frontend for displaying tactics is from [llmstep](https://github.com/wellecks/llmstep).
 
 
 
