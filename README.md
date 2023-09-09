@@ -1,11 +1,11 @@
 LeanInfer: Neural Network Inference in Lean 4
 =============================================
 
-LeanInfer provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). It is in an early stage of development. In the long term, we aim to integrate Lean and machine learning by providing a general and efficient way to run the inference of neural networks in Lean. The network can be of arbitrary model architectures and trained using arbitrary deep learning frameworks. After training, it is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/) and integrated into Lean through FFI. 
-
-
+LeanInfer provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). It is in an early stage of development. 
 
 <img width="1087" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/f87ec407-29a5-4468-b2fb-a2f6e9105ae9">
+
+In the long term, we aim to integrate Lean and machine learning by providing a general and efficient way to run the inference of neural networks in Lean. The network can be of arbitrary model architectures and trained using arbitrary deep learning frameworks. After training, it is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/) and integrated into Lean through FFI. 
 
 
 
