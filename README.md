@@ -3,7 +3,7 @@ LeanInfer: Neural Network Inference in Lean 4
 
 
 
-LeanInfer integrates Lean and machine learning by providing a simple and efficient way to run the inference of neural networks in Lean. It aims to support neural networks of arbitrary model architectures and trained in arbitrary deep learning frameworks. After training, the network is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/). We have used LeanInfer to build a tactic for suggesting proof steps. 
+LeanInfer integrates Lean and machine learning by providing a simple and efficient way to run the inference of neural networks in Lean. It aims to support neural networks of arbitrary model architectures and trained in arbitrary deep learning frameworks. After training, the network is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/). LeanInfer is in an early stage of development. We have used it to build a tactic for suggesting proof steps and are exploring more applications.
 
 <img width="1191" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/b98c7003-7d5b-4bd9-9a5c-0a34dd144371">
 
