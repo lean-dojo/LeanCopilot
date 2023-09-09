@@ -1,11 +1,9 @@
 LeanInfer: Neural Network Inference in Lean 4
 =============================================
 
+LeanInfer provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). It is in an early stage of development. In the long term, we aim to integrate Lean and machine learning by providing a general and efficient way to run the inference of neural networks in Lean. The network can be of arbitrary model architectures and trained using arbitrary deep learning frameworks. After training, it is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/) and integrated into Lean through FFI. 
 
 
-LeanInfer integrates Lean and machine learning by providing a simple and efficient way to run the inference of neural networks in Lean. It aims to support neural networks of arbitrary model architectures and trained in arbitrary deep learning frameworks. After training, the network is converted into the ONNX format, which can be run as a shared library using [ONNX Runtime](https://onnxruntime.ai/). 
-
-LeanInfer is in an early stage of development. We have used it to build a tactic for suggesting proof steps and are exploring more applications.
 
 <img width="1087" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/f87ec407-29a5-4468-b2fb-a2f6e9105ae9">
 
@@ -28,7 +26,7 @@ LeanInfer is in an early stage of development. We have used it to build a tactic
 1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
 
-If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful as a reference. Note that it doesn't need Step 4 above because the base Ubuntu image has no compiler pre-installed.
+If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful as a reference. Note that it doesn't need Step 4 because the base Ubuntu image has no compiler pre-installed.
 
 
 ## Using LeanInfer's Tactic Generator
