@@ -49,7 +49,7 @@ After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the imag
 
 ## Acknowledgements
 
-* Our frontend for displaying tactics is from [llmstep](https://github.com/wellecks/llmstep).
+* [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model. 
 
 
 
