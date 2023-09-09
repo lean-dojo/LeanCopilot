@@ -8,6 +8,7 @@
 #include <locale>
 #include <random>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -117,13 +118,17 @@ std::string detokenize(const std::vector<int64_t> &tokens) {
         static_cast<unsigned char>(tokens[i] - NUM_SPECIAL_TOKENS));
   }
 
-  std::wstring ws = converter.from_bytes(s_utf8);
-  int l = wcstombs(nullptr, ws.c_str(), 0);
-  char *buf = new char[l + 1];
-  wcstombs(buf, ws.c_str(), l + 1);
-  std::string s(buf);
-  delete[] buf;
-  return s;
+  try {
+    std::wstring ws = converter.from_bytes(s_utf8);
+    int l = wcstombs(nullptr, ws.c_str(), 0);
+    char *buf = new char[l + 1];
+    wcstombs(buf, ws.c_str(), l + 1);
+    std::string s(buf);
+    delete[] buf;
+    return s;
+  } catch (std::range_error) {
+    return "";
+  }
 }
 
 inline bool str_eq(const char *s1, const char *s2) {
@@ -408,6 +413,9 @@ extern "C" lean_obj_res generate(b_lean_obj_arg input,
   std::set<std::string> tactics;
   while (tactics.size() < num_return_sequences) {
     std::string tac = run_inference(tokenized_input, max_length, temperature);
+    if (tac.empty()) {
+      continue;
+    }
     tactics.emplace(tac);
   }
   assert(tactics.size() == num_return_sequences);

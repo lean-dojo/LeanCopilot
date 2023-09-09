@@ -23,14 +23,13 @@ LeanInfer is in an early stage of development. We have used it to build a tactic
 1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. See [here](https://huggingface.co/docs/hub/models-downloading) for details.
 1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode.
 1. If your default C++ compiler is not Clang (e.g., in most Linux systems), add LLVM's libc++ directory (the directory that contains `libc++.so`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH`. If you are using Lean in VSCode, also add it to `Lean4: Server Env`.
-1. Run `lake script run check` and fix problems (if any).
+1. Run `lake script run LeanInfer/check` and fix problems (if any).
 1. Run `lake build`.
 
 
 ## Using LeanInfer in Your Project
 
-1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]`.
-1. Run `lake update`.
+1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]`. Run `lake update`.
 1. Follow the steps above to download the model, set environment variables, run checks, and build the project.
 
 
@@ -80,5 +79,4 @@ clang-format --style Google -i ffi.cpp
 ## TODOs
 
 * Add instructions on the `suggest_tactics` tactic.
-* Add generation paremters to the `suggest_tactics` tactic.
 * Update lean4-example
