@@ -30,7 +30,7 @@ LeanInfer is in an early stage of development. We have used it to build a tactic
 
 ## Using LeanInfer's Tactic Generator
 
-After `import LeanInfer`, you can use the tactic `suggest_tactics` (shown in the image above). Here is an [example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/Lean4Example.lean).
+After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and this [example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/Lean4Example.lean)).
 
 
 ## Questions and Bugs
