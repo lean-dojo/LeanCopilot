@@ -349,12 +349,6 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
   return tokens;
 }
 
-/*
-std::vector<std::pair<const char *, double>> run_batch_inference(
-    std::vector<int64_t> input_ids, uint64_t max_length, double temperature) {
-  // Run the encoder.
-}*/
-
 /* Run inference on the transformers model */
 std::pair<const char *, double> run_inference(std::vector<int64_t> input_ids,
                                               uint64_t max_length,

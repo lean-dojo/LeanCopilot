@@ -3,6 +3,7 @@ LeanInfer
 
 Neural network inference in Lean 4 via FFI.
 
+LeanInfer aims to integrate Lean and machine learning by providing a simple and efficient way to run the inference of neural networks (including LLMs) in Lean. The neural network can be trained in Python. It is designed to be used in LeanDojo's [ReProver](
 
 ## Requirements
 
