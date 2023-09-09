@@ -104,7 +104,7 @@ std::vector<int64_t> tokenize(const char *input) {
   return tokens;
 }
 
-/* Simulated Byt5 detokenizer that reverses the effects of it tokenizer */
+/* Simulated Byt5 detokenizer that reverses the effects of its tokenizer */
 const char *detokenize(const std::vector<int64_t> &tokens) {
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
@@ -224,7 +224,7 @@ std::vector<Ort::Value> run_encoder(std::vector<int64_t> &input_ids,
   input_tensors.push_back(create_tensor(input_ids, dim));
   input_tensors.push_back(create_tensor(attention_mask, dim));
 
-  // Run the encoder and eturn last_hidden_state.
+  // Run the encoder and return last_hidden_state.
   std::vector<Ort::Value> output_tensors =
       run_onnx(encoder_session, input_tensors, ENCODER_INPUT_NAMES,
                ENCODER_OUTPUT_NAMES);

@@ -17,8 +17,8 @@ ENV LIBRARY_PATH="/workspace/onnxruntime-linux-x64-1.15.1/lib:${LIBRARY_PATH}"
 ENV LD_LIBRARY_PATH="/workspace/onnxruntime-linux-x64-1.15.1/lib:${LD_LIBRARY_PATH}"
 ENV CPATH="/workspace/onnxruntime-linux-x64-1.15.1/include:${CPATH}"
 
-RUN git clone https://github.com/Peiyang-Song/leanml
-WORKDIR /workspace/leanml
+RUN git clone https://github.com/lean-dojo/LeanInfer
+WORKDIR /workspace/LeanInfer
 
 # Download the ONNX model.
 RUN git lfs install
