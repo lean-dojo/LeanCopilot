@@ -28,6 +28,9 @@ LeanInfer is in an early stage of development. We have used it to build a tactic
 1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
 
+If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful as a reference. Note that it doesn't need Step 4 above because the base Ubuntu image has no compiler pre-installed.
+
+
 ## Using LeanInfer's Tactic Generator
 
 After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/e3bf4abc62fdf6566a01ce9066d152fde3f888d1/Lean4Example.lean#L12)).
@@ -37,7 +40,6 @@ After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the imag
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanInfer/discussions).  
 * To report a potential bug, please open an issue. In the issue, please include your OS information, the version of LeanInfer, and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
-* If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful.
 
 
 ## Related Links
