@@ -7,7 +7,8 @@ LeanInfer integrates Lean and machine learning by providing a simple and efficie
 
 LeanInfer is in an early stage of development. We have used it to build a tactic for suggesting proof steps and are exploring more applications.
 
-<img width="1191" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/b98c7003-7d5b-4bd9-9a5c-0a34dd144371">
+<img width="1087" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/f87ec407-29a5-4468-b2fb-a2f6e9105ae9">
+
 
 
 ## Requirements
