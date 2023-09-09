@@ -37,7 +37,7 @@ After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the imag
 ## Questions and Bugs
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanInfer/discussions).  
-* To report a potential bug, please open an issue. In the issue, please include your OS information, the version of LeanInfer, and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
+* To report a potential bug, please open an issue. In the issue, please include your OS information and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
 
 
 ## Related Links
