@@ -2,6 +2,7 @@ import Lake
 open Lake DSL System
 
 package LeanInfer {
+  preferReleaseBuild := true
   precompileModules := true
   buildType := BuildType.release
   moreLinkArgs := #["-lonnxruntime", "-lstdc++"]
@@ -12,7 +13,6 @@ lean_lib LeanInfer {
 }
 
 lean_lib Examples {
-  
 }
 
 target ffi.o pkg : FilePath := do
