@@ -11,6 +11,10 @@ package LeanInfer {
 lean_lib LeanInfer {
 }
 
+lean_lib Examples {
+  
+}
+
 target ffi.o pkg : FilePath := do
   let oFile := pkg.buildDir / "ffi.o"
   let srcJob ← inputFile <| pkg.dir / "ffi.cpp"
