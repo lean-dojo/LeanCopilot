@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script demonstrates how to build LeanInfer in GitHub Codespace. 
+# This script demonstrates how to build a repo that depends on LeanInfer in GitHub Codespace. 
 # 1. Launch a codespace on the `main` branch of LeanInfer.
 # 2. Run `source scripts/build_example.sh`.
 
