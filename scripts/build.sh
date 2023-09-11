@@ -30,4 +30,4 @@ git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-t
 # Double-check and build.
 lake script run check
 lake build
-
+lake build Examples
