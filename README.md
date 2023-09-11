@@ -26,7 +26,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
 
-If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful as a reference. Note that it doesn't need Step 4 because the base Ubuntu image has no compiler pre-installed.
+If you have problems building the project, our [Dockerfile](./Dockerfile) or [build.sh](scripts/build.sh) may be helpful as a reference. Note that it doesn't need Step 4 because the base Ubuntu image has no compiler pre-installed.
 
 
 ## Using LeanInfer's Tactic Generator
