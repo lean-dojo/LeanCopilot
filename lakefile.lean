@@ -5,7 +5,7 @@ package LeanInfer {
   preferReleaseBuild := true
   precompileModules := true
   buildType := BuildType.release
-  moreLinkArgs := #["-L./build/lib", "-lonnxruntime", "-lstdc++"]
+  moreLinkArgs := #["-L./build/lib", "-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]
   moreLeanArgs := #["--load-dynlib=./build/lib/libonnxruntime.dylib"]
 }
 
