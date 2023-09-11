@@ -12,7 +12,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 ## Requirements
 
 * Supported platforms: Linux and macOS (:warning: maybe also Windows, but untested)
-* [Clang](https://clang.llvm.org/) (:warning: GCC not supported)
+* LLVM (w/ at least [Clang](https://clang.llvm.org/), [LLD](https://lld.llvm.org/), [libc++](https://libcxx.llvm.org/), and [libunwind](https://github.com/llvm/llvm-project/tree/main/libunwind)). We recommend downloading from [here](https://github.com/llvm/llvm-project/releases/tag/llvmorg-16.0.0) (:warning: GCC not supported)
 * [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
 * [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
@@ -26,7 +26,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
 
-If you have problems building the project, our [Dockerfile](./Dockerfile) may be helpful as a reference. Note that it doesn't need Step 4 because the base Ubuntu image has no compiler pre-installed.
+If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful as a reference. 
 
 
 ## Using LeanInfer's Tactic Generator
