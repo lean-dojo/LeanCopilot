@@ -27,6 +27,7 @@ export CPATH="${ONNX_HOME}/include":$CPATH
 # Set up lean4-example.
 cd /workspaces
 git clone https://github.com/yangky11/lean4-example
+cd lean4-example
 git checkout LeanInfer-demo
 
 # Download the ONNX model.
