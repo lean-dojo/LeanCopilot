@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script demonstrates how to build LeanInfer in GitHub Codespace. 
-# 1. Launch a codespace on LeanInfer.
+# 1. Launch a codespace for LeanInfer.
 # 2. Run `source scripts/build.sh`.
 
 # Set up LLVM.
