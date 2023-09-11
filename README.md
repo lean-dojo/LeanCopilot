@@ -12,7 +12,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 ## Requirements
 
 * Supported platforms: Linux and macOS (:warning: maybe also Windows, but untested)
-* [Clang](https://clang.llvm.org/) (:warning: GCC not supported)
+* LLVM (w/ at least [Clang](https://clang.llvm.org/), [LLD](https://lld.llvm.org/), [libc++](https://libcxx.llvm.org/), and [libunwind](https://github.com/llvm/llvm-project/tree/main/libunwind)). We recommend downloading from [here](https://github.com/llvm/llvm-project/releases/tag/llvmorg-16.0.0) (:warning: GCC not supported)
 * [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
 * [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
