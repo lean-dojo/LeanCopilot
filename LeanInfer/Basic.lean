@@ -25,6 +25,11 @@ def generate (input : String) (numReturnSequences : UInt64 := 8)
 def encode (input : String) : IO FloatArray := do
   return Core.encode input
 
+def retrieve (input : String) : IO (Array (String × Float)) := do
+  let query ← encode input
+  println! query
+  return #[("hello", 0.5)]  -- Not implemented yet.
+
 def ppTacticState : List MVarId → MetaM String
   | [] => return "no goals"
   | [g] => return (← Meta.ppGoal g).pretty
@@ -35,22 +40,30 @@ def getPpTacticState : TacticM String := do
   let goals ← getUnsolvedGoals
   ppTacticState goals
 
-syntax "trace_generate" str: tactic
+syntax "trace_generate" str : tactic
 elab_rules : tactic
   | `(tactic | trace_generate $input:str) => do
     logInfo s!"{← generate input.getString}"
 
-syntax "trace_encode" str: tactic
+syntax "trace_encode" str : tactic
 elab_rules : tactic
   | `(tactic | trace_encode $input:str) => do
     logInfo s!"{← encode input.getString}"
 
-syntax "suggest_tactics": tactic
+syntax "suggest_tactics" : tactic
 elab_rules : tactic
   | `(tactic | suggest_tactics%$tac) => do
     let input ← getPpTacticState
     let suggestions ← timeit s!"Time for generating tactics:" (generate input)
     let tactics := suggestions.map (·.1)
     addSuggestions tac tactics.toList
+
+syntax "suggest_premises" : tactic
+elab_rules : tactic
+  | `(tactic | suggest_premises) => do
+    let input ← getPpTacticState
+    let suggestions ← timeit s!"Time for retriving premises:" (retrieve input)
+    let premises := suggestions.map (·.1)
+    logInfo s!"{premises}"
 
 end LeanInfer
