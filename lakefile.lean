@@ -16,14 +16,19 @@ lean_lib Examples {
 }
 
 target ffi.o pkg : FilePath := do
-  let oFile := pkg.buildDir / "ffi.o"
-  let srcJob ← inputFile <| pkg.dir / "ffi.cpp"
-  let optLevel := if pkg.buildType == BuildType.release then "-O3" else "-O0"
-  let flags := #[
-    "-fPIC", "-std=c++11", "-stdlib=libc++", optLevel,
-    "-I", (← getLeanIncludeDir).toString
-  ]
-  buildO "ffi.cpp" oFile srcJob flags "clang++"
+  let build := do
+    let oFile := pkg.buildDir / "ffi.o"
+    let srcJob ← inputFile <| pkg.dir / "ffi.cpp"
+    let optLevel := if pkg.buildType == BuildType.release then "-O3" else "-O0"
+    let flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
+    let args := flags ++ #["-I", (← getLeanIncludeDir).toString]
+    buildFileAfterDep oFile srcJob (extraDepTrace := computeHash flags) fun srcFile =>
+      compileO "ffi.cpp" oFile srcFile args "clang++"
+  -- Only fetch release if in a downstream package
+  if pkg.name ≠ (← getRootPackage).name then
+    (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
+  else
+    build
 
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
@@ -53,7 +58,7 @@ def checkOnnxLib : IO Bool := do
   return !(contains output.stderr "cannot find -lonnxruntime")
 
 -- Check whether the directory "./onnx-leandojo-lean4-tacgen-byt5-small" exists
-def checkModel : IO Bool := do 
+def checkModel : IO Bool := do
   let path : FilePath := ⟨"onnx-leandojo-lean4-tacgen-byt5-small"⟩
   return (← path.pathExists) && (← path.isDir)
 
