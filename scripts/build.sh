@@ -6,7 +6,7 @@
 
 # Set up LLVM.
 wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz -C /workspaces/
+tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz -C /workspaces/ && rm clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
 LLVM_HOME="/workspaces/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04"
 export PATH="${LLVM_HOME}/bin":$PATH
 export LIBRARY_PATH="${LLVM_HOME}/lib/x86_64-unknown-linux-gnu":$LIBRARY_PATH
