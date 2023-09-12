@@ -143,10 +143,11 @@ target libonnxruntime pkg : FilePath := do
       cmd := "cp"
       args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
     }
-    proc {
-      cmd := "rm"
-      args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz",  onnxStem.toString ++ ".tgz.trace"]
-    }
+    -- Even if we remove them here, they somehow get automatically re-downloaded by downstream packages.
+    -- proc {
+    --  cmd := "rm"
+    --  args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz",  onnxStem.toString ++ ".tgz.trace"]
+    --}
 
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
