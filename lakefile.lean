@@ -65,13 +65,19 @@ def getLibPath (name : String) : IO (Option FilePath) := do
 target libcpp pkg : FilePath := do
   let build := do
     if !Platform.isOSX then  -- Only required for Linux
-      let some src ← getLibPath "libc++.so.1.0" | panic! "libc++.so.1.0 not found"
-      let dst := pkg.nativeLibDir / "libc++.so"
-      logStep s!"Copying from {src} to {dst}"
-      proc {
-        cmd := "cp"
-        args := #[src.toString, dst.toString]
-      }
+      let libName := "libc++.so.1.0"
+      let dst := pkg.nativeLibDir / libName
+      try
+        let depTrace := Hash.ofString libName
+        let _ ←  buildFileUnlessUpToDate dst depTrace do
+          let some src ← getLibPath libName | panic! s!"{libName} not found"
+          logStep s!"Copying from {src} to {dst}"
+          proc {
+            cmd := "cp"
+            args := #[src.toString, dst.toString]
+          }
+      else
+        pure ()
       pure (dst, ← computeTrace dst)
     else
       pure ("", .nil)
@@ -79,19 +85,24 @@ target libcpp pkg : FilePath := do
     (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
   else
     Job.async build
-
+  
 
 target libunwind pkg : FilePath := do
   let build := do
     if !Platform.isOSX then  -- Only required for Linux
-      let some src ← getLibPath "libunwind.so.1.0" | panic! "libunwind.so.1.0 not found"
-      let dst := pkg.nativeLibDir / "libunwind.so"
-      logStep s!"Copying from {src} to {dst}"
-      -- TODO: Looks like this is executed 2 times. Do we need something like `buildFileUnlessUpToDate` here?
-      proc {
-        cmd := "cp"
-        args := #[src.toString, dst.toString]
-      }
+      let libName := "libunwind.so.1.0"
+      let dst := pkg.nativeLibDir / libName
+      try
+        let depTrace := Hash.ofString libName
+        let _ ←  buildFileUnlessUpToDate dst depTrace do
+          let some src ← getLibPath libName | panic! s!"{libName} not found"
+          logStep s!"Copying from {src} to {dst}"
+          proc {
+            cmd := "cp"
+            args := #[src.toString, dst.toString]
+          }
+      else
+        pure ()
       pure (dst, ← computeTrace dst)
     else
       pure ("", .nil)
