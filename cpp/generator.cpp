@@ -432,13 +432,3 @@ extern "C" lean_obj_res generate(b_lean_obj_arg input,
 
   return reinterpret_cast<lean_obj_res>(arr);
 }
-
-extern "C" lean_obj_res encode(b_lean_obj_arg input) {
-  lean_object *arr = lean_mk_empty_float_array(lean_box(10));
-  lean_float_array_push(arr, 0.34);
-  lean_float_array_push(arr, 0.84);
-  lean_float_array_push(arr, 0.57);
-  lean_float_array_push(arr, 2.63);
-  lean_float_array_push(arr, 0.67);
-  return arr;
-}
