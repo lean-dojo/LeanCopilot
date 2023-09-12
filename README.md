@@ -11,17 +11,15 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 
 ## Requirements
 
-* Supported platforms: Linux and macOS (:warning: maybe also Windows, but untested)
+* Supported platforms: Linux and macOS (:warning: maybe also Windows WSL, but untested)
 * LLVM (w/ at least [Clang](https://clang.llvm.org/), [LLD](https://lld.llvm.org/), [libc++](https://libcxx.llvm.org/), and [libunwind](https://github.com/llvm/llvm-project/tree/main/libunwind)). We recommend downloading from [here](https://github.com/llvm/llvm-project/releases/tag/llvmorg-16.0.0) (:warning: GCC not supported)
 * [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
-* [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
 
 
 ## Adding LeanInfer as a Dependency to Your Project
 
 1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]` (see [this example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/lakefile.lean)). Run `lake update` for the changes to take effect.
 1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. Otherwise, see [here](https://huggingface.co/docs/hub/models-downloading).
-1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode.
 1. If your default C++ compiler is not Clang (e.g., in most Linux systems), add LLVM's libc++ directory (the directory that contains `libc++.so`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH`. If you are using Lean in VSCode, also add it to `Lean4: Server Env`.
 1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
