@@ -72,7 +72,7 @@ target libcpp pkg : FilePath := do
         cmd := "cp"
         args := #[src.toString, dst.toString]
       }
-      pure (dst, ← computeTrace src)
+      pure (dst, ← computeTrace dst)
     else
       pure ("", .nil)
   if pkg.name ≠ (← getRootPackage).name then
@@ -92,7 +92,7 @@ target libunwind pkg : FilePath := do
         cmd := "cp"
         args := #[src.toString, dst.toString]
       }
-      pure (dst, ← computeTrace src)
+      pure (dst, ← computeTrace dst)
     else
       pure ("", .nil)
   if pkg.name ≠ (← getRootPackage).name then
