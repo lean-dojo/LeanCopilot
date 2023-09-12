@@ -161,9 +161,9 @@ def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath))
 
 target generator.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
-  let cpp ← fetch $ pkg.target ``libcpp
-  let unwind ← fetch $ pkg.target ``libunwind
-  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, unwind]
+  -- let cpp ← fetch $ pkg.target ``libcpp
+  -- let unwind ← fetch $ pkg.target ``libunwind
+  let build := buildCpp pkg "cpp/generator.cpp" [onnx]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
@@ -172,9 +172,9 @@ target generator.o pkg : FilePath := do
 
 target retriever.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
-  let cpp ← fetch $ pkg.target ``libcpp
-  let unwind ← fetch $ pkg.target ``libunwind
-  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, unwind]
+  -- let cpp ← fetch $ pkg.target ``libcpp
+  -- let unwind ← fetch $ pkg.target ``libunwind
+  let build := buildCpp pkg "cpp/retriever.cpp" [onnx]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
