@@ -76,19 +76,13 @@ target libcpp pkg : FilePath := do
             cmd := "cp"
             args := #[src.toString, dst.toString]
           }
-          let dst' := dst.toString.dropRight 2
-          if ← (dst' : FilePath).pathExists then
-            IO.FS.removeFile dst'
           proc {
-            cmd := "ln"
-            args := #["-s", dst.toString, dst']
+            cmd := "cp"
+            args := #[src.toString, dst.toString.dropRight 2]
           }
-          let dst'' := dst.toString.dropRight 4
-          if ← (dst'' : FilePath).pathExists then
-            IO.FS.removeFile dst''
           proc {
-            cmd := "ln"
-            args := #["-s", dst.toString, dst'']
+            cmd := "cp"
+            args := #[dst.toString, dst.toString.dropRight 4]
           }
       else
         pure ()
@@ -115,19 +109,14 @@ target libunwind pkg : FilePath := do
             cmd := "cp"
             args := #[src.toString, dst.toString]
           }
-          let dst' := dst.toString.dropRight 2
-          if ← (dst' : FilePath).pathExists then
-            IO.FS.removeFile dst'
+          -- TODO: Use relative symbolic links instead.
           proc {
-            cmd := "ln"
-            args := #["-s", dst.toString, dst']
+            cmd := "cp"
+            args := #[src.toString, dst.toString.dropRight 2]
           }
-          let dst'' := dst.toString.dropRight 4
-          if ← (dst'' : FilePath).pathExists then
-            IO.FS.removeFile dst''
           proc {
-            cmd := "ln"
-            args := #["-s", dst.toString, dst'']
+            cmd := "cp"
+            args := #[dst.toString, dst.toString.dropRight 4]
           }
       else
         pure ()
@@ -173,11 +162,9 @@ target libonnxruntime pkg : FilePath := do
       cmd := "cp"
       args := #[onnxLib.toString, dst.toString]
     }
-    if ← dst'.pathExists then
-      IO.FS.removeFile dst'
     proc {
-      cmd := "ln"
-      args := #["-s", dst.toString, dst'.toString]
+      cmd := "cp"
+      args := #[dst.toString, dst'.toString]
     }
     proc {
       cmd := "cp"
