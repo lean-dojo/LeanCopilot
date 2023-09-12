@@ -6,7 +6,7 @@
 
 # Set up LLVM.
 wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz -C /workspaces/
+tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz -C /workspaces/ && clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
 LLVM_HOME="/workspaces/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-18.04"
 export PATH="${LLVM_HOME}/bin":$PATH
 export LIBRARY_PATH="${LLVM_HOME}/lib/x86_64-unknown-linux-gnu":$LIBRARY_PATH
@@ -20,7 +20,7 @@ source $HOME/.elan/env
 cd /workspaces
 git clone https://github.com/yangky11/lean4-example
 cd lean4-example
-git checkout LeanInfer-demo
+git checkout improve-installation
 
 # Download the ONNX model.
 git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
