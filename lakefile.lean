@@ -76,13 +76,19 @@ target libcpp pkg : FilePath := do
             cmd := "cp"
             args := #[src.toString, dst.toString]
           }
+          let dst' := dst.toString.dropRight 2
+          if ← (dst' : FilePath).pathExists then
+            IO.FS.removeFile dst'
           proc {
             cmd := "ln"
-            args := #["-s", dst.toString, dst.toString.drop 2]
+            args := #["-s", dst.toString, dst']
           }
+          let dst'' := dst.toString.dropRight 4
+          if ← (dst'' : FilePath).pathExists then
+            IO.FS.removeFile dst''
           proc {
             cmd := "ln"
-            args := #["-s", dst.toString, dst.toString.drop 4]
+            args := #["-s", dst.toString, dst'']
           }
       else
         pure ()
@@ -109,13 +115,19 @@ target libunwind pkg : FilePath := do
             cmd := "cp"
             args := #[src.toString, dst.toString]
           }
+          let dst' := dst.toString.dropRight 2
+          if ← (dst' : FilePath).pathExists then
+            IO.FS.removeFile dst'
           proc {
             cmd := "ln"
-            args := #["-s", dst.toString, dst.toString.drop 2]
+            args := #["-s", dst.toString, dst']
           }
+          let dst'' := dst.toString.dropRight 4
+          if ← (dst'' : FilePath).pathExists then
+            IO.FS.removeFile dst''
           proc {
             cmd := "ln"
-            args := #["-s", dst.toString, dst.toString.drop 4]
+            args := #["-s", dst.toString, dst'']
           }
       else
         pure ()
