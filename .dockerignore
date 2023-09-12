@@ -1,0 +1,7 @@
+*.txt
+.vscode
+build
+onnx*
+tmp
+lake-packages
+clang+llvm*
