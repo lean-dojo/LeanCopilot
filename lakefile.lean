@@ -87,6 +87,7 @@ target libunwind pkg : FilePath := do
       let some src ← getLibPath "libunwind.so.1.0" | panic! "libunwind.so.1.0 not found"
       let dst := pkg.nativeLibDir / "libunwind.so"
       logStep s!"Copying from {src} to {dst}"
+      -- TODO: Looks like this is executed 2 times. Do we need something like `buildFileUnlessUpToDate` here?
       proc {
         cmd := "cp"
         args := #[src.toString, dst.toString]
@@ -162,9 +163,9 @@ def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath))
 
 target generator.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
-  -- let cpp ← fetch $ pkg.target ``libcpp
-  -- let unwind ← fetch $ pkg.target ``libunwind
-  let build := buildCpp pkg "cpp/generator.cpp" [onnx]
+  let cpp ← fetch $ pkg.target ``libcpp
+  let unwind ← fetch $ pkg.target ``libunwind
+  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, unwind]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
@@ -173,9 +174,9 @@ target generator.o pkg : FilePath := do
 
 target retriever.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
-  -- let cpp ← fetch $ pkg.target ``libcpp
-  -- let unwind ← fetch $ pkg.target ``libunwind
-  let build := buildCpp pkg "cpp/retriever.cpp" [onnx]
+  let cpp ← fetch $ pkg.target ``libcpp
+  let unwind ← fetch $ pkg.target ``libunwind
+  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, unwind]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
