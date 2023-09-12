@@ -26,7 +26,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
 
 
-If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful as a reference. If you still cannot install LeanInfer, sorry, and please re-visit use later. We're actively working on making the installation much smoother: https://github.com/lean-dojo/LeanInfer/pull/4
+If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful as a reference. If you still cannot install LeanInfer, please try again in a few days (sorry), as we're actively working on making the installation much smoother: https://github.com/lean-dojo/LeanInfer/pull/4
 
 ## Using LeanInfer's Tactic Generator
 
