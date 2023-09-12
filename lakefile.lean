@@ -7,7 +7,8 @@ package LeanInfer {
   precompileModules := true
   buildType := BuildType.release
   moreLinkArgs := #["-L./build/lib", "-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]
-  moreLeanArgs := #["--load-dynlib=./build/lib/" ++ nameToSharedLib "onnxruntime"]  -- How to make this work for downstream packages?
+  -- How to make it work for downstream packages?
+  moreLeanArgs := #["--load-dynlib=./build/lib/" ++ nameToSharedLib "onnxruntime"]
 }
 
 
@@ -28,6 +29,7 @@ def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15
 -- TODO: Support more versions of ONNX Runtime
 
 
+/- Only support 64-bit Linux or macOS -/
 def checkPlatform : IO Unit := do
   if Platform.isWindows then
     panic! "Windows is not supported"
@@ -35,6 +37,7 @@ def checkPlatform : IO Unit := do
     panic! "Only 64-bit platforms are supported"
 
 
+/- Download and untar ONNX Runtime -/
 target getONNX : FilePath := Job.async do 
   logInfo "Downloading ONNX Runtime library"
   checkPlatform
@@ -49,12 +52,13 @@ target getONNX : FilePath := Job.async do
     return (onnxFileStem, .nil)
 
 
-def nameToVersionedSharedLib (name : String) (v : String) : String := 
+private def nameToVersionedSharedLib (name : String) (v : String) : String := 
   if Platform.isWindows then s!"{name}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
   else s!"lib{name}.so.{v}"
 
 
+/- Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
   logStep s!"Packaging the ONNX Runtime library"
   let onnx ← fetch $ pkg.target ``getONNX
