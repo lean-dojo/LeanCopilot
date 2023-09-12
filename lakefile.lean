@@ -6,9 +6,8 @@ package LeanInfer {
   preferReleaseBuild := true
   precompileModules := true
   buildType := BuildType.release
-  moreLinkArgs := #["-L./build/lib", "-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]
-  -- How to make it work for downstream packages?
-  moreLeanArgs := #["--load-dynlib=./build/lib/" ++ nameToSharedLib "onnxruntime"]
+  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
 }
 
 
@@ -37,48 +36,53 @@ def checkPlatform : IO Unit := do
     panic! "Only 64-bit platforms are supported"
 
 
-/- Download and untar ONNX Runtime -/
-target getONNX : FilePath := Job.async do 
-  logInfo "Downloading ONNX Runtime library"
-  checkPlatform
-  try
-    let depTrace := Hash.ofString onnxURL
-    let trace ← buildFileUnlessUpToDate onnxFilename depTrace do
-      -- TODO: Use a temporary directory.
-      download onnxFilename onnxURL onnxFilename
-      untar onnxFilename onnxFilename (← IO.currentDir)
-    return (onnxFileStem, trace)
-  else
-    return (onnxFileStem, .nil)
-
-
-private def nameToVersionedSharedLib (name : String) (v : String) : String := 
+private def nameToVersionedSharedLib (name : String) (v : String) : String :=
   if Platform.isWindows then s!"{name}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
   else s!"lib{name}.so.{v}"
 
 
+/- Download and untar ONNX Runtime -/
+target getONNX pkg : (FilePath × FilePath) := do
+  let build := do
+    checkPlatform
+    try
+      let depTrace := Hash.ofString onnxURL
+      let onnxFile := pkg.buildDir / onnxFilename
+      discard <| buildFileUnlessUpToDate onnxFile depTrace do
+        -- TODO: Use a temporary directory.
+        download onnxFilename onnxURL onnxFile
+        untar onnxFilename onnxFile pkg.buildDir
+    else
+      pure ()
+    let onnxStem := pkg.buildDir / onnxFileStem
+    let srcFile : FilePath := onnxStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
+    return ((onnxStem, srcFile), ← computeTrace srcFile)
+  if pkg.name ≠ (← getRootPackage).name then
+    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
+  else
+    Job.async build
+
 /- Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
-  logStep s!"Packaging the ONNX Runtime library"
   let onnx ← fetch $ pkg.target ``getONNX
-  let srcFile : FilePath := onnxFileStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-  let src ← inputFile $ srcFile
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
   let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
   createParentDirs dst
-  buildFileAfterDepList dst [onnx, src] fun deps => do
+  buildFileAfterDep dst onnx fun (onnxStem, onnxLib) => do
+    logStep s!"Configuring the ONNX Runtime library"
     proc {
       cmd := "cp"
-      args := #[deps[1]!.toString, dst.toString]
+      args := #[onnxLib.toString, dst.toString]
     }
+    IO.FS.removeFile dst'.toString
     proc {
       cmd := "ln"
       args := #["-s", dst.toString, dst'.toString]
     }
     proc {
       cmd := "cp"
-      args := #["-r", (onnxFileStem ++ "/include"), (pkg.buildDir / "include").toString]
+      args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
     }
 
 
@@ -99,8 +103,8 @@ target generator.o pkg : FilePath := do
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
     build
-    
-  
+
+
 target retriever.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
   let build := buildCpp pkg "cpp/retriever.cpp" onnx
