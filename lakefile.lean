@@ -65,12 +65,13 @@ def getLibPath (name : String) : IO (Option FilePath) := do
 target libcpp pkg : FilePath := do
   let build := do
     if !Platform.isOSX then  -- Only required for Linux
-      let libName := "libc++.so.1.0"
-      let dst := pkg.nativeLibDir / libName
+      let srcName := "libc++.so.1.0"
+      let dstName := "libc++.so.1"
+      let dst := pkg.nativeLibDir / dstName
       try
-        let depTrace := Hash.ofString libName
+        let depTrace := Hash.ofString srcName
         let _ ←  buildFileUnlessUpToDate dst depTrace do
-          let some src ← getLibPath libName | panic! s!"{libName} not found"
+          let some src ← getLibPath srcName | panic! s!"{srcName} not found"
           logStep s!"Copying from {src} to {dst}"
           proc {
             cmd := "cp"
