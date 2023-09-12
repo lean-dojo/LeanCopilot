@@ -50,7 +50,6 @@ target getONNX pkg : (FilePath × FilePath) := do
       let depTrace := Hash.ofString onnxURL
       let onnxFile := pkg.buildDir / onnxFilename
       let _ ←  buildFileUnlessUpToDate onnxFile depTrace do
-        -- TODO: Use a temporary directory.
         download onnxFilename onnxURL onnxFile
         untar onnxFilename onnxFile pkg.buildDir
     else
@@ -85,6 +84,10 @@ target libonnxruntime pkg : FilePath := do
     proc {
       cmd := "cp"
       args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
+    }
+    proc {
+      cmd := "rm"
+      args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz",  onnxStem.toString ++ ".tgz.trace"]
     }
 
 
