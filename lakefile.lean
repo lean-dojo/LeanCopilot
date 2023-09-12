@@ -49,7 +49,7 @@ target getONNX pkg : (FilePath × FilePath) := do
     try
       let depTrace := Hash.ofString onnxURL
       let onnxFile := pkg.buildDir / onnxFilename
-      discard <| buildFileUnlessUpToDate onnxFile depTrace do
+      let _ ←  buildFileUnlessUpToDate onnxFile depTrace do
         -- TODO: Use a temporary directory.
         download onnxFilename onnxURL onnxFile
         untar onnxFilename onnxFile pkg.buildDir
@@ -63,6 +63,7 @@ target getONNX pkg : (FilePath × FilePath) := do
   else
     Job.async build
 
+
 /- Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``getONNX
@@ -75,7 +76,8 @@ target libonnxruntime pkg : FilePath := do
       cmd := "cp"
       args := #[onnxLib.toString, dst.toString]
     }
-    IO.FS.removeFile dst'.toString
+    if ← dst'.pathExists then
+      IO.FS.removeFile dst'
     proc {
       cmd := "ln"
       args := #["-s", dst.toString, dst'.toString]
