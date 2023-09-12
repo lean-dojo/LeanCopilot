@@ -42,6 +42,64 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
   else s!"lib{name}.so.{v}"
 
 
+def getClangSearchPaths : IO (Array FilePath) := do
+  let output ← IO.Process.output {
+    cmd := "clang++", args := #["-v", "-lstdc++"]
+  }
+  let mut paths := #[]
+  for s in output.stderr.splitOn do
+    if s.startsWith "-L/" then
+      paths := paths.push (s.drop 2 : FilePath).normalize
+  return paths
+
+
+def getLibPath (name : String) : IO (Option FilePath) := do
+  let searchPaths ← getClangSearchPaths
+  for path in searchPaths do
+    let libPath := path / name
+    if ← libPath.pathExists then
+      return libPath
+  return none
+
+
+target libcpp pkg : FilePath := do
+  let build := do
+    if !Platform.isOSX then  -- Only required for Linux
+      let some src ← getLibPath "libc++.so.1.0" | panic! "libc++.so.1.0 not found"
+      let dst := pkg.nativeLibDir / "libc++.so"
+      logStep s!"Copying from {src} to {dst}"
+      proc {
+        cmd := "cp"
+        args := #[src.toString, dst.toString]
+      }
+      pure (dst, ← computeTrace src)
+    else
+      pure ("", .nil)
+  if pkg.name ≠ (← getRootPackage).name then
+    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
+  else
+    Job.async build
+
+
+target libunwind pkg : FilePath := do
+  let build := do
+    if !Platform.isOSX then  -- Only required for Linux
+      let some src ← getLibPath "libunwind.so.1.0" | panic! "libunwind.so.1.0 not found"
+      let dst := pkg.nativeLibDir / "libunwind.so"
+      logStep s!"Copying from {src} to {dst}"
+      proc {
+        cmd := "cp"
+        args := #[src.toString, dst.toString]
+      }
+      pure (dst, ← computeTrace src)
+    else
+      pure ("", .nil)
+  if pkg.name ≠ (← getRootPackage).name then
+    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
+  else
+    Job.async build
+
+
 /- Download and untar ONNX Runtime -/
 target getONNX pkg : (FilePath × FilePath) := do
   let build := do
@@ -91,19 +149,21 @@ target libonnxruntime pkg : FilePath := do
     }
 
 
-def buildCpp (pkg : Package) (path : FilePath) (onnx : BuildJob FilePath) : SchedulerM (BuildJob FilePath) := do
+def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == BuildType.release then "-O3" else "-O0"
   let flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
-  buildFileAfterDepList oFile [srcJob, onnx] (extraDepTrace := computeHash flags) fun deps =>
+  buildFileAfterDepList oFile (srcJob :: deps) (extraDepTrace := computeHash flags) fun deps =>
     compileO path.toString oFile deps[0]! args "clang++"
 
 
 target generator.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
-  let build := buildCpp pkg "cpp/generator.cpp" onnx
+  let cpp ← fetch $ pkg.target ``libcpp
+  let unwind ← fetch $ pkg.target ``libunwind
+  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, unwind]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
@@ -112,7 +172,9 @@ target generator.o pkg : FilePath := do
 
 target retriever.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
-  let build := buildCpp pkg "cpp/retriever.cpp" onnx
+  let cpp ← fetch $ pkg.target ``libcpp
+  let unwind ← fetch $ pkg.target ``libunwind
+  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, unwind]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
