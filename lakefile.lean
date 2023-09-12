@@ -65,17 +65,24 @@ def getLibPath (name : String) : IO (Option FilePath) := do
 target libcpp pkg : FilePath := do
   let build := do
     if !Platform.isOSX then  -- Only required for Linux
-      let srcName := "libc++.so.1.0"
-      let dstName := "libc++.so.1.0"
-      let dst := pkg.nativeLibDir / dstName
+      let libName := "libc++.so.1.0"
+      let dst := pkg.nativeLibDir / libName
       try
-        let depTrace := Hash.ofString srcName
+        let depTrace := Hash.ofString libName
         let _ ←  buildFileUnlessUpToDate dst depTrace do
-          let some src ← getLibPath srcName | panic! s!"{srcName} not found"
+          let some src ← getLibPath libName | panic! s!"{libName} not found"
           logStep s!"Copying from {src} to {dst}"
           proc {
             cmd := "cp"
             args := #[src.toString, dst.toString]
+          }
+          proc {
+            cmd := "ln"
+            args := #["-s", dst.toString, dst.toString.drop 2]
+          }
+          proc {
+            cmd := "ln"
+            args := #["-s", dst.toString, dst.toString.drop 4]
           }
       else
         pure ()
@@ -91,17 +98,24 @@ target libcpp pkg : FilePath := do
 target libunwind pkg : FilePath := do
   let build := do
     if !Platform.isOSX then  -- Only required for Linux
-      let srcName := "libunwind.so.1.0"
-      let dstName := "libunwind.so.1"
-      let dst := pkg.nativeLibDir / dstName
+      let libName := "libunwind.so.1.0"
+      let dst := pkg.nativeLibDir / libName
       try
-        let depTrace := Hash.ofString srcName
+        let depTrace := Hash.ofString libName
         let _ ←  buildFileUnlessUpToDate dst depTrace do
-          let some src ← getLibPath srcName | panic! s!"{srcName} not found"
+          let some src ← getLibPath libName | panic! s!"{libName} not found"
           logStep s!"Copying from {src} to {dst}"
           proc {
             cmd := "cp"
             args := #[src.toString, dst.toString]
+          }
+          proc {
+            cmd := "ln"
+            args := #["-s", dst.toString, dst.toString.drop 2]
+          }
+          proc {
+            cmd := "ln"
+            args := #["-s", dst.toString, dst.toString.drop 4]
           }
       else
         pure ()
