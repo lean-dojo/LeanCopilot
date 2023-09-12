@@ -20,10 +20,9 @@ lean_lib Examples {
 }
 
 
-def onnxVersion := "1.15.1"
 def onnxPlatform := if System.Platform.isOSX then "osx-universal2" else "linux-x64"
-def onnxFileStem := s!"onnxruntime-{onnxPlatform}-{onnxVersion}"
-def onnxFilename := s!"{onnxFileStem}.tgz"
+def onnxFileStem := s!"onnxruntime-{onnxPlatform}-1.15.1"
+def onnxFilename := onnxFileStem ++ ".tgz"
 def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
 -- TODO: Support more versions of ONNX Runtime
 
@@ -38,10 +37,10 @@ def checkPlatform : IO Unit := do
 target getONNX : FilePath := Job.async do 
   logInfo "Downloading ONNX Runtime library"
   checkPlatform
-  -- TODO: Download to a temporary directory.
   try
     let depTrace := Hash.ofString onnxURL
     let trace ← buildFileUnlessUpToDate onnxFilename depTrace do
+      -- TODO: Use a temporary directory.
       download onnxFilename onnxURL onnxFilename
       untar onnxFilename onnxFilename (← IO.currentDir)
     return (onnxFileStem, trace)
