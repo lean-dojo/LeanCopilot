@@ -43,21 +43,21 @@ target downloadOnnxRuntime : FilePath := Job.async do
     return (onnxFileStem, trace)
   else
     return (onnxFileStem, .nil)
-  /-
-  let some stem := (filename: FilePath).fileStem | panic! "unexpected filename: {filename}"
-  let libDir : FilePath := stem / "lib"
-  let includeDir : FilePath := stem / "include"
-  return (includeDir, libDir)
-  -/
+
+
+def nameToVersionedSharedLib (name : String) (v : String) : String := 
+  if Platform.isWindows then s!"{name}.dll"
+  else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
+  else s!"lib{name}.so.{v}"
 
 
 target libonnxruntime pkg : FilePath := do
   logStep s!"Packaging the ONNX Runtime library"
   let onnx ← fetch $ pkg.target ``downloadOnnxRuntime
-  let srcFile : FilePath := onnxFileStem / "lib" / (nameToSharedLib s!"onnxruntime.{onnxVersion}")
+  let srcFile : FilePath := onnxFileStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
   let src ← inputFile $ srcFile
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
-  let dst' := pkg.nativeLibDir / (nameToSharedLib s!"onnxruntime.{onnxVersion}")
+  let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
   createParentDirs dst
   buildFileAfterDepList dst [onnx, src] fun deps => do
     proc {
