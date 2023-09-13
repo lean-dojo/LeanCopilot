@@ -164,8 +164,16 @@ target libunwind pkg : FilePath := do
     Job.async build
 
 
+-- Check whether the directory "./onnx-leandojo-lean4-tacgen-byt5-small" exists
+def checkModel : IO Unit := do
+  let path : FilePath := ⟨"onnx-leandojo-lean4-tacgen-byt5-small"⟩
+  if !(← path.pathExists) || !(← path.isDir) then
+    panic! s!"Cannot find the ONNX model at {path}. Download the model using `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`."
+
+
 /- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
+  checkModel
   let build := do
     checkPlatform
     let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
@@ -246,28 +254,6 @@ extern_lib libleanffi pkg := do
   let oGen ← fetch <| pkg.target ``generator.o
   let oRet ← fetch <| pkg.target ``retriever.o
   buildStaticLib (pkg.nativeLibDir / name) #[oGen, oRet]
-
-
-def checkClang : IO Bool := do
-  let output ← IO.Process.output {
-    cmd := "clang++", args := #["--version"]
-  }
-  return output.exitCode == 0
-
-
--- Check whether the directory "./onnx-leandojo-lean4-tacgen-byt5-small" exists
-def checkModel : IO Bool := do
-  let path : FilePath := ⟨"onnx-leandojo-lean4-tacgen-byt5-small"⟩
-  return (← path.pathExists) && (← path.isDir)
-
-
-script check do
-  if !(← checkClang) then
-    throw $ IO.userError "Clang++ not found"
-  if !(← checkModel) then
-    throw $ IO.userError "The ONNX model not found"
-  println! "Looks good to me! Try `lake build`."
-  return 0
 
 
 require std from git "https://github.com/leanprover/std4" @ "main"
