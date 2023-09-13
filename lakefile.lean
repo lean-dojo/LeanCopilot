@@ -31,9 +31,9 @@ def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15
 /- Only support 64-bit Linux or macOS -/
 def checkPlatform : IO Unit := do
   if Platform.isWindows then
-    panic! "Windows is not supported"
+    error "Windows is not supported"
   if Platform.numBits != 64 then
-    panic! "Only 64-bit platforms are supported"
+    error "Only 64-bit platforms are supported"
 
 
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
@@ -61,162 +61,105 @@ def getLibPath (name : String) : IO (Option FilePath) := do
       return libPath
   return none
 
+def afterReleaseAsync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
+  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+    (← pkg.release.fetch).bindAsync fun _ _ => build
+  else
+    build
 
-target libcpp pkg : FilePath := do
-  let build := do
-    if !Platform.isOSX then  -- Only required for Linux
-      let libName := "libc++.so.1.0"
-      let dst := pkg.nativeLibDir / libName
-      try
-        let depTrace := Hash.ofString libName
-        let _ ←  buildFileUnlessUpToDate dst depTrace do
-          let some src ← getLibPath libName | panic! s!"{libName} not found"
-          logStep s!"Copying from {src} to {dst}"
-          proc {
-            cmd := "cp"
-            args := #[src.toString, dst.toString]
-          }
-          -- TODO: Use relative symbolic links instead.
-          proc {
-            cmd := "cp"
-            args := #[src.toString, dst.toString.dropRight 2]
-          }
-          proc {
-            cmd := "cp"
-            args := #[dst.toString, dst.toString.dropRight 4]
-          }
-      else
-        pure ()
-      pure (dst, ← computeTrace dst)
-    else
-      pure ("", .nil)
-  if pkg.name ≠ (← getRootPackage).name then
-    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
+def afterReleaseSync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
+  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+    (← pkg.release.fetch).bindSync fun _ _ => build
   else
     Job.async build
+
+def copyLibJob (pkg : Package) (libName : String) : IndexBuildM (BuildJob FilePath) :=
+  afterReleaseSync pkg do
+  if !Platform.isOSX then  -- Only required for Linux
+    let dst := pkg.nativeLibDir / libName
+    try
+      let depTrace := Hash.ofString libName
+      let trace ← buildFileUnlessUpToDate dst depTrace do
+        let some src ← getLibPath libName | error s!"{libName} not found"
+        logStep s!"Copying from {src} to {dst}"
+        proc {
+          cmd := "cp"
+          args := #[src.toString, dst.toString]
+        }
+        -- TODO: Use relative symbolic links instead.
+        proc {
+          cmd := "cp"
+          args := #[src.toString, dst.toString.dropRight 2]
+        }
+        proc {
+          cmd := "cp"
+          args := #[dst.toString, dst.toString.dropRight 4]
+        }
+      pure (dst, trace)
+    else
+      pure (dst, ← computeTrace dst)
+  else
+    pure ("", .nil)
+
+
+target libcpp pkg : FilePath := do
+  copyLibJob pkg "libc++.so.1.0"
 
 
 target libcppabi pkg : FilePath := do
-  let build := do
-    if !Platform.isOSX then  -- Only required for Linux
-      let libName := "libc++abi.so.1.0"
-      let dst := pkg.nativeLibDir / libName
-      try
-        let depTrace := Hash.ofString libName
-        let _ ←  buildFileUnlessUpToDate dst depTrace do
-          let some src ← getLibPath libName | panic! s!"{libName} not found"
-          logStep s!"Copying from {src} to {dst}"
-          proc {
-            cmd := "cp"
-            args := #[src.toString, dst.toString]
-          }
-          -- TODO: Use relative symbolic links instead.
-          proc {
-            cmd := "cp"
-            args := #[src.toString, dst.toString.dropRight 2]
-          }
-          proc {
-            cmd := "cp"
-            args := #[dst.toString, dst.toString.dropRight 4]
-          }
-      else
-        pure ()
-      pure (dst, ← computeTrace dst)
-    else
-      pure ("", .nil)
-  if pkg.name ≠ (← getRootPackage).name then
-    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
-  else
-    Job.async build
+  copyLibJob pkg "libc++abi.so.1.0"
 
 
 target libunwind pkg : FilePath := do
-  let build := do
-    if !Platform.isOSX then  -- Only required for Linux
-      let libName := "libunwind.so.1.0"
-      let dst := pkg.nativeLibDir / libName
-      try
-        let depTrace := Hash.ofString libName
-        let _ ←  buildFileUnlessUpToDate dst depTrace do
-          let some src ← getLibPath libName | panic! s!"{libName} not found"
-          logStep s!"Copying from {src} to {dst}"
-          proc {
-            cmd := "cp"
-            args := #[src.toString, dst.toString]
-          }
-          -- TODO: Use relative symbolic links instead.
-          proc {
-            cmd := "cp"
-            args := #[src.toString, dst.toString.dropRight 2]
-          }
-          proc {
-            cmd := "cp"
-            args := #[dst.toString, dst.toString.dropRight 4]
-          }
-      else
-        pure ()
-      pure (dst, ← computeTrace dst)
-    else
-      pure ("", .nil)
-  if pkg.name ≠ (← getRootPackage).name then
-    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
-  else
-    Job.async build
+  copyLibJob pkg "libunwind.so.1.0"
 
 
 -- Check whether the directory "./onnx-leandojo-lean4-tacgen-byt5-small" exists
 def checkModel : IO Unit := do
   let path : FilePath := ⟨"onnx-leandojo-lean4-tacgen-byt5-small"⟩
   if !(← path.pathExists) || !(← path.isDir) then
-    panic! s!"Cannot find the ONNX model at {path}. Download the model using `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`."
+    error s!"Cannot find the ONNX model at {path}. Download the model using `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`."
 
 
 /- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
   checkModel
-  let build := do
-    checkPlatform
-    let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
-    createParentDirs dst
-    try
-      let depTrace := Hash.ofString onnxURL
-      let onnxFile := pkg.buildDir / onnxFilename
-      let _ ←  buildFileUnlessUpToDate dst depTrace do
-        logStep s!"Configuring the ONNX Runtime library"
-        download onnxFilename onnxURL onnxFile
-        untar onnxFilename onnxFile pkg.buildDir
-        let onnxStem := pkg.buildDir / onnxFileStem
-        let srcFile : FilePath := onnxStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-        proc {
-          cmd := "cp"
-          args := #[srcFile.toString, dst.toString]
-        }
-        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-        proc {
-          cmd := "cp"
-          args := #[dst.toString, dst'.toString]
-        }
-        proc {
-          cmd := "cp"
-          args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
-        }
-        logStep s!"rm -rf {onnxStem.toString} {onnxStem.toString ++ ".tgz"} {onnxStem.toString ++ ".tgz.trace"}"
-        proc {
-          cmd := "rm"
-          args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz",  onnxStem.toString ++ ".tgz.trace"]
-        }
-    else
-      pure ()
-    return (dst, ← computeTrace dst)
-  
-  if pkg.name ≠ (← getRootPackage).name then
-    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
+  afterReleaseSync pkg do
+  checkPlatform
+  let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
+  createParentDirs dst
+  try
+    let depTrace := Hash.ofString onnxURL
+    let onnxFile := pkg.buildDir / onnxFilename
+    let trace ← buildFileUnlessUpToDate dst depTrace do
+      logStep s!"Fetching the ONNX Runtime library"
+      download onnxFilename onnxURL onnxFile
+      untar onnxFilename onnxFile pkg.buildDir
+      let onnxStem := pkg.buildDir / onnxFileStem
+      let srcFile : FilePath := onnxStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
+      proc {
+        cmd := "cp"
+        args := #[srcFile.toString, dst.toString]
+      }
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
+      proc {
+        cmd := "cp"
+        args := #[dst.toString, dst'.toString]
+      }
+      proc {
+        cmd := "cp"
+        args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
+      }
+      proc {
+        cmd := "rm"
+        args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz"]
+      }
+    return (dst, trace)
   else
-    Job.async build
-
+    return (dst, ← computeTrace dst)
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
-  let optLevel := if pkg.buildType == BuildType.release then "-O3" else "-O0"
+  let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let mut flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
   match get_config? targetArch with
   | none => pure ()
@@ -229,33 +172,27 @@ def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath))
 
 
 target generator.o pkg : FilePath := do
-  let onnx ← fetch $ pkg.target ``libonnxruntime
-  let cpp ← fetch $ pkg.target ``libcpp
-  let cppabi ← fetch $ pkg.target ``libcppabi
-  let unwind ← fetch $ pkg.target ``libunwind
+  let onnx ← libonnxruntime.fetch
+  let cpp ← libcpp.fetch
+  let cppabi ← libcppabi.fetch
+  let unwind ← libunwind.fetch
   let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, cppabi, unwind]
-  if pkg.name ≠ (← getRootPackage).name then
-    (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
-  else
-    build
+  afterReleaseAsync pkg build
 
 
 target retriever.o pkg : FilePath := do
-  let onnx ← fetch $ pkg.target ``libonnxruntime
-  let cpp ← fetch $ pkg.target ``libcpp
-  let cppabi ← fetch $ pkg.target ``libcppabi
-  let unwind ← fetch $ pkg.target ``libunwind
+  let onnx ← libonnxruntime.fetch
+  let cpp ← libcpp.fetch
+  let cppabi ← libcppabi.fetch
+  let unwind ← libunwind.fetch
   let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, cppabi, unwind]
-  if pkg.name ≠ (← getRootPackage).name then
-    (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
-  else
-    build
+  afterReleaseAsync pkg build
 
 
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
-  let oGen ← fetch <| pkg.target ``generator.o
-  let oRet ← fetch <| pkg.target ``retriever.o
+  let oGen ← generator.o.fetch
+  let oRet ← retriever.o.fetch
   buildStaticLib (pkg.nativeLibDir / name) #[oGen, oRet]
 
 
