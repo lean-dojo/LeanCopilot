@@ -12,7 +12,7 @@ source $HOME/.elan/env
 cd /workspaces
 git clone https://github.com/yangky11/lean4-example
 cd lean4-example
-git checkout improve-installation
+git checkout LeanInfer-demo
 
 # Download the ONNX model.
 git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
