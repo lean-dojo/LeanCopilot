@@ -217,7 +217,10 @@ target libonnxruntime pkg : FilePath := do
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == BuildType.release then "-O3" else "-O0"
-  let flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
+  let mut flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
+  match get_config? targetArch with
+  | none => pure ()
+  | some arch => flags := flags.push s!"--target={arch}"
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
