@@ -164,52 +164,47 @@ target libunwind pkg : FilePath := do
     Job.async build
 
 
-/- Download and untar ONNX Runtime -/
-target getONNX pkg : (FilePath × FilePath) := do
+/- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
+target libonnxruntime pkg : FilePath := do
   let build := do
     checkPlatform
+    let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
+    createParentDirs dst
     try
       let depTrace := Hash.ofString onnxURL
       let onnxFile := pkg.buildDir / onnxFilename
-      let _ ←  buildFileUnlessUpToDate onnxFile depTrace do
+      let _ ←  buildFileUnlessUpToDate dst depTrace do
+        logStep s!"Configuring the ONNX Runtime library"
         download onnxFilename onnxURL onnxFile
         untar onnxFilename onnxFile pkg.buildDir
+        let onnxStem := pkg.buildDir / onnxFileStem
+        let srcFile : FilePath := onnxStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
+        proc {
+          cmd := "cp"
+          args := #[srcFile.toString, dst.toString]
+        }
+        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
+        proc {
+          cmd := "cp"
+          args := #[dst.toString, dst'.toString]
+        }
+        proc {
+          cmd := "cp"
+          args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
+        }
+        logStep s!"rm -rf {onnxStem.toString} {onnxStem.toString ++ ".tgz"} {onnxStem.toString ++ ".tgz.trace"}"
+        proc {
+          cmd := "rm"
+          args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz",  onnxStem.toString ++ ".tgz.trace"]
+        }
     else
       pure ()
-    let onnxStem := pkg.buildDir / onnxFileStem
-    let srcFile : FilePath := onnxStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-    return ((onnxStem, srcFile), ← computeTrace srcFile)
+    return (dst, ← computeTrace dst)
+  
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
   else
     Job.async build
-
-
-/- Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
-target libonnxruntime pkg : FilePath := do
-  let onnx ← fetch $ pkg.target ``getONNX
-  let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
-  let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-  createParentDirs dst
-  buildFileAfterDep dst onnx fun (onnxStem, onnxLib) => do
-    logStep s!"Configuring the ONNX Runtime library"
-    proc {
-      cmd := "cp"
-      args := #[onnxLib.toString, dst.toString]
-    }
-    proc {
-      cmd := "cp"
-      args := #[dst.toString, dst'.toString]
-    }
-    proc {
-      cmd := "cp"
-      args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
-    }
-    -- Even if we remove them here, they somehow get automatically re-downloaded by downstream packages.
-    -- proc {
-    --  cmd := "rm"
-    --  args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz",  onnxStem.toString ++ ".tgz.trace"]
-    --}
 
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
