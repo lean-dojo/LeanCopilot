@@ -76,6 +76,7 @@ target libcpp pkg : FilePath := do
             cmd := "cp"
             args := #[src.toString, dst.toString]
           }
+          -- TODO: Use relative symbolic links instead.
           proc {
             cmd := "cp"
             args := #[src.toString, dst.toString.dropRight 2]
@@ -93,7 +94,41 @@ target libcpp pkg : FilePath := do
     (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
   else
     Job.async build
-  
+
+
+target libcppabi pkg : FilePath := do
+  let build := do
+    if !Platform.isOSX then  -- Only required for Linux
+      let libName := "libc++abi.so.1.0"
+      let dst := pkg.nativeLibDir / libName
+      try
+        let depTrace := Hash.ofString libName
+        let _ ←  buildFileUnlessUpToDate dst depTrace do
+          let some src ← getLibPath libName | panic! s!"{libName} not found"
+          logStep s!"Copying from {src} to {dst}"
+          proc {
+            cmd := "cp"
+            args := #[src.toString, dst.toString]
+          }
+          -- TODO: Use relative symbolic links instead.
+          proc {
+            cmd := "cp"
+            args := #[src.toString, dst.toString.dropRight 2]
+          }
+          proc {
+            cmd := "cp"
+            args := #[dst.toString, dst.toString.dropRight 4]
+          }
+      else
+        pure ()
+      pure (dst, ← computeTrace dst)
+    else
+      pure ("", .nil)
+  if pkg.name ≠ (← getRootPackage).name then
+    (← pkg.fetchFacetJob `release).bindSync fun _ _ => build
+  else
+    Job.async build
+
 
 target libunwind pkg : FilePath := do
   let build := do
@@ -190,8 +225,9 @@ def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath))
 target generator.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
   let cpp ← fetch $ pkg.target ``libcpp
+  let cppabi ← fetch $ pkg.target ``libcppabi
   let unwind ← fetch $ pkg.target ``libunwind
-  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, unwind]
+  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, cppabi, unwind]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
@@ -201,8 +237,9 @@ target generator.o pkg : FilePath := do
 target retriever.o pkg : FilePath := do
   let onnx ← fetch $ pkg.target ``libonnxruntime
   let cpp ← fetch $ pkg.target ``libcpp
+  let cppabi ← fetch $ pkg.target ``libcppabi
   let unwind ← fetch $ pkg.target ``libunwind
-  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, unwind]
+  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, cppabi, unwind]
   if pkg.name ≠ (← getRootPackage).name then
     (← pkg.fetchFacetJob `release).bindAsync fun _ _ => build
   else
