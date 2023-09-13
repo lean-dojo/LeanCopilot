@@ -25,7 +25,6 @@ def onnxPlatform := if System.Platform.isOSX then "osx-universal2" else "linux-x
 def onnxFileStem := s!"onnxruntime-{onnxPlatform}-{onnxVersion}"
 def onnxFilename := onnxFileStem ++ ".tgz"
 def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
--- TODO: Support more versions of ONNX Runtime
 
 
 /- Only support 64-bit Linux or macOS -/
@@ -61,17 +60,20 @@ def getLibPath (name : String) : IO (Option FilePath) := do
       return libPath
   return none
 
+
 def afterReleaseAsync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindAsync fun _ _ => build
   else
     build
 
+
 def afterReleaseSync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
     Job.async build
+
 
 def copyLibJob (pkg : Package) (libName : String) : IndexBuildM (BuildJob FilePath) :=
   afterReleaseSync pkg do
@@ -157,6 +159,7 @@ target libonnxruntime pkg : FilePath := do
     return (dst, trace)
   else
     return (dst, ← computeTrace dst)
+
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
