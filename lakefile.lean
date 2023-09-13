@@ -3,7 +3,7 @@ open Lake DSL System
 
 
 package LeanInfer {
-  preferReleaseBuild := true
+  preferReleaseBuild := get_config? noCloudRelease |>.isNone
   precompileModules := true
   buildType := BuildType.release
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
@@ -217,7 +217,7 @@ target libonnxruntime pkg : FilePath := do
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == BuildType.release then "-O3" else "-O0"
-  let flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
+  let flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", "--target=arm64-apple-macos11", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
