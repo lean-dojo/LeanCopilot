@@ -2,52 +2,63 @@ import Lake
 open Lake DSL System Lean Elab Term
 
 
-/- Only support 64-bit Linux or macOS -/
-inductive SupportedPlatform where
-  | linux_x86_64 
-  | macos_x86_64
-  | macos_arm64
-  deriving Inhabited, BEq
+inductive SupportedOS where
+  | linux
+  | macos
+deriving Inhabited, BEq
 
 
-def getPlatform : IO SupportedPlatform := do
+def getOS : IO SupportedOS := do
   if Platform.isWindows then
     error "Windows is not supported"
-  if Platform.numBits != 64 then
-    error "Only 64-bit platforms are supported"
+  if Platform.isOSX then 
+    return .macos 
+  else
+    return .linux
 
+
+inductive SupportedArch where
+  | x86_64
+  | arm64
+deriving Inhabited, BEq
+
+
+def getArch : IO SupportedArch := do
   let output ← IO.Process.output {
     cmd := "uname", args := #["-m"]
   } 
   let arch := output.stdout.trim
   if arch ∈ ["arm64", "aarch64"] then
-    if Platform.isOSX then
-      return SupportedPlatform.macos_arm64
-    else
-      error "ARM64 is only supported on macOS"
+    return .arm64
   else if arch == "x86_64" then
-    if Platform.isOSX then
-      return SupportedPlatform.macos_x86_64
-    else
-      return SupportedPlatform.linux_x86_64
+    return .x86_64
   else
     error s!"Unsupported architecture {arch}"
 
 
+structure SupportedPlatform where
+  os : SupportedOS
+  arc : SupportedArch
 
-syntax (name := isAppleSilicon) "is_apple_silicon?" :term
 
-@[term_elab isAppleSilicon]
+def getPlatform : IO SupportedPlatform := do
+  if Platform.numBits != 64 then
+    error "Only 64-bit platforms are supported"
+  return ⟨← getOS, ← getArch⟩
+
+
+syntax (name := isARM) "is_arm?" :term
+
+@[term_elab isARM]
 def elabGetConfig : TermElab := fun _ _ => do
-  let platform ← getPlatform
-  if platform == SupportedPlatform.macos_arm64 then
+  if (← getArch) == .arm64 then
     return Expr.const `Bool.true []
   else
     return Expr.const `Bool.false []
 
 
 package LeanInfer {
-  preferReleaseBuild := (get_config? noCloudRelease |>.isNone) ∧ (¬ is_apple_silicon?)
+  preferReleaseBuild := (get_config? noCloudRelease |>.isNone) ∧ (¬ is_arm?)
   precompileModules := true
   buildType := BuildType.release
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
