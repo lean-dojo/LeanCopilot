@@ -19,13 +19,9 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. Otherwise, see [here](https://huggingface.co/docs/hub/models-downloading).
 2. Add the package configuration option `moreLinkArgs := #[s!"-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]` to lakefile.lean. Also add LeanInfer as a dependency:
 ```lean
-require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"@"v0.0.3" with
-  if let some noLeanInferCloudRelease := get_config? noLeanInferCloudRelease then
-    NameMap.empty.insert `noCloudRelease noLeanInferCloudRelease
-  else
-    NameMap.empty
+require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"@"v0.0.4"
 ```
-3. Run `lake update` for the changes to take effect. Finally, if you're using Linux or macOS (Intel), run `lake build`. If you're using macOS (Apple Silicon), run `lake build -KnoLeanInferCloudRelease=true`.
+3. Run `lake update && lake build`.
 
 You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
