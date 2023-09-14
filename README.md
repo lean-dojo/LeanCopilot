@@ -27,12 +27,22 @@ require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"@"v0.0.3"
 ```
 3. Run `lake update` for the changes to take effect. Finally, if you're using Linux or macOS (Intel), run `lake build`. If you're using macOS (Apple Silicon), run `lake build -KnoLeanInferCloudRelease=true`.
 
-You may also see an [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
+You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
 
 ## Using LeanInfer's Tactic Generator
 
 After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)).
+
+
+## Building LeanInfer
+
+You don't need to build LeanInfer directly if you use it in a downstream package. Nevertheless, if you really need to build LeanInfer, you can run `lake build`. It shouldn't have any problem on macOS. On Linux, you need LLVM (w/ at least [Clang](https://clang.llvm.org/), [LLD](https://lld.llvm.org/), [libc++](https://libcxx.llvm.org/), [libc++abi](https://libcxxabi.llvm.org/), and [libunwind](https://github.com/llvm/llvm-project/tree/main/libunwind)). We recommend downloading clang+llvm from [here](https://github.com/llvm/llvm-project/releases/tag/llvmorg-16.0.0) and setting the environment variables `PATH`, `LIBRARY_PATH`, and `LD_LIBRARY_PATH` accordingly ([example here](./scripts/build.sh)). 
+
+:warning: LLVM installed by `apt-get` may be incomplete. 
+:warning: GCC is not supported.
+
+
 
 
 ## Questions and Bugs
@@ -51,7 +61,7 @@ After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the imag
 ## Acknowledgements
 
 * [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
-* We thank Scott Morrison for suggestions on simplifying the installation process and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
+* We thank Scott Morrison for suggestions on simplifying LeanInfer's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 
 
 
