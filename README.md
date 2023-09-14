@@ -35,6 +35,13 @@ You may also see an [example here](https://github.com/yangky11/lean4-example/blo
 After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)).
 
 
+## Building LeanInfer
+
+You probably don't need to build LeanInfer directly if you just want to use it in a downstream package. Nevertheless, if you really need to build LeanInfer directly, you can run `lake build`. It shouldn't have any problem on macOS. On Linux, you need LLVM (w/ at least [Clang](https://clang.llvm.org/), [LLD](https://lld.llvm.org/), [libc++](https://libcxx.llvm.org/), [libc++abi](https://libcxxabi.llvm.org/), and [libunwind](https://github.com/llvm/llvm-project/tree/main/libunwind)). We recommend downloading clang+llvm from [here](https://github.com/llvm/llvm-project/releases/tag/llvmorg-16.0.0) and setting the environment variables `PATH`, `LIBRARY_PATH`, and `LD_LIBRARY_PATH` accordingly. :warning: LLVM installed by `apt-get install` may be incomplete. GCC is not supported.
+
+
+
+
 ## Questions and Bugs
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanInfer/discussions).  
