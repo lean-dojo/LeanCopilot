@@ -11,26 +11,28 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 
 ## Requirements
 
-* Supported platforms: Linux and macOS (:warning: maybe also Windows, but untested)
-* LLVM (w/ at least [Clang](https://clang.llvm.org/), [LLD](https://lld.llvm.org/), [libc++](https://libcxx.llvm.org/), and [libunwind](https://github.com/llvm/llvm-project/tree/main/libunwind)). We recommend downloading from [here](https://github.com/llvm/llvm-project/releases/tag/llvmorg-16.0.0) (:warning: GCC not supported)
-* [Lean 4](https://leanprover.github.io/lean4/doc/quickstart.html)
-* [ONNX Runtime](https://github.com/microsoft/onnxruntime/releases) for optimized inference in C++
+* Supported platforms: Linux and macOS (:warning: maybe also Windows WSL, but untested)
 
 
 ## Adding LeanInfer as a Dependency to Your Project
 
-1. Edit `lakefile.lean` to add the dependency `require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"` and package configuration option `moreLinkArgs := #["-lonnxruntime", "-lstdc++"]` (see [this example](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo/lakefile.lean)). Run `lake update` for the changes to take effect.
 1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. Otherwise, see [here](https://huggingface.co/docs/hub/models-downloading).
-1. Add the ONNX Runtime source directory (the directory that contains `onnxruntime_cxx_api.h`) to the environment variable `CPATH`. Add the ONNX Runtime library directory (the directory that contains `libonnxruntime.so` or `libonnxruntime.dylib`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH` (all platforms). If you are using Lean in VSCode, also add these environment variables to the `Lean4: Server Env` setting in VSCode.
-1. If your default C++ compiler is not Clang (e.g., in most Linux systems), add LLVM's libc++ directory (the directory that contains `libc++.so`) to `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), and `LIBRARY_PATH`. If you are using Lean in VSCode, also add it to `Lean4: Server Env`.
-1. Run `lake script run LeanInfer/check` and fix problems (if any). Finally, run `lake build`.
+2. Add the package configuration option `moreLinkArgs := #[s!"-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]` to lakefile.lean. Also add LeanInfer as a dependency:
+```lean
+require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"@"v0.0.3" with
+  if let some noLeanInferCloudRelease := get_config? noLeanInferCloudRelease then
+    NameMap.empty.insert `noCloudRelease noLeanInferCloudRelease
+  else
+    NameMap.empty
+```
+3. Run `lake update` for the changes to take effect. Finally, if you're using Linux or macOS (Intel), run `lake build`. If you're using macOS (Apple Silicon), run `lake build -KnoLeanInferCloudRelease=true`.
 
+You may also see an [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
-If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful as a reference. If you still cannot install LeanInfer, please try again in a few days (sorry), as we're actively working on making the installation much smoother: https://github.com/lean-dojo/LeanInfer/pull/4
 
 ## Using LeanInfer's Tactic Generator
 
-After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/e3bf4abc62fdf6566a01ce9066d152fde3f888d1/Lean4Example.lean#L12)).
+After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)).
 
 
 ## Questions and Bugs
@@ -48,7 +50,8 @@ After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the imag
 
 ## Acknowledgements
 
-* [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model. 
+* [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
+* We thank Scott Morrison for suggestions on simplifying the installation process and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 
 
 
@@ -72,4 +75,3 @@ The C++ code in this project is formatted using [ClangFormat](https://clang.llvm
 ```bash
 clang-format --style Google -i ffi.cpp
 ```
-
