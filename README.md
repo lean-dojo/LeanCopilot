@@ -27,7 +27,7 @@ require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"@"v0.0.3"
 ```
 3. Run `lake update` for the changes to take effect. Finally, if you're using Linux or macOS (Intel), run `lake build`. If you're using macOS (Apple Silicon), run `lake build -KnoLeanInferCloudRelease=true`.
 
-You may also see an [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
+You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
 
 ## Using LeanInfer's Tactic Generator
