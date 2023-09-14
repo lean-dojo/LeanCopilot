@@ -75,13 +75,6 @@ lean_lib Examples {
 }
 
 
-def onnxVersion := "1.15.1"
-def onnxPlatform := if System.Platform.isOSX then "osx-universal2" else "linux-x64"
-def onnxFileStem := s!"onnxruntime-{onnxPlatform}-{onnxVersion}"
-def onnxFilename := onnxFileStem ++ ".tgz"
-def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
-
-
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
   if Platform.isWindows then s!"{name}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
@@ -108,14 +101,14 @@ def getLibPath (name : String) : IO (Option FilePath) := do
   return none
 
 
-def afterReleaseAsync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
+def afterReleaseSync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindAsync fun _ _ => build
   else
     build
 
 
-def afterReleaseSync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
+def afterReleaseAsync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
@@ -123,7 +116,7 @@ def afterReleaseSync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) 
 
 
 def copyLibJob (pkg : Package) (libName : String) : IndexBuildM (BuildJob FilePath) :=
-  afterReleaseSync pkg do
+  afterReleaseAsync pkg do
   if !Platform.isOSX then  -- Only required for Linux
     let dst := pkg.nativeLibDir / libName
     try
@@ -170,13 +163,26 @@ def checkModel : IO Unit := do
     error s!"Cannot find the ONNX model at {path}. Download the model using `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`."
 
 
+def getOnnxPlatform : IO String := do
+  let ⟨os, arch⟩  ← getPlatform
+  match os with 
+  | .linux => return if arch == .x86_64 then "linux-x64" else "linux-aarch64"
+  | .macos => return "osx-universal2"
+
+
 /- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
   checkModel
-  afterReleaseSync pkg do
+  afterReleaseAsync pkg do
   let _ ← getPlatform
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
   createParentDirs dst
+  
+  let onnxVersion := "1.15.1"
+  let onnxFileStem := s!"onnxruntime-{← getOnnxPlatform}-{onnxVersion}"
+  let onnxFilename := onnxFileStem ++ ".tgz"
+  let onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
+
   try
     let depTrace := Hash.ofString onnxURL
     let onnxFile := pkg.buildDir / onnxFilename
@@ -227,7 +233,7 @@ target generator.o pkg : FilePath := do
   let cppabi ← libcppabi.fetch
   let unwind ← libunwind.fetch
   let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, cppabi, unwind]
-  afterReleaseAsync pkg build
+  afterReleaseSync pkg build
 
 
 target retriever.o pkg : FilePath := do
@@ -236,7 +242,7 @@ target retriever.o pkg : FilePath := do
   let cppabi ← libcppabi.fetch
   let unwind ← libunwind.fetch
   let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, cppabi, unwind]
-  afterReleaseAsync pkg build
+  afterReleaseSync pkg build
 
 
 extern_lib libleanffi pkg := do
