@@ -61,7 +61,7 @@ You don't need to build LeanInfer directly if you use it in a downstream package
 ## Acknowledgements
 
 * [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
-* We thank Scott Morrison for suggestions on simplifying the installation process and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
+* We thank Scott Morrison for suggestions on simplifying LeanInfer's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 
 
 
