@@ -50,7 +50,7 @@ def getPlatform : IO SupportedPlatform := do
 syntax (name := isARM) "is_arm?" :term
 
 @[term_elab isARM]
-def elabGetConfig : TermElab := fun _ _ => do
+def elabIsARM : TermElab := fun _ _ => do
   if (← getArch) == .arm64 then
     return Expr.const `Bool.true []
   else
