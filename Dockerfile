@@ -16,5 +16,4 @@ RUN git lfs install
 RUN git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
 
 # Build the Lean project.
-RUN lake update
 RUN lake build
