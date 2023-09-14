@@ -23,6 +23,7 @@ inductive SupportedArch where
   | arm64
 deriving Inhabited, BEq
 
+
 def getArch? : BaseIO (Option SupportedArch) := do
   let proc := IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
   let .ok output ← proc.toBaseIO
@@ -35,9 +36,12 @@ def getArch? : BaseIO (Option SupportedArch) := do
   else
     return none
 
+
 def getArch : IO SupportedArch := do
-  if let some arch ← getArch? then return arch else
-    error s!"unknown architecture"
+  if let some arch ← getArch? then 
+    return arch 
+  else
+    error "Unknown architecture"
 
 
 elab "is_arm?" : term => do
