@@ -28,11 +28,40 @@ def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15
 
 
 /- Only support 64-bit Linux or macOS -/
-def checkPlatform : IO Unit := do
+inductive SupportedPlatform where
+  | linux_x86_64 
+  | macos_x86_64
+  | macos_arm64
+  deriving Inhabited, BEq
+
+
+def getPlatform : IO SupportedPlatform := do
   if Platform.isWindows then
     error "Windows is not supported"
   if Platform.numBits != 64 then
     error "Only 64-bit platforms are supported"
+
+  let output ← IO.Process.output {
+    cmd := "uname", args := #["-m"]
+  } 
+  let arch := output.stdout.trim
+  if arch ∈ ["arm64", "aarch64"] then
+    if Platform.isOSX then
+      return SupportedPlatform.macos_arm64
+    else
+      error "ARM64 is only supported on macOS"
+  else if arch == "x86_64" then
+    if Platform.isOSX then
+      return SupportedPlatform.macos_x86_64
+    else
+      return SupportedPlatform.linux_x86_64
+  else
+    error s!"Unsupported architecture {arch}"
+
+
+def isAppleSilicon : IO Bool := do
+  let platform ← getPlatform
+  return platform == SupportedPlatform.macos_arm64
 
 
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
@@ -62,14 +91,14 @@ def getLibPath (name : String) : IO (Option FilePath) := do
 
 
 def afterReleaseAsync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
-  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+  if ¬(← isAppleSilicon) ∧ pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindAsync fun _ _ => build
   else
     build
 
 
 def afterReleaseSync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
-  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+  if ¬(← isAppleSilicon) ∧ pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
     Job.async build
@@ -119,7 +148,7 @@ target libunwind pkg : FilePath := do
 -- Check whether the directory "./onnx-leandojo-lean4-tacgen-byt5-small" exists
 def checkModel : IO Unit := do
   let path : FilePath := ⟨"onnx-leandojo-lean4-tacgen-byt5-small"⟩
-  if !(← path.pathExists) || !(← path.isDir) then
+  if ¬(← path.pathExists) ∨ ¬(← path.isDir) then
     error s!"Cannot find the ONNX model at {path}. Download the model using `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`."
 
 
@@ -127,7 +156,7 @@ def checkModel : IO Unit := do
 target libonnxruntime pkg : FilePath := do
   checkModel
   afterReleaseSync pkg do
-  checkPlatform
+  let _ ← getPlatform
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
   createParentDirs dst
   try
