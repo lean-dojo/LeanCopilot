@@ -1,5 +1,6 @@
 import Lake
-open Lake DSL System Lean Elab Term
+open Lake DSL
+open System Lean Elab
 
 
 inductive SupportedOS where
@@ -11,8 +12,8 @@ deriving Inhabited, BEq
 def getOS : IO SupportedOS := do
   if Platform.isWindows then
     error "Windows is not supported"
-  if Platform.isOSX then 
-    return .macos 
+  if Platform.isOSX then
+    return .macos
   else
     return .linux
 
@@ -22,18 +23,25 @@ inductive SupportedArch where
   | arm64
 deriving Inhabited, BEq
 
-
-def getArch : IO SupportedArch := do
-  let output ← IO.Process.output {
-    cmd := "uname", args := #["-m"]
-  } 
+def getArch? : BaseIO (Option SupportedArch) := do
+  let proc := IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
+  let .ok output ← proc.toBaseIO
+    | return none
   let arch := output.stdout.trim
   if arch ∈ ["arm64", "aarch64"] then
-    return .arm64
+    return some .arm64
   else if arch == "x86_64" then
-    return .x86_64
+    return some .x86_64
   else
-    error s!"Unsupported architecture {arch}"
+    return none
+
+def getArch : IO SupportedArch := do
+  if let some arch ← getArch? then return arch else
+    error s!"unknown architecture"
+
+
+elab "is_arm?" : term => do
+  return toExpr <| (← getArch?).map (· matches .arm64)
 
 
 structure SupportedPlatform where
@@ -47,23 +55,13 @@ def getPlatform : IO SupportedPlatform := do
   return ⟨← getOS, ← getArch⟩
 
 
-syntax (name := isARM) "is_arm?" :term
-
-@[term_elab isARM]
-def elabIsARM : TermElab := fun _ _ => do
-  if (← getArch) == .arm64 then
-    return Expr.const `Bool.true []
-  else
-    return Expr.const `Bool.false []
-
-
-package LeanInfer {
-  preferReleaseBuild := (get_config? noCloudRelease |>.isNone) ∧ (¬ is_arm?)
+package LeanInfer where
+  preferReleaseBuild := get_config? noCloudRelease |>.isNone
   precompileModules := true
   buildType := BuildType.release
+  buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
-}
 
 
 @[default_target]
@@ -165,7 +163,7 @@ def checkModel : IO Unit := do
 
 def getOnnxPlatform : IO String := do
   let ⟨os, arch⟩  ← getPlatform
-  match os with 
+  match os with
   | .linux => return if arch == .x86_64 then "linux-x64" else "linux-aarch64"
   | .macos => return "osx-universal2"
 
@@ -177,7 +175,7 @@ target libonnxruntime pkg : FilePath := do
   let _ ← getPlatform
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
   createParentDirs dst
-  
+
   let onnxVersion := "1.15.1"
   let onnxFileStem := s!"onnxruntime-{← getOnnxPlatform}-{onnxVersion}"
   let onnxFilename := onnxFileStem ++ ".tgz"
