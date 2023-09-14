@@ -17,7 +17,9 @@ curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf 
 source $HOME/.elan/env
 
 # Download the ONNX model.
-git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
+rm -rf onnx-leandojo-lean4-tacgen-byt5-small
+git lfs install
+git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
 
 # Double-check and build.
 lake update
