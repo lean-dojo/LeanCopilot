@@ -1,30 +1,5 @@
 import Lake
-open Lake DSL System
-
-
-package LeanInfer {
-  preferReleaseBuild := get_config? noCloudRelease |>.isNone
-  precompileModules := true
-  buildType := BuildType.release
-  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
-}
-
-
-@[default_target]
-lean_lib LeanInfer {
-}
-
-
-lean_lib Examples {
-}
-
-
-def onnxVersion := "1.15.1"
-def onnxPlatform := if System.Platform.isOSX then "osx-universal2" else "linux-x64"
-def onnxFileStem := s!"onnxruntime-{onnxPlatform}-{onnxVersion}"
-def onnxFilename := onnxFileStem ++ ".tgz"
-def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
+open Lake DSL System Lean Elab Term
 
 
 /- Only support 64-bit Linux or macOS -/
@@ -59,9 +34,41 @@ def getPlatform : IO SupportedPlatform := do
     error s!"Unsupported architecture {arch}"
 
 
-def isAppleSilicon : IO Bool := do
+
+syntax (name := isAppleSilicon) "is_apple_silicon?" :term
+
+@[term_elab isAppleSilicon]
+def elabGetConfig : TermElab := fun _ _ => do
   let platform ← getPlatform
-  return platform == SupportedPlatform.macos_arm64
+  if platform == SupportedPlatform.macos_arm64 then
+    return Expr.const `Bool.true []
+  else
+    return Expr.const `Bool.false []
+
+
+package LeanInfer {
+  preferReleaseBuild := (get_config? noCloudRelease |>.isNone) ∧ (¬ is_apple_silicon?)
+  precompileModules := true
+  buildType := BuildType.release
+  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
+}
+
+
+@[default_target]
+lean_lib LeanInfer {
+}
+
+
+lean_lib Examples {
+}
+
+
+def onnxVersion := "1.15.1"
+def onnxPlatform := if System.Platform.isOSX then "osx-universal2" else "linux-x64"
+def onnxFileStem := s!"onnxruntime-{onnxPlatform}-{onnxVersion}"
+def onnxFilename := onnxFileStem ++ ".tgz"
+def onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
 
 
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
@@ -91,14 +98,14 @@ def getLibPath (name : String) : IO (Option FilePath) := do
 
 
 def afterReleaseAsync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
-  if ¬(← isAppleSilicon) ∧ pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindAsync fun _ _ => build
   else
     build
 
 
 def afterReleaseSync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
-  if ¬(← isAppleSilicon) ∧ pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
     Job.async build
