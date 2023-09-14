@@ -38,7 +38,7 @@ def getArch : IO SupportedArch := do
 
 structure SupportedPlatform where
   os : SupportedOS
-  arc : SupportedArch
+  arch : SupportedArch
 
 
 def getPlatform : IO SupportedPlatform := do
