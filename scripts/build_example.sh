@@ -20,5 +20,4 @@ git lfs install
 git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
 
 # Double-check and build.
-lake update
 lake build
