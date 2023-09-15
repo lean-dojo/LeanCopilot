@@ -66,6 +66,7 @@ You don't need to build LeanInfer directly if you use it in a downstream package
 ```bibtex
 @misc{leaninfer,
   author = {Song, Peiyang and Yang, Kaiyu and Anandkumar, Anima},
+  comment={The last two authors advised equally.},
   title = {LeanInfer: Neural Network Inference in Lean 4},
   year = {2023},
   publisher = {GitHub},
