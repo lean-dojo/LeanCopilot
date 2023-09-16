@@ -26,7 +26,6 @@ end Core
 private def is_initialized : IO Bool := do
   return Core.is_initialized ()
 
-
 private def init_generator : CoreM Bool := do
   if ← is_initialized then
     return true
