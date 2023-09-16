@@ -62,7 +62,7 @@ def getPlatform : IO SupportedPlatform := do
 package LeanInfer where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   precompileModules := true
-  buildType := BuildType.release
+  buildType := BuildType.debug
   buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
@@ -174,7 +174,6 @@ def getOnnxPlatform : IO String := do
 
 /- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
-  checkModel
   afterReleaseAsync pkg do
   let _ ← getPlatform
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")

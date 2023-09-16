@@ -1,16 +1,18 @@
 #include <lean/lean.h>
 #include <onnxruntime_cxx_api.h>
 
-#include <algorithm>
+#include <set>
+#include <locale>
+#include <random>
+#include <string>
+#include <vector>
+#include <fstream>
 #include <cassert>
 #include <codecvt>
 #include <iostream>
-#include <locale>
-#include <random>
-#include <set>
+#include <algorithm>
 #include <stdexcept>
-#include <string>
-#include <vector>
+
 
 /* Constants */
 constexpr int64_t NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
@@ -80,12 +82,11 @@ const std::vector<const char *> DECODER_WITH_PAST_OUTPUT_NAMES = {
 /* Global variables */
 Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
 Ort::SessionOptions opts;
-Ort::Session encoder_session(env, ENCODER_PATH.c_str(), opts);
-Ort::Session decoder_raw_session(env, DECODER_RAW_PATH.c_str(), opts);
-Ort::Session decoder_with_past_session(env, DECODER_WITH_PAST_PATH.c_str(),
-                                       opts);
 Ort::MemoryInfo mem_info = Ort::MemoryInfo::CreateCpu(
     OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+Ort::Session *p_encoder_session = nullptr;
+Ort::Session *p_decoder_raw_session = nullptr;
+Ort::Session *p_decoder_with_past_session = nullptr;
 
 /* Simulated Byt5 tokenizer */
 std::vector<int64_t> tokenize(const char *input) {
@@ -234,7 +235,7 @@ std::vector<Ort::Value> run_encoder(std::vector<int64_t> &input_ids,
 
   // Run the encoder and return last_hidden_state.
   std::vector<Ort::Value> output_tensors =
-      run_onnx(encoder_session, input_tensors, ENCODER_INPUT_NAMES,
+      run_onnx(*p_encoder_session, input_tensors, ENCODER_INPUT_NAMES,
                ENCODER_OUTPUT_NAMES);
   return output_tensors;
 }
@@ -253,7 +254,7 @@ std::vector<Ort::Value> run_decoder_raw(
 
   // Run the decoder.
   std::vector<Ort::Value> output_tensors =
-      run_onnx(decoder_raw_session, input_tensors, DECODER_RAW_INPUT_NAMES,
+      run_onnx(*p_decoder_raw_session, input_tensors, DECODER_RAW_INPUT_NAMES,
                DECODER_RAW_OUTPUT_NAMES);
   check_tensors(output_tensors);
   return output_tensors;
@@ -290,7 +291,7 @@ std::vector<int64_t> run_decoder(Ort::Value &last_hidden_state,
 
   for (int n_step = 1; n_step < max_length; n_step++) {
     with_past_output_tensors =
-        run_onnx(decoder_with_past_session, input_tensors,
+        run_onnx(*p_decoder_with_past_session, input_tensors,
                  DECODER_WITH_PAST_INPUT_NAMES, DECODER_WITH_PAST_OUTPUT_NAMES);
     check_tensors(with_past_output_tensors);
 
@@ -383,11 +384,53 @@ static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
   return r;
 }
 
+inline bool exists(const std::string &path) {
+  std::ifstream f(path.c_str());
+  return f.good();
+}
+
+extern "C" uint8_t init_generator(lean_object *) {
+  if (!exists(ENCODER_PATH)) {
+    return false;
+  }
+  if (p_encoder_session != nullptr) {
+    delete p_encoder_session;
+  }
+  p_encoder_session = new Ort::Session(env, ENCODER_PATH.c_str(), opts);
+
+  if (p_decoder_raw_session != nullptr) {
+    delete p_decoder_raw_session;
+  }
+  p_decoder_raw_session = new Ort::Session(env, DECODER_RAW_PATH.c_str(), opts);
+
+  if (p_decoder_with_past_session != nullptr) {
+    delete p_decoder_with_past_session;
+  }
+  p_decoder_with_past_session =
+      new Ort::Session(env, DECODER_WITH_PAST_PATH.c_str(), opts);
+  return true;
+}
+
+inline bool is_initialized_aux() {
+  assert((p_encoder_session && p_decoder_raw_session &&
+         p_decoder_with_past_session) || (!p_encoder_session &&
+                                                        !p_decoder_raw_session &&
+                                                        !p_decoder_with_past_session));
+  return p_encoder_session != nullptr;
+}
+
+extern "C" uint8_t is_initialized(lean_object *) {
+  return is_initialized_aux();
+}
+
 extern "C" lean_obj_res generate(b_lean_obj_arg input,
                                  uint64_t num_return_sequences,
                                  uint64_t max_length, double temperature,
                                  uint64_t num_beams) {
   // Check the arguments.
+  if (!is_initialized_aux()) {
+    throw std::runtime_error("Generator is not initialized.");
+  }
   if (num_return_sequences <= 0) {
     throw std::invalid_argument("num_return_sequences must be positive.");
   }
