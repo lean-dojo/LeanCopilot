@@ -1,4 +1,4 @@
-LeanInfer: Neural Network Inference in Lean 4
+LeanInfer: Native Neural Network Inference in Lean 4
 =============================================
 
 LeanInfer provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). 
