@@ -17,7 +17,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 ## Adding LeanInfer as a Dependency to Your Project
 
 1. Download the model ([LeanDojo's tactic generator in ONNX format](https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small)) into the root of the repo. If you have [Git LFS](https://git-lfs.com/), this can be done by `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`. Otherwise, see [here](https://huggingface.co/docs/hub/models-downloading).
-2. Add the package configuration option `moreLinkArgs := #[s!"-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]` to lakefile.lean. Also add LeanInfer as a dependency:
+2. Add the package configuration option `moreLinkArgs := #["-L./lake-packages/LeanInfer/build/lib", "-lonnxruntime", "-lstdc++"]` to lakefile.lean. Also add LeanInfer as a dependency:
 ```lean
 require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git"@"v0.0.6"
 ```
