@@ -7,6 +7,12 @@ namespace LeanInfer
 
 namespace Core
 
+@[extern "init_generator"]
+private opaque init_generator : Unit → Bool 
+
+@[extern "is_initialized"]
+private opaque is_initialized : Unit → Bool
+
 -- https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/text_generation
 @[extern "generate"]
 private opaque generate (input : @& String) (numReturnSequences : UInt64) (maxLength : UInt64) 
@@ -17,10 +23,26 @@ private opaque encode (input : @& String) : FloatArray
 
 end Core
 
+private def is_initialized : IO Bool := do
+  return Core.is_initialized ()
+
+
+private def init_generator : CoreM Bool := do
+  if ← is_initialized then
+    return true
+  else if Core.init_generator () then
+    return true
+  else
+    logWarning  "Cannot find the generator model. Please make sure it has been downloaded. If not, run `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small` at the root of the repo."
+    return false
+
 def generate (input : String) (numReturnSequences : UInt64 := 8) 
 (maxLength : UInt64 := 256) (temperature : Float := 1.0) 
-(numBeams : UInt64 := 1) : IO (Array (String × Float)) := do
-  return Core.generate input numReturnSequences maxLength temperature numBeams
+(numBeams : UInt64 := 1) : CoreM (Array (String × Float)) := do
+  if ← init_generator  then
+    return Core.generate input numReturnSequences maxLength temperature numBeams
+  else
+    return #[]
 
 def encode (input : String) : IO FloatArray := do
   return Core.encode input
@@ -54,7 +76,7 @@ syntax "suggest_tactics" : tactic
 elab_rules : tactic
   | `(tactic | suggest_tactics%$tac) => do
     let input ← getPpTacticState
-    let suggestions ← timeit s!"Time for generating tactics:" (generate input)
+    let suggestions ← generate input
     let tactics := suggestions.map (·.1)
     addSuggestions tac tactics.toList
 
