@@ -16,11 +16,6 @@ export LD_LIBRARY_PATH="${LLVM_HOME}/lib/x86_64-unknown-linux-gnu":$LD_LIBRARY_P
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | bash -s -- -y
 source $HOME/.elan/env
 
-# Download the ONNX model.
-rm -rf onnx-leandojo-lean4-tacgen-byt5-small
-git lfs install
-git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
-
-# Double-check and build.
+# Build the project.
 lake build
 lake build Examples
