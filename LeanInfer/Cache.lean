@@ -10,7 +10,7 @@ def modelName := "onnx-leandojo-lean4-tacgen-byt5-small"
 def modelURL := s!"https://huggingface.co/kaiyuy/{modelName}"
 
 private def getHomeDir : IO FilePath := do
-  let some dir ← IO.getEnv "HOME" | throw $ IO.userError "Cannot find home the $HOME environment variable."
+  let some dir ← IO.getEnv "HOME" | throw $ IO.userError "Cannot find the $HOME environment variable."
   return dir
 
 def getDefaultCacheDir : IO FilePath := do
@@ -68,10 +68,9 @@ private def hasLocalChange (repoRoot : FilePath) : IO Bool := do
 
 def checkModel : IO Unit := do
   let modelDir ← getModelDir
-  if ¬(← modelDir.pathExists) then
-    downloadModel
-  else if ← hasLocalChange modelDir then
+  if ← hasLocalChange modelDir then
     IO.FS.removeDirAll modelDir
+  if ¬(← modelDir.pathExists) then
     downloadModel
 
 end Cache
