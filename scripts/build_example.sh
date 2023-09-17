@@ -14,10 +14,5 @@ git clone https://github.com/yangky11/lean4-example
 cd lean4-example
 git checkout LeanInfer-demo
 
-# Download the ONNX model.
-rm -rf onnx-leandojo-lean4-tacgen-byt5-small
-git lfs install
-git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small
-
-# Double-check and build.
+# Build lean4-example.
 lake build
