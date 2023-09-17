@@ -1,5 +1,6 @@
 import Lean
 import LeanInfer.Frontend
+import LeanInfer.Cache
 
 open Lean Elab Tactic
 
@@ -8,7 +9,7 @@ namespace LeanInfer
 namespace Core
 
 @[extern "init_generator"]
-private opaque init_generator : Unit → Bool 
+private opaque init_generator (modelDir : @& String) : Bool 
 
 @[extern "is_initialized"]
 private opaque is_initialized : Unit → Bool
@@ -29,16 +30,16 @@ private def is_initialized : IO Bool := do
 private def init_generator : CoreM Bool := do
   if ← is_initialized then
     return true
-  else if Core.init_generator () then
+  else if Core.init_generator (← Cache.getModelDir).toString then
     return true
   else
-    logWarning  "Cannot find the generator model. Please make sure it has been downloaded. If not, run `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small` at the root of the repo."
+    logWarning  "Cannot find the generator model. If you would like to download it to this project, run `suggest_tactics!` and wait for a few mintues."
     return false
 
 def generate (input : String) (numReturnSequences : UInt64 := 8) 
 (maxLength : UInt64 := 256) (temperature : Float := 1.0) 
 (numBeams : UInt64 := 1) : CoreM (Array (String × Float)) := do
-  if ← init_generator  then
+  if ← init_generator then
     return Core.generate input numReturnSequences maxLength temperature numBeams
   else
     return #[]
@@ -61,30 +62,38 @@ def getPpTacticState : TacticM String := do
   let goals ← getUnsolvedGoals
   ppTacticState goals
 
+def suggestTactics : TacticM (Array String) := do
+  let input ← getPpTacticState
+  let suggestions ← generate input
+  return suggestions.map (·.1)
+
 syntax "trace_generate" str : tactic
+syntax "trace_encode" str : tactic
+syntax "suggest_tactics" : tactic
+syntax "suggest_tactics!" : tactic
+syntax "suggest_premises" : tactic
+
 elab_rules : tactic
   | `(tactic | trace_generate $input:str) => do
     logInfo s!"{← generate input.getString}"
 
-syntax "trace_encode" str : tactic
-elab_rules : tactic
   | `(tactic | trace_encode $input:str) => do
     logInfo s!"{← encode input.getString}"
 
-syntax "suggest_tactics" : tactic
-elab_rules : tactic
   | `(tactic | suggest_tactics%$tac) => do
-    let input ← getPpTacticState
-    let suggestions ← generate input
-    let tactics := suggestions.map (·.1)
+    let tactics ← suggestTactics 
+    addSuggestions tac tactics.toList
+    
+  | `(tactic | suggest_tactics!%$tac) => do
+    Cache.checkModel
+    let tactics ← suggestTactics 
     addSuggestions tac tactics.toList
 
-syntax "suggest_premises" : tactic
-elab_rules : tactic
   | `(tactic | suggest_premises) => do
     let input ← getPpTacticState
     let suggestions ← timeit s!"Time for retriving premises:" (retrieve input)
     let premises := suggestions.map (·.1)
     logInfo s!"{premises}"
+
 
 end LeanInfer

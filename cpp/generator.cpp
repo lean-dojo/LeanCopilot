@@ -25,12 +25,6 @@ constexpr int64_t NUM_VALID_TOKENS = 256;
 constexpr int64_t BATCH_SIZE = 1;
 constexpr int64_t ATTENTION_MASL_VALID = 1;
 
-const std::string DECODER_WITH_PAST_PATH =
-    "onnx-leandojo-lean4-tacgen-byt5-small/decoder_with_past_model.onnx";
-const std::string DECODER_RAW_PATH =
-    "onnx-leandojo-lean4-tacgen-byt5-small/decoder_model.onnx";
-const std::string ENCODER_PATH =
-    "onnx-leandojo-lean4-tacgen-byt5-small/encoder_model.onnx";
 const std::vector<const char *> ENCODER_INPUT_NAMES = {"input_ids",
                                                        "attention_mask"};
 const std::vector<const char *> ENCODER_OUTPUT_NAMES = {"last_hidden_state"};
@@ -389,25 +383,31 @@ inline bool exists(const std::string &path) {
   return f.good();
 }
 
-extern "C" uint8_t init_generator(lean_object *) {
-  if (!exists(ENCODER_PATH)) {
+extern "C" uint8_t init_generator(b_lean_obj_arg model_dir) {
+
+  const char *dir = lean_string_cstr(model_dir);
+  const std::string decoder_with_past_path = std::string(dir) + "/decoder_with_past_model.onnx";
+  const std::string decoder_raw_path = std::string(dir) + "/decoder_model.onnx";
+  const std::string encoder_path = std::string(dir) + "/encoder_model.onnx";
+
+  if (!exists(encoder_path)) {
     return false;
   }
   if (p_encoder_session != nullptr) {
     delete p_encoder_session;
   }
-  p_encoder_session = new Ort::Session(env, ENCODER_PATH.c_str(), opts);
+  p_encoder_session = new Ort::Session(env, encoder_path.c_str(), opts);
 
   if (p_decoder_raw_session != nullptr) {
     delete p_decoder_raw_session;
   }
-  p_decoder_raw_session = new Ort::Session(env, DECODER_RAW_PATH.c_str(), opts);
+  p_decoder_raw_session = new Ort::Session(env, decoder_raw_path.c_str(), opts);
 
   if (p_decoder_with_past_session != nullptr) {
     delete p_decoder_with_past_session;
   }
   p_decoder_with_past_session =
-      new Ort::Session(env, DECODER_WITH_PAST_PATH.c_str(), opts);
+      new Ort::Session(env, decoder_with_past_path.c_str(), opts);
   return true;
 }
 
