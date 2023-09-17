@@ -27,7 +27,10 @@ You may also see the [example here](https://github.com/yangky11/lean4-example/bl
 
 ## Using LeanInfer's Tactic Generator
 
-After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)).
+After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)). 
+
+For the first time, it may ask you to download the model by running `suggest_tactics!`. The model will be downloaded to `~/.cache/lean_infer` by default, but the path can be overridden by the `LEAN_INFER_CACHE_DIR` environment variable.
+
 
 
 ## Building LeanInfer from Source
