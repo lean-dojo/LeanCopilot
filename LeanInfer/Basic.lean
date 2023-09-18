@@ -33,7 +33,7 @@ private def init_generator : CoreM Bool := do
   else if Core.init_generator (← Cache.getModelDir).toString then
     return true
   else
-    logWarning  "Cannot find the generator model. If you would like to download it to this project, run `suggest_tactics!` and wait for a few mintues."
+    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
     return false
 
 def generate (input : String) (numReturnSequences : UInt64 := 8) 
