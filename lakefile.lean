@@ -158,13 +158,6 @@ target libunwind pkg : FilePath := do
   copyLibJob pkg "libunwind.so.1.0"
 
 
--- Check whether the directory "./onnx-leandojo-lean4-tacgen-byt5-small" exists
-def checkModel : IO Unit := do
-  let path : FilePath := ⟨"onnx-leandojo-lean4-tacgen-byt5-small"⟩
-  if ¬(← path.pathExists) ∨ ¬(← path.isDir) then
-    error s!"Cannot find the ONNX model at {path}. Download the model using `git lfs install && git clone https://huggingface.co/kaiyuy/onnx-leandojo-lean4-tacgen-byt5-small`."
-
-
 def getOnnxPlatform : IO String := do
   let ⟨os, arch⟩  ← getPlatform
   match os with
