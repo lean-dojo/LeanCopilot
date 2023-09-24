@@ -144,17 +144,24 @@ double sum(const std::vector<double> &v) {
 /* Greedy search algorithm with multinomial sampling */
 std::pair<int64_t, double> sample(const std::vector<float> &logits,
                                   double temperature) {
-  // Calculate `probs` as the softmax of `logits`.
+  // Calculate `probs` as the softmax of recentered `logits`.
   assert(logits.size() == VOCAB_SIZE);
-  std::vector<double> probs;
 
+  std::vector<double> translated_logits;
+  double mean_logit = std::accumulate(logits.begin(), logits.end(), 0.0) / logits.size();
+  for (int i = 0; i < VOCAB_SIZE; i++) {
+    translated_logits.push_back(static_cast<double>(logits[i]) - mean_logit);
+  }
+  assert(translated_logits.size() == logits.size());
+
+  std::vector<double> probs;
   for (int i = 0; i < VOCAB_SIZE; i++) {
     if (i == PAD_TOKEN_ID || i == UNK_TOKEN_ID ||
         i > NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS) {
       probs.push_back(0.0);
       continue;
     }
-    double v = static_cast<double>(logits[i]);
+    double v = translated_logits[i];
     assert(std::isnormal(v));
     probs.push_back(std::exp(v / temperature));
   }
@@ -174,8 +181,8 @@ std::pair<int64_t, double> sample(const std::vector<float> &logits,
 
   int64_t sampled_token = distribution(gen);
   assert(0 <= sampled_token && sampled_token < VOCAB_SIZE);
-  double sampled_logit = logits[sampled_token];
-  return {sampled_token, sampled_logit};
+
+  return {sampled_token, std::log(probs[sampled_token])};
 }
 
 /* `ORT::Value` does not support copy constructors */
@@ -264,8 +271,6 @@ std::pair<std::vector<int64_t>, double> run_decoder(
     Ort::Value &last_hidden_state, std::vector<int64_t> &attention_mask,
     std::vector<int64_t> &encoder_input_dim, size_t max_length,
     double temperature) {
-  double score = 0.0;
-
   std::vector<Ort::Value> raw_output_tensors =
       run_decoder_raw(last_hidden_state, attention_mask, encoder_input_dim);
   check_tensors(raw_output_tensors);
