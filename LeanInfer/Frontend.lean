@@ -70,7 +70,7 @@ export default function(props) {
             suggestion[1] === 'Valid' ? 'link pointer dim blue' :
             'link pointer dim',
           title: 'Apply suggestion'},
-          suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
+          suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] + ' (' + props.scores[i] + ')' : suggestion[0] + ' (' + props.scores[i] + ')'
       )
     )),
     props.info
@@ -109,7 +109,7 @@ def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
 
 /- Adds multiple suggestions to the Lean InfoView.
    Code based on `Std.Tactic.addSuggestion`. -/
-def addSuggestions (tacRef : Syntax) (suggestions: List String)
+def addSuggestions (tacRef : Syntax) (suggestions: List (String × Float))
     (origSpan? : Option Syntax := none)
     (extraMsg : String := "") : Lean.Elab.Tactic.TacticM Unit := do
   if let some tacticRange := (origSpan?.getD tacRef).getRange? then
@@ -117,12 +117,13 @@ def addSuggestions (tacRef : Syntax) (suggestions: List String)
     let start := findLineStart map.source tacticRange.start
     let body := map.source.findAux (· ≠ ' ') tacticRange.start start
 
-    let checks ← suggestions.mapM checkSuggestion
-    let texts := suggestions.map fun text => (
+    let checks ← (suggestions.map (·.1)).mapM checkSuggestion
+    let texts := suggestions.map fun ⟨text, _⟩ => (
       (Std.Format.prettyExtra (text.stripSuffix "\n")
         (indent := (body - start).1)
         (column := (tacticRange.start - start).1)
     ))
+    let scores := suggestions.map (·.2)
 
     let textsAndChecks := texts.zip checks |>.toArray |>.qsort
       fun a b => compare a.2 b.2 = Ordering.lt
@@ -136,9 +137,11 @@ def addSuggestions (tacRef : Syntax) (suggestions: List String)
     { start := tacticRange.start, stop := tacticRange.stop }
     let full_range := map.utf8RangeToLspRange full_range
     let tactic := Std.Format.prettyExtra f!"{tacRef.prettyPrint}"
+    
     let json := Json.mkObj [
       ("tactic", tactic),
       ("suggestions", toJson textsAndChecks),
+      ("scores", toJson scores),
       ("range", toJson full_range),
       ("info", extraMsg)
     ]

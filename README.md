@@ -82,5 +82,5 @@ You don't need to build LeanInfer directly if you use it in a downstream package
 
 The C++ code in this project is formatted using [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html). To format the code, run
 ```bash
-clang-format --style Google -i ffi.cpp
+clang-format --style Google -i cpp/generator.cpp cpp/retriever.cpp
 ```
