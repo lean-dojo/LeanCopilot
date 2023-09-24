@@ -119,9 +119,9 @@ std::string detokenize(const std::vector<int64_t> &tokens) {
     wcstombs(buf, ws.c_str(), l + 1);
     std::string s(buf);
     delete[] buf;
-    return {s};
+    return s;
   } catch (std::range_error) {
-    return {""};
+    return "";
   }
 }
 
