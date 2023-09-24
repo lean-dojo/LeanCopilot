@@ -101,16 +101,16 @@ std::vector<int64_t> tokenize(const char *input) {
 }
 
 /* Simulated Byt5 detokenizer that reverses the effects of its tokenizer */
-std::pair<std::string, double> detokenize(
-    const std::pair<std::vector<int64_t>, double> &tokens) {
+std::string detokenize(
+    const std::vector<int64_t> &tokens) {
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
 
-  for (size_t i = 0; i < tokens.first.size(); i++) {
-    assert(NUM_SPECIAL_TOKENS <= tokens.first[i] &&
-           tokens.first[i] < NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS);
+  for (size_t i = 0; i < tokens.size(); i++) {
+    assert(NUM_SPECIAL_TOKENS <= tokens[i] &&
+           tokens[i] < NUM_SPECIAL_TOKENS + NUM_VALID_TOKENS);
     s_utf8.push_back(
-        static_cast<unsigned char>(tokens.first[i] - NUM_SPECIAL_TOKENS));
+        static_cast<unsigned char>(tokens[i] - NUM_SPECIAL_TOKENS));
   }
 
   try {
@@ -120,9 +120,9 @@ std::pair<std::string, double> detokenize(
     wcstombs(buf, ws.c_str(), l + 1);
     std::string s(buf);
     delete[] buf;
-    return {s, tokens.second};
+    return {s};
   } catch (std::range_error) {
-    return {"", 0.0};
+    return {""};
   }
 }
 
@@ -379,7 +379,7 @@ std::pair<std::string, double> run_inference(std::vector<int64_t> input_ids,
                   max_length, temperature);
 
   // Detokenize output and return as a Lean string
-  return detokenize(tokens);
+  return std::make_pair(detokenize(tokens.first), tokens.second);
 }
 
 static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
