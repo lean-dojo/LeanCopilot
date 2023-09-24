@@ -101,8 +101,7 @@ std::vector<int64_t> tokenize(const char *input) {
 }
 
 /* Simulated Byt5 detokenizer that reverses the effects of its tokenizer */
-std::string detokenize(
-    const std::vector<int64_t> &tokens) {
+std::string detokenize(const std::vector<int64_t> &tokens) {
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
 
@@ -148,7 +147,8 @@ std::pair<int64_t, double> sample(const std::vector<float> &logits,
   assert(logits.size() == VOCAB_SIZE);
 
   std::vector<double> translated_logits;
-  double mean_logit = std::accumulate(logits.begin(), logits.end(), 0.0) / logits.size();
+  double mean_logit =
+      std::accumulate(logits.begin(), logits.end(), 0.0) / logits.size();
   for (int i = 0; i < VOCAB_SIZE; i++) {
     translated_logits.push_back(static_cast<double>(logits[i]) - mean_logit);
   }
