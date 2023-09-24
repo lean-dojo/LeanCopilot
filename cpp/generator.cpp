@@ -1,18 +1,17 @@
 #include <lean/lean.h>
 #include <onnxruntime_cxx_api.h>
 
-#include <set>
-#include <locale>
-#include <random>
-#include <string>
-#include <vector>
-#include <fstream>
+#include <algorithm>
 #include <cassert>
 #include <codecvt>
+#include <fstream>
 #include <iostream>
-#include <algorithm>
+#include <locale>
+#include <random>
+#include <set>
 #include <stdexcept>
-
+#include <string>
+#include <vector>
 
 /* Constants */
 constexpr int64_t NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
@@ -102,7 +101,8 @@ std::vector<int64_t> tokenize(const char *input) {
 }
 
 /* Simulated Byt5 detokenizer that reverses the effects of its tokenizer */
-std::pair<std::string, double> detokenize(const std::pair< std::vector<int64_t>, double> &tokens) {
+std::pair<std::string, double> detokenize(
+    const std::pair<std::vector<int64_t>, double> &tokens) {
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::string s_utf8;
 
@@ -142,7 +142,8 @@ double sum(const std::vector<double> &v) {
 }
 
 /* Greedy search algorithm with multinomial sampling */
-std::pair<int64_t, double> sample(const std::vector<float> &logits, double temperature) {
+std::pair<int64_t, double> sample(const std::vector<float> &logits,
+                                  double temperature) {
   // Calculate `probs` as the softmax of `logits`.
   assert(logits.size() == VOCAB_SIZE);
   std::vector<double> probs;
@@ -259,10 +260,10 @@ std::vector<Ort::Value> run_decoder_raw(
   return output_tensors;
 }
 
-std::pair< std::vector<int64_t>, double> run_decoder(Ort::Value &last_hidden_state,
-                                                      std::vector<int64_t> &attention_mask,
-                                                      std::vector<int64_t> &encoder_input_dim,
-                                                      size_t max_length, double temperature) {
+std::pair<std::vector<int64_t>, double> run_decoder(
+    Ort::Value &last_hidden_state, std::vector<int64_t> &attention_mask,
+    std::vector<int64_t> &encoder_input_dim, size_t max_length,
+    double temperature) {
   double score = 0.0;
 
   std::vector<Ort::Value> raw_output_tensors =
@@ -288,7 +289,8 @@ std::pair< std::vector<int64_t>, double> run_decoder(Ort::Value &last_hidden_sta
 
   // If you move this inside the loop, the program will produce nan.
   std::vector<Ort::Value> with_past_output_tensors;
-  std::pair< std::vector<int64_t>, double> tokens = {{next_token.first}, next_token.second};
+  std::pair<std::vector<int64_t>, double> tokens = {{next_token.first},
+                                                    next_token.second};
 
   for (int n_step = 1; n_step < max_length; n_step++) {
     with_past_output_tensors =
@@ -361,8 +363,9 @@ std::pair< std::vector<int64_t>, double> run_decoder(Ort::Value &last_hidden_sta
 }
 
 /* Run inference on the transformers model */
-std::pair<std::string, double> run_inference(std::vector<int64_t> input_ids, uint64_t max_length,
-                          double temperature) {
+std::pair<std::string, double> run_inference(std::vector<int64_t> input_ids,
+                                             uint64_t max_length,
+                                             double temperature) {
   // Run the encoder.
   int64_t l = input_ids.size();
   std::vector<int64_t> encoder_input_dim = {1, l};
@@ -371,7 +374,7 @@ std::pair<std::string, double> run_inference(std::vector<int64_t> input_ids, uin
       std::move(run_encoder(input_ids, attention_mask, BATCH_SIZE).front());
 
   // Run the decoder.
-  std::pair< std::vector<int64_t>, double> tokens =
+  std::pair<std::vector<int64_t>, double> tokens =
       run_decoder(last_hidden_state, attention_mask, encoder_input_dim,
                   max_length, temperature);
 
@@ -392,9 +395,9 @@ inline bool exists(const std::string &path) {
 }
 
 extern "C" uint8_t init_generator(b_lean_obj_arg model_dir) {
-
   const char *dir = lean_string_cstr(model_dir);
-  const std::string decoder_with_past_path = std::string(dir) + "/decoder_with_past_model.onnx";
+  const std::string decoder_with_past_path =
+      std::string(dir) + "/decoder_with_past_model.onnx";
   const std::string decoder_raw_path = std::string(dir) + "/decoder_model.onnx";
   const std::string encoder_path = std::string(dir) + "/encoder_model.onnx";
 
@@ -421,9 +424,9 @@ extern "C" uint8_t init_generator(b_lean_obj_arg model_dir) {
 
 inline bool is_initialized_aux() {
   assert((p_encoder_session && p_decoder_raw_session &&
-         p_decoder_with_past_session) || (!p_encoder_session &&
-                                                        !p_decoder_raw_session &&
-                                                        !p_decoder_with_past_session));
+          p_decoder_with_past_session) ||
+         (!p_encoder_session && !p_decoder_raw_session &&
+          !p_decoder_with_past_session));
   return p_encoder_session != nullptr;
 }
 
@@ -460,9 +463,10 @@ extern "C" lean_obj_res generate(b_lean_obj_arg input,
 
   // Run the tactic generator.
   // TODO: Run the tactic generator in a batch.
-  std::set< std::pair<std::string, double> > tactics;
+  std::set<std::pair<std::string, double>> tactics;
   while (tactics.size() < num_return_sequences) {
-    std::pair<std::string, double> tac = run_inference(tokenized_input, max_length, temperature);
+    std::pair<std::string, double> tac =
+        run_inference(tokenized_input, max_length, temperature);
     if (tac.first.empty()) {
       continue;
     }
@@ -476,8 +480,8 @@ extern "C" lean_obj_res generate(b_lean_obj_arg input,
 
   int i = 0;
   for (auto it = tactics.begin(); it != tactics.end(); it++, i++) {
-    arr->m_data[i] =
-        lean_mk_pair(lean_mk_string(it->first.c_str()), lean_box_float(it->second));
+    arr->m_data[i] = lean_mk_pair(lean_mk_string(it->first.c_str()),
+                                  lean_box_float(it->second));
   }
 
   return reinterpret_cast<lean_obj_res>(arr);
