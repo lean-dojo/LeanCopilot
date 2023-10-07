@@ -182,7 +182,7 @@ std::pair<int64_t, double> sample(const std::vector<float> &logits,
   int64_t sampled_token = distribution(gen);
   assert(0 <= sampled_token && sampled_token < VOCAB_SIZE);
 
-  return {sampled_token, probs[sampled_token]};
+  return {sampled_token, std::log(probs[sampled_token])};
 }
 
 /* `ORT::Value` does not support copy constructors */
@@ -364,6 +364,7 @@ std::pair<std::vector<int64_t>, double> run_decoder(
     set_tensor<float>(input_tensors, 16, with_past_output_tensors[8]);
   }
 
+  tokens.second = std::exp(tokens.second);
   return tokens;
 }
 
