@@ -136,6 +136,7 @@ def addSuggestions (tacRef : Syntax) (suggestions: List String)
     { start := tacticRange.start, stop := tacticRange.stop }
     let full_range := map.utf8RangeToLspRange full_range
     let tactic := Std.Format.prettyExtra f!"{tacRef.prettyPrint}"
+    
     let json := Json.mkObj [
       ("tactic", tactic),
       ("suggestions", toJson textsAndChecks),

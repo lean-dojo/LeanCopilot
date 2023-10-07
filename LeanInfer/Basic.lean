@@ -62,10 +62,10 @@ def getPpTacticState : TacticM String := do
   let goals ← getUnsolvedGoals
   ppTacticState goals
 
-def suggestTactics : TacticM (Array String) := do
+def suggestTactics : TacticM (Array (String × Float)) := do
   let input ← getPpTacticState
   let suggestions ← generate input
-  return suggestions.map (·.1)
+  return suggestions
 
 syntax "trace_generate" str : tactic
 syntax "trace_encode" str : tactic
@@ -81,12 +81,14 @@ elab_rules : tactic
     logInfo s!"{← encode input.getString}"
 
   | `(tactic | suggest_tactics%$tac) => do
-    let tactics ← suggestTactics 
+    let tacticsWithScores ← suggestTactics
+    let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
     
   | `(tactic | suggest_tactics!%$tac) => do
     Cache.checkModel
-    let tactics ← suggestTactics 
+    let tacticsWithScores ← suggestTactics
+    let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
 
   | `(tactic | suggest_premises) => do

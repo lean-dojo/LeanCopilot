@@ -73,7 +73,7 @@ lean_lib LeanInfer {
 }
 
 
-lean_lib Examples {
+lean_lib LeanInferExamples {
 }
 
 
