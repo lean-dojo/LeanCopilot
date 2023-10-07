@@ -81,12 +81,14 @@ elab_rules : tactic
     logInfo s!"{← encode input.getString}"
 
   | `(tactic | suggest_tactics%$tac) => do
-    let tactics ← suggestTactics 
+    let tacticsWithScores ← suggestTactics
+    let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
     
   | `(tactic | suggest_tactics!%$tac) => do
     Cache.checkModel
-    let tactics ← suggestTactics 
+    let tacticsWithScores ← suggestTactics
+    let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
 
   | `(tactic | suggest_premises) => do
