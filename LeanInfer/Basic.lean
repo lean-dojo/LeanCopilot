@@ -1,51 +1,60 @@
 import Lean
 import LeanInfer.Frontend
 import LeanInfer.Cache
+import LeanInfer.FFI
 
 open Lean Elab Tactic
 
 namespace LeanInfer
 
-namespace Core
+section
 
-@[extern "init_generator"]
-private opaque init_generator (modelDir : @& String) : Bool 
+variable {m : Type → Type} [Monad m] [MonadLiftT IO m] 
+  [MonadLog m] [AddMessageContext m] [MonadOptions m] [MonadReaderOf Config m] 
 
-@[extern "is_initialized"]
-private opaque is_initialized : Unit → Bool
+/--
+Check if the model is up and running.
+-/
+private def isInitialized : m Bool := do
+  let config ← read
+  match config.backend with
+  | .native .. => return FFI.isInitialized ()
+  | .ipc .. => unreachable!
 
--- https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/text_generation
-@[extern "generate"]
-private opaque generate (input : @& String) (numReturnSequences : UInt64) (maxLength : UInt64) 
-(temperature : Float) (numBeams : UInt64) : Array (String × Float)
-
-@[extern "encode"]
-private opaque encode (input : @& String) : FloatArray
-
-end Core
-
-private def is_initialized : IO Bool := do
-  return Core.is_initialized ()
-
-private def init_generator : CoreM Bool := do
-  if ← is_initialized then
+/--
+Initialize the model.
+-/
+private def initGenerator : m Bool := do
+  if ← isInitialized then
     return true
-  else if Core.init_generator (← Cache.getModelDir).toString then
-    return true
-  else
-    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
-    return false
 
-def generate (input : String) (numReturnSequences : UInt64 := 8) 
-(maxLength : UInt64 := 256) (temperature : Float := 1.0) 
-(numBeams : UInt64 := 1) : CoreM (Array (String × Float)) := do
-  if ← init_generator then
-    return Core.generate input numReturnSequences maxLength temperature numBeams
-  else
+  let config ← read
+  match config.backend with
+  | .native .. => do 
+    if FFI.initGenerator (← Cache.getModelDir).toString then
+      return true
+    else
+      logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
+      return false
+  | .ipc .. => unreachable!
+
+def generate (input : String) : m (Array (String × Float)) := do
+  if ¬ (← initGenerator) then
     return #[]
+  let config ← read
+  match config.backend with
+  | .native .. =>
+    let numReturnSequences := config.decoding.numReturnSequences
+    let maxLength := config.decoding.maxLength
+    let temperature := config.decoding.temperature
+    let beamSize := config.decoding.beamSize
+    return FFI.generate input numReturnSequences maxLength temperature beamSize
+  | .ipc .. => unreachable!
+
+end
 
 def encode (input : String) : IO FloatArray := do
-  return Core.encode input
+  return FFI.encode input
 
 def retrieve (input : String) : IO (Array (String × Float)) := do
   let query ← encode input
