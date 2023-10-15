@@ -24,10 +24,19 @@ extern "C" uint8_t init_ct2_generator(b_lean_obj_arg model_dir) {
   return true; 
 }
 
-inline bool is_ct2_initialized_aux() { return false; }
+inline bool is_ct2_initialized_aux() {
+  return p_translator != nullptr;
+}
 
 extern "C" uint8_t is_ct2_initialized(lean_object *) {
   return is_ct2_initialized_aux();
+}
+
+static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
+  lean_object *r = lean_alloc_ctor(0, 2, 0);
+  lean_ctor_set(r, 0, a);
+  lean_ctor_set(r, 1, b);
+  return r;
 }
 
 extern "C" lean_obj_res ct2_generate(b_lean_obj_arg input,
@@ -58,9 +67,37 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg input,
     throw std::invalid_argument("temperature must be positive.");
   }
 
+  ctranslate2::TranslationOptions opts;
+  opts.num_hypotheses = num_return_sequences;
+  opts.beam_size = beam_size;
+  opts.patience = patience;
+  opts.length_penalty = length_penalty;
+  opts.min_decoding_length = min_length;
+  opts.max_decoding_length = max_length;
+  opts.sampling_temperature = temperature;
+
+  const char *s = lean_string_cstr(input);
+  std::vector<std::string> input_tokens;
+  for (int i = 0; i < strlen(s); i++) {
+    input_tokens.push_back(std::string(1, s[i]));
+  }
+
+  const std::vector<std::vector<std::string>> batch = {input_tokens};
+  ctranslate2::TranslationResult results = p_translator->translate_batch(batch, opts)[0];
+  assert(results.hypotheses.size() == num_return_sequences);
+
   // Return Lean strings.
   lean_array_object *arr = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_return_sequences, num_return_sequences));
+
+  for (int i = 0; i < num_return_sequences; i++) {
+    std::string tac;
+    for (auto &token : results.hypotheses[i]) {
+      tac += token;
+    }
+    arr->m_data[i] = lean_mk_pair(lean_mk_string(tac.c_str()),
+                                  lean_box_float(0.5));
+  }
 
   return reinterpret_cast<lean_obj_res>(arr);
 }

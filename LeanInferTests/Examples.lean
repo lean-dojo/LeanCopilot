@@ -10,7 +10,7 @@ set_option autoImplicit false
 
 def cfg : Config := {
   backend := .native $ .ct2 {modelUrl := ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩}, 
-  decoding := {numReturnSequences := 2}
+  decoding := {numReturnSequences := 32}
 }
 
 #eval setConfig cfg
@@ -19,7 +19,7 @@ def cfg : Config := {
 
 
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics!
+  suggest_tactics
   sorry
 
 /-

@@ -29,7 +29,6 @@ private def getModelDir (url : HuggingFaceUrl) : IO FilePath := do
   let dir := match url.user with
   | none => cacheDir / url.modelName
   | some user => cacheDir / user / url.modelName
-  ensureExists dir
   return dir.normalize
 
 /--
@@ -62,6 +61,7 @@ private def initGitLFS : IO Unit := do
 private def downloadModel (url : HuggingFaceUrl) : IO Unit := do
   initGitLFS
   let some dir := (← getModelDir url) |>.parent | unreachable!
+  ensureExists dir
   let proc ← IO.Process.output {
     cmd := "git"
     args := #["clone", toString url]
