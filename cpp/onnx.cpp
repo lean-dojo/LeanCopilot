@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include "utils.h"
+
 /* Constants */
 constexpr int64_t NUM_SPECIAL_TOKENS = 3;  // PAD, EOS, UNK
 constexpr int64_t PAD_TOKEN_ID = 0;
@@ -388,18 +390,6 @@ std::pair<std::string, double> run_inference(std::vector<int64_t> input_ids,
   return std::make_pair(detokenize(tokens.first), tokens.second);
 }
 
-static lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
-  lean_object *r = lean_alloc_ctor(0, 2, 0);
-  lean_ctor_set(r, 0, a);
-  lean_ctor_set(r, 1, b);
-  return r;
-}
-
-inline bool exists(const std::string &path) {
-  std::ifstream f(path.c_str());
-  return f.good();
-}
-
 extern "C" uint8_t init_onnx_generator(b_lean_obj_arg model_dir) {
   const char *dir = lean_string_cstr(model_dir);
   const std::string decoder_with_past_path =
@@ -436,7 +426,7 @@ inline bool is_onnx_initialized_aux() {
   return p_encoder_session != nullptr;
 }
 
-extern "C" uint8_t is_onnx_initialized(lean_object *) {
+extern "C" uint8_t is_onnx_generator_initialized(lean_object *) {
   return is_onnx_initialized_aux();
 }
 
@@ -491,4 +481,15 @@ extern "C" lean_obj_res onnx_generate(b_lean_obj_arg input,
   }
 
   return reinterpret_cast<lean_obj_res>(arr);
+}
+
+extern "C" lean_obj_res onnx_encode(b_lean_obj_arg input) {
+  lean_object *arr = lean_mk_empty_float_array(lean_box(10));
+  // Not implemented yet.
+  lean_float_array_push(arr, 0.34);
+  lean_float_array_push(arr, 0.84);
+  lean_float_array_push(arr, 0.57);
+  lean_float_array_push(arr, 2.63);
+  lean_float_array_push(arr, 0.67);
+  return arr;
 }

@@ -14,31 +14,39 @@ section
 variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m] 
   [MonadOptions m] [MonadLiftT (ST IO.RealWorld) m] [MonadLiftT IO m] [MonadError m]
 
-/--
-Check if the model is up and running.
--/
-private def isInitialized : m Bool := do
+
+private def isGeneratorInitialized : m Bool := do
   match ← getBackend with
-  | .native (.onnx _) => return FFI.isOnnxInitialized ()
-  | .native (.ct2 _) => return FFI.isCt2Initialized ()
+  | .native (.onnx _) => return FFI.isOnnxGeneratorInitialized ()
+  | .native (.ct2 _) => return FFI.isCt2GeneratorInitialized ()
   | .ipc .. => unreachable!
 
+
 private def initNativeGenerator (initFn : String → Bool) : m Bool := do
-  let some dir ← Cache.getCurrentModelDir | throwError "Cannot find the generator model."
+  let some dir ← Cache.getGeneratorDir | throwError "Cannot find the generator model."
   if initFn dir.toString then
     return true
   else
     logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
     return false
 
+
 private def initGenerator : m Bool := do
-  if ← isInitialized then
+  if ← isGeneratorInitialized then
     return true
-    
-  match ← getBackend with
-  | .native (.onnx _) => initNativeGenerator FFI.initOnnxGenerator
-  | .native (.ct2 _) => initNativeGenerator FFI.initCt2Generator 
+
+  let some dir ← Cache.getGeneratorDir | throwError "Cannot find the generator model."
+  let config ← getConfig
+  let success : Bool := match config.backend with
+  | .native (.onnx _) =>
+       FFI.initOnnxGenerator dir.toString
+  | .native (.ct2 params) =>
+      FFI.initCt2Generator dir.toString params.device params.computeType
   | .ipc .. => unreachable!
+
+  if ¬ success then
+    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
+  return success
 
 def generate (input : String) : m (Array (String × Float)) := do
   if ¬ (← initGenerator) then
@@ -63,14 +71,49 @@ def generate (input : String) : m (Array (String × Float)) := do
     return FFI.ct2Generate input numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
   | .ipc .. => unreachable!
 
-end
 
-def encode (input : String) : IO FloatArray := do
-  return FFI.onnxEncode input
+private def isEncoderInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return unreachable!
+  | .native (.ct2 _) => return FFI.isCt2EncoderInitialized ()
+  | .ipc .. => unreachable!
 
-def retrieve (input : String) : IO (Array (String × Float)) := do
+
+private def initNativeEncoder (initFn : String → Bool) : m Bool := do
+  let some dir ← Cache.getEncoderDir | throwError "Cannot find the encoder model."
+  if initFn dir.toString then
+    return true
+  else
+    logWarning  "Cannot find the encoder model. If you would like to download it, run `select_premises!` and wait for a few mintues."
+    return false
+
+
+private def initEncoder : m Bool := do
+  if ← isEncoderInitialized then
+    return true
+    
+  match ← getBackend with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder 
+  | .ipc .. => unreachable!
+
+
+def encode (input : String) : m FloatArray := do
+  if ¬ (← initEncoder) then
+    return FloatArray.mk #[]
+
+  match ← getBackend  with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) => 
+    return FFI.ct2Encode input
+  | .ipc .. => unreachable!
+
+
+def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   println! query
   return #[("hello", 0.5)]  -- Not implemented yet.
+
+end
 
 end LeanInfer

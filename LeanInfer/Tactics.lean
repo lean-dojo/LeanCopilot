@@ -19,15 +19,17 @@ def getPpTacticState : TacticM String := do
   ppTacticState goals
 
 def suggestTactics : TacticM (Array (String × Float)) := do
-  let input ← getPpTacticState
-  let suggestions ← generate input
-  return suggestions
+  generate (← getPpTacticState)
+
+def selectPremises : TacticM (Array (String × Float)) := do
+  retrieve (← getPpTacticState)
 
 syntax "trace_generate" str : tactic
 syntax "trace_encode" str : tactic
 syntax "suggest_tactics" : tactic
 syntax "suggest_tactics!" : tactic
-syntax "suggest_premises" : tactic
+syntax "select_premises" : tactic
+syntax "select_premises!" : tactic
 
 elab_rules : tactic
   | `(tactic | trace_generate $input:str) => do
@@ -42,15 +44,20 @@ elab_rules : tactic
     addSuggestions tac tactics.toList
     
   | `(tactic | suggest_tactics!%$tac) => do
-    Cache.checkModel
+    Cache.checkGenerator
     let tacticsWithScores ← suggestTactics
     let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
 
-  | `(tactic | suggest_premises) => do
-    let input ← getPpTacticState
-    let suggestions ← timeit s!"Time for retriving premises:" (retrieve input)
-    let premises := suggestions.map (·.1)
+  | `(tactic | select_premises) => do
+    let premisesWithScores ← selectPremises
+    let premises := premisesWithScores.map (·.1)
+    logInfo s!"{premises}"
+
+  | `(tactic | select_premises!) => do
+    Cache.checkEncoder
+    let premisesWithScores ← selectPremises
+    let premises := premisesWithScores.map (·.1)
     logInfo s!"{premises}"
 
 end LeanInfer

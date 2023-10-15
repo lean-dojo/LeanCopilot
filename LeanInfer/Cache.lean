@@ -34,8 +34,12 @@ private def getModelDir (url : HuggingFaceUrl) : IO FilePath := do
 /--
 Return the cache directory for storing the current model.
 -/
-def getCurrentModelDir : IO (Option FilePath) := do
-  let some url ← getModelUrl | return none
+def getGeneratorDir : IO (Option FilePath) := do
+  let some url ← getGeneratorUrl | return none
+  getModelDir url
+
+def getEncoderDir : IO (Option FilePath) := do
+  let some url ← getEncoderUrl | return none
   getModelDir url
 
 /--
@@ -58,7 +62,7 @@ private def initGitLFS : IO Unit := do
   if proc.exitCode != 0 then
     throw $ IO.userError "Failed to initialize Git LFS. Please install it from https://git-lfs.com."
 
-private def downloadModel (url : HuggingFaceUrl) : IO Unit := do
+private def download (url : HuggingFaceUrl) : IO Unit := do
   initGitLFS
   let some dir := (← getModelDir url) |>.parent | unreachable!
   ensureExists dir
@@ -70,9 +74,13 @@ private def downloadModel (url : HuggingFaceUrl) : IO Unit := do
   if proc.exitCode != 0 then
     throw $ IO.userError s!"Failed to download the model. You download it manually from {url} and store it in `{dir}/`. See https://huggingface.co/docs/hub/models-downloading for details."
 
-private def downloadCurrentModel : IO Unit := do
-  let some url ← getModelUrl | return ()
-  downloadModel url
+private def downloadGenerator : IO Unit := do
+  let some url ← getGeneratorUrl | return ()
+  download url
+
+private def downloadEncoder : IO Unit := do
+  let some url ← getEncoderUrl | return ()
+  download url
 
 private def hasLocalChange (root : FilePath) : IO Bool := do
   checkAvailable "git"
@@ -83,11 +91,18 @@ private def hasLocalChange (root : FilePath) : IO Bool := do
   }
   return proc.exitCode == 0 ∧ proc.stdout != ""
 
-def checkModel : IO Unit := do
-  let some modelDir ← getCurrentModelDir | return ()
+def checkGenerator : IO Unit := do
+  let some modelDir ← getGeneratorDir | return ()
   if ← hasLocalChange modelDir then
     IO.FS.removeDirAll modelDir
   if ¬(← modelDir.pathExists) then
-    downloadCurrentModel
+    downloadGenerator
+
+def checkEncoder : IO Unit := do
+  let some modelDir ← getEncoderDir | return ()
+  if ← hasLocalChange modelDir then
+    IO.FS.removeDirAll modelDir
+  if ¬(← modelDir.pathExists) then
+    downloadEncoder
 
 end LeanInfer.Cache

@@ -9,7 +9,10 @@ set_option autoImplicit false
 #eval getConfig
 
 def cfg : Config := {
-  backend := .native $ .ct2 {modelUrl := ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩}, 
+  backend := .native $ .ct2 {
+    generatorUrl? := some ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩, 
+    encoderUrl? := some ⟨"kaiyuy", "ct2-leandojo-lean3-retriever-byt5-small"⟩
+  }, 
   decoding := {numReturnSequences := 32}
 }
 
@@ -22,8 +25,6 @@ example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
   sorry
 
-/-
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_premises
+  select_premises
   sorry
--/
