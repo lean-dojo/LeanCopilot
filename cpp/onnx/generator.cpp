@@ -400,7 +400,7 @@ inline bool exists(const std::string &path) {
   return f.good();
 }
 
-extern "C" uint8_t init_generator(b_lean_obj_arg model_dir) {
+extern "C" uint8_t init_onnx_generator(b_lean_obj_arg model_dir) {
   const char *dir = lean_string_cstr(model_dir);
   const std::string decoder_with_past_path =
       std::string(dir) + "/decoder_with_past_model.onnx";
@@ -428,7 +428,7 @@ extern "C" uint8_t init_generator(b_lean_obj_arg model_dir) {
   return true;
 }
 
-inline bool is_initialized_aux() {
+inline bool is_onnx_initialized_aux() {
   assert((p_encoder_session && p_decoder_raw_session &&
           p_decoder_with_past_session) ||
          (!p_encoder_session && !p_decoder_raw_session &&
@@ -436,16 +436,16 @@ inline bool is_initialized_aux() {
   return p_encoder_session != nullptr;
 }
 
-extern "C" uint8_t is_initialized(lean_object *) {
-  return is_initialized_aux();
+extern "C" uint8_t is_onnx_initialized(lean_object *) {
+  return is_onnx_initialized_aux();
 }
 
-extern "C" lean_obj_res generate(b_lean_obj_arg input,
-                                 uint64_t num_return_sequences,
-                                 uint64_t max_length, double temperature,
-                                 uint64_t num_beams) {
+extern "C" lean_obj_res onnx_generate(b_lean_obj_arg input,
+                                      uint64_t num_return_sequences,
+                                      uint64_t max_length, double temperature,
+                                      uint64_t beam_size) {
   // Check the arguments.
-  if (!is_initialized_aux()) {
+  if (!is_onnx_initialized_aux()) {
     throw std::runtime_error("Generator is not initialized.");
   }
   if (num_return_sequences <= 0) {
@@ -457,10 +457,10 @@ extern "C" lean_obj_res generate(b_lean_obj_arg input,
   if (temperature <= 0) {
     throw std::invalid_argument("temperature must be positive.");
   }
-  if (num_beams <= 0) {
-    throw std::invalid_argument("num_beams must be positive.");
+  if (beam_size <= 0) {
+    throw std::invalid_argument("beam_size must be positive.");
   }
-  if (num_beams > 1) {
+  if (beam_size > 1) {
     throw std::invalid_argument("Beam search is not supported yet.");
   }
 

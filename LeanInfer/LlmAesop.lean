@@ -1,4 +1,4 @@
-import LeanInfer.Basic
+import LeanInfer.Tactics
 import Aesop
 
 open Lean

@@ -64,7 +64,7 @@ package LeanInfer where
   precompileModules := true
   buildType := BuildType.debug
   buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
-  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
+  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2", "-lstdc++"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
 
 
@@ -211,7 +211,7 @@ target libonnxruntime pkg : FilePath := do
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
-  let mut flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
+  let mut flags := #["-fPIC", "-std=c++17", "-stdlib=libc++", optLevel]
   match get_config? targetArch with
   | none => pure ()
   | some arch => flags := flags.push s!"--target={arch}"
@@ -222,29 +222,39 @@ def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath))
     compileO path.toString oFile deps[0]! args "clang++"
 
 
-target generator.o pkg : FilePath := do
+target onnxGenerator.o pkg : FilePath := do
   let onnx ← libonnxruntime.fetch
   let cpp ← libcpp.fetch
   let cppabi ← libcppabi.fetch
   let unwind ← libunwind.fetch
-  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, cppabi, unwind]
+  let build := buildCpp pkg "cpp/onnx/generator.cpp" [onnx, cpp, cppabi, unwind]
   afterReleaseSync pkg build
 
 
-target retriever.o pkg : FilePath := do
+target onnxRetriever.o pkg : FilePath := do
   let onnx ← libonnxruntime.fetch
   let cpp ← libcpp.fetch
   let cppabi ← libcppabi.fetch
   let unwind ← libunwind.fetch
-  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, cppabi, unwind]
+  let build := buildCpp pkg "cpp/onnx/retriever.cpp" [onnx, cpp, cppabi, unwind]
+  afterReleaseSync pkg build
+
+
+target ct2Generator.o pkg : FilePath := do
+  let onnx ← libonnxruntime.fetch
+  let cpp ← libcpp.fetch
+  let cppabi ← libcppabi.fetch
+  let unwind ← libunwind.fetch
+  let build := buildCpp pkg "cpp/ct2/generator.cpp" [onnx, cpp, cppabi, unwind]
   afterReleaseSync pkg build
 
 
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
-  let oGen ← generator.o.fetch
-  let oRet ← retriever.o.fetch
-  buildStaticLib (pkg.nativeLibDir / name) #[oGen, oRet]
+  let onnxGen ← onnxGenerator.o.fetch
+  let onnxRet ← onnxRetriever.o.fetch
+  let ct2Gen ← ct2Generator.o.fetch
+  buildStaticLib (pkg.nativeLibDir / name) #[onnxGen, onnxRet, ct2Gen]
 
 
 require std from git "https://github.com/leanprover/std4" @ "main"

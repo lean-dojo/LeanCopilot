@@ -1,22 +1,25 @@
+import Lean
 import LeanInfer
 
+open Lean
 open LeanInfer
 
+set_option autoImplicit false
+
 #eval getConfig
 
-@[leaninfer]
 def cfg : Config := {
-  backend := .ipc $ .ct2 {modelPath := "./ctranslate2-leandojo-lean4-tacgen-byt5-small" : CTranslate2Params},
-  decoding := {
-    numReturnSequences := 8,
-  }
+  backend := .native $ .ct2 {modelUrl := ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩}, 
+  decoding := {numReturnSequences := 2}
 }
 
+#eval setConfig cfg
+
 #eval getConfig
-#eval _config
+
 
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics
+  suggest_tactics!
   sorry
 
 /-
