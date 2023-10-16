@@ -2,6 +2,7 @@ import Lean
 import LeanInfer.Cache
 import LeanInfer.FFI
 import LeanInfer.Config
+import LeanInfer.Tokenization
 
 open Lean
 
@@ -48,6 +49,7 @@ private def initGenerator : m Bool := do
     logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
   return success
 
+
 def generate (input : String) : m (Array (String × Float)) := do
   if ¬ (← initGenerator) then
     return #[]
@@ -61,6 +63,7 @@ def generate (input : String) : m (Array (String × Float)) := do
     let beamSize := config.decoding.beamSize
     return FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
   | .native (.ct2 _) => 
+    let inputTokens := tokenizeByt5 input |>.toArray
     let numReturnSequences := config.decoding.numReturnSequences
     let beamSize := config.decoding.beamSize
     let minLength := config.decoding.minLength
@@ -68,7 +71,7 @@ def generate (input : String) : m (Array (String × Float)) := do
     let lengthPenalty := config.decoding.lengthPenalty
     let patience := config.decoding.patience
     let temperature := config.decoding.temperature
-    return FFI.ct2Generate input numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+    return FFI.ct2Generate inputTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
   | .ipc .. => unreachable!
 
 
