@@ -62,7 +62,7 @@ def getPlatform : IO SupportedPlatform := do
 package LeanInfer where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   precompileModules := true
-  buildType := BuildType.debug
+  buildType := BuildType.release
   buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
