@@ -343,7 +343,7 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   lean_array_object *p_arr = lean_to_array(p_input_tokens);
   for (int i = 0; i < p_arr->m_size; i++) {
     std::string t = lean_string_cstr(p_arr->m_data[i]);
-    if (t == "</s>" || std::find(byt5_vocab.begin(), byt5_vocab.end(), t) == std::end(byt5_vocab)) {
+    if (t != "</s>" && std::find(byt5_vocab.begin(), byt5_vocab.end(), t) == std::end(byt5_vocab)) {
       throw std::invalid_argument("Invalid token: " + t);
     }
     input_tokens.push_back(t);
