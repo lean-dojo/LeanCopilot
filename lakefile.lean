@@ -47,7 +47,7 @@ def getPlatform : IO SupportedPlatform := do
 
 
 package LeanInfer where
-  preferReleaseBuild := get_config? noCloudRelease |>.isNone
+  -- preferReleaseBuild := get_config? noCloudRelease |>.isNone
   precompileModules := true
   buildType := BuildType.debug
   -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
