@@ -25,16 +25,7 @@ deriving Inhabited, BEq
 
 
 def getArch? : BaseIO (Option SupportedArch) := do
-  let proc := IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
-  let .ok output ← proc.toBaseIO
-    | return none
-  let arch := output.stdout.trim
-  if arch ∈ ["arm64", "aarch64"] then
-    return some .arm64
-  else if arch == "x86_64" then
-    return some .x86_64
-  else
-    return none
+  return some .x86_64
 
 
 def getArch : IO SupportedArch := do
@@ -42,11 +33,7 @@ def getArch : IO SupportedArch := do
     return arch 
   else
     error "Unknown architecture"
-
-
-elab "is_arm?" : term => do
-  return toExpr <| (← getArch?).map (· matches .arm64)
-
+  
 
 structure SupportedPlatform where
   os : SupportedOS
@@ -63,7 +50,7 @@ package LeanInfer where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   precompileModules := true
   buildType := BuildType.debug
-  buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
+  -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2", "-lstdc++"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
   -- weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", "--load-dynlib=/opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/libdnnl.so"]

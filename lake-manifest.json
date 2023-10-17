@@ -1,19 +1,20 @@
-{"version": 5,
+{"version": 6,
  "packagesDir": "lake-packages",
  "packages":
  [{"git":
-   {"url": "https://github.com/JLimperg/aesop",
-    "subDir?": null,
-    "rev": "831865d91f9dcc8ef9295d6d6053606766cdb6a3",
-    "opts": {},
-    "name": "aesop",
-    "inputRev?": "master",
-    "inherited": false}},
-  {"git":
    {"url": "https://github.com/leanprover/std4",
     "subDir?": null,
-    "rev": "1c9e236d1b0698e185b580f322ad8f7ca84f1661",
+    "rev": "0d90d74628daa9ee7d4039a3b035240ff6d64da5",
     "opts": {},
     "name": "std",
     "inputRev?": "main",
-    "inherited": false}}]}
+    "inherited": false}},
+  {"git":
+   {"url": "https://github.com/JLimperg/aesop",
+    "subDir?": null,
+    "rev": "b601328752091a1cfcaebdd6b6b7c30dc5ffd946",
+    "opts": {},
+    "name": "aesop",
+    "inputRev?": "master",
+    "inherited": false}}],
+ "name": "LeanInfer"}
