@@ -52,7 +52,7 @@ package LeanInfer where
   buildType := BuildType.debug
   -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2", "-lstdc++"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", "--load-dynlib=/usr/local/lib/libctranslate2.3.dylib"]
   -- weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", "--load-dynlib=/opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/libdnnl.so"]
 
 
