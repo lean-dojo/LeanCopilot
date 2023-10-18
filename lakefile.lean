@@ -239,7 +239,7 @@ target libctranslate2 pkg : FilePath := do
       buildCmakeProject ct2Dir
       proc {
         cmd := "cp"
-        args := #[(ct2Dir / "build" / "libctranslate2.dylib").toString, dst.toString]
+        args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
       }
       proc {
         cmd := "cp"

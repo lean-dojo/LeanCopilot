@@ -202,11 +202,13 @@ extern "C" lean_obj_res ct2_encode(b_lean_obj_arg input) {
       p_encoder->forward_batch_async(batch).get();
   ctranslate2::StorageView hidden_state = results.pooler_output.value();
 
+  /*
   std::vector<long long> s = hidden_state.shape();
   std::cout << s.size() << std::endl;
   for (int i = 0; i < s.size(); i++) {
     std::cout << s[i] << std::endl;
   }
+  */
 
   lean_object *arr = lean_mk_empty_float_array(lean_box(10));
   // Not implemented yet.
