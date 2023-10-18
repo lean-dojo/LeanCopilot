@@ -48,12 +48,11 @@ def getPlatform : IO SupportedPlatform := do
 
 package LeanInfer where
   -- preferReleaseBuild := get_config? noCloudRelease |>.isNone
+  -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   precompileModules := true
   buildType := BuildType.debug
-  -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
-  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2", "-lstdc++"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", "--load-dynlib=/usr/local/lib/libctranslate2.3.dylib"]
-  -- weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", "--load-dynlib=/opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/libdnnl.so"]
+  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++", "-lctranslate2"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "ctranslate2"]
 
 
 @[default_target]
@@ -197,6 +196,64 @@ target libonnxruntime pkg : FilePath := do
     return (dst, ← computeTrace dst)
 
 
+def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
+  proc {
+    cmd := "git"
+    args := #["clone", "--recursive", url]
+    cwd := cwd
+  }
+
+
+def buildCmakeProject (root : FilePath) : LogIO Unit := do
+  assert! (← root.pathExists) ∧ (← (root / "CMakeLists.txt").pathExists)
+  let buildDir := root / "build"
+  IO.FS.createDirAll buildDir
+  proc {
+    cmd := "cmake"
+    args := #["-DBUILD_CLI=OFF", "-DENABLE_CPU_DISPATCH=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=OFF ", ".."]
+    cwd := buildDir
+  }
+  proc {
+    cmd := "make"
+    args := #["-j8"]
+    cwd := buildDir
+  }
+
+
+/- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
+target libctranslate2 pkg : FilePath := do
+  afterReleaseAsync pkg do
+  let _ ← getPlatform
+  let dst := pkg.nativeLibDir / (nameToSharedLib "ctranslate2")
+  createParentDirs dst
+  let ct2URL := "https://github.com/OpenNMT/CTranslate2"
+
+  try
+    let depTrace := Hash.ofString ct2URL
+    let trace ← buildFileUnlessUpToDate dst depTrace do
+      logStep s!"Cloning CTranslate2 from {ct2URL} into {pkg.buildDir}"
+      gitClone ct2URL pkg.buildDir
+
+      logStep s!"Building CTranslate2 with cmake"
+      let ct2Dir := pkg.buildDir / "CTranslate2"
+      buildCmakeProject ct2Dir
+      proc {
+        cmd := "cp"
+        args := #[(ct2Dir / "build" / "libctranslate2.dylib").toString, dst.toString]
+      }
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
+      }
+      proc {
+        cmd := "rm"
+        args := #["-rf", ct2Dir.toString]
+      }
+    return (dst, trace)
+  else
+    return (dst, ← computeTrace dst)
+
+
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let mut flags := #["-fPIC", "-std=c++17", "-stdlib=libc++", optLevel]
@@ -218,12 +275,10 @@ target onnx.o pkg : FilePath := do
   let build := buildCpp pkg "cpp/onnx.cpp" [onnx, cpp, cppabi, unwind]
   afterReleaseSync pkg build
 
+
 target ct2.o pkg : FilePath := do
-  let onnx ← libonnxruntime.fetch
-  let cpp ← libcpp.fetch
-  let cppabi ← libcppabi.fetch
-  let unwind ← libunwind.fetch
-  let build := buildCpp pkg "cpp/ct2.cpp" [onnx, cpp, cppabi, unwind]
+  let ct2 ← libctranslate2.fetch
+  let build := buildCpp pkg "cpp/ct2.cpp" [ct2]
   afterReleaseSync pkg build
 
 

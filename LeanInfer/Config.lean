@@ -8,11 +8,11 @@ set_option autoImplicit false
 namespace LeanInfer
 
 structure OnnxParams where
-  generatorUrl? : Option HuggingFaceUrl := none
-  encoderUrl? : Option HuggingFaceUrl := none
+  generatorUrl? : Option HuggingFaceURL := none
+  encoderUrl? : Option HuggingFaceURL := none
 deriving Repr
 
-def isValidUrl : Option HuggingFaceUrl → Bool
+def isValidUrl : Option HuggingFaceURL → Bool
   | none => true
   | some url => url.isValid
 
@@ -21,8 +21,8 @@ def OnnxParams.isValid (params : OnnxParams) : Bool :=
 
 -- https://opennmt.net/CTranslate2/python/ctranslate2.Translator.html#translator
 structure CTranslate2Params where
-  generatorUrl? : Option HuggingFaceUrl := none
-  encoderUrl? : Option HuggingFaceUrl := none
+  generatorUrl? : Option HuggingFaceURL := none
+  encoderUrl? : Option HuggingFaceURL := none
   device : String := "auto"
   deviceIndex : UInt64 ⊕ (List UInt64) := .inl 0
   computeType : String := "default"
@@ -121,14 +121,14 @@ def getBackend : m Backend := do
 def getDecodingParams : m DecodingParams := do
   return (← getConfig).decoding
 
-def getGeneratorUrl : m (Option HuggingFaceUrl) := do
+def getGeneratorUrl : m (Option HuggingFaceURL) := do
   match ← getBackend with
   | .native (.onnx params) => return params.generatorUrl?
   | .native (.ct2 params) => return params.generatorUrl?
   | .ipc _ => return none
 
 
-def getEncoderUrl : m (Option HuggingFaceUrl) := do
+def getEncoderUrl : m (Option HuggingFaceURL) := do
   match ← getBackend with
   | .native (.onnx params) => return params.encoderUrl?
   | .native (.ct2 params) => return params.encoderUrl?

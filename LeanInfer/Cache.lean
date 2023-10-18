@@ -24,7 +24,7 @@ def getCacheDir : IO FilePath := do
   ensureExists dir
   return dir.normalize
 
-private def getModelDir (url : HuggingFaceUrl) : IO FilePath := do
+private def getModelDir (url : HuggingFaceURL) : IO FilePath := do
   let cacheDir ← getCacheDir
   let dir := match url.user with
   | none => cacheDir / url.modelName
@@ -62,7 +62,7 @@ private def initGitLFS : IO Unit := do
   if proc.exitCode != 0 then
     throw $ IO.userError "Failed to initialize Git LFS. Please install it from https://git-lfs.com."
 
-private def download (url : HuggingFaceUrl) : IO Unit := do
+private def download (url : HuggingFaceURL) : IO Unit := do
   initGitLFS
   let some dir := (← getModelDir url) |>.parent | unreachable!
   ensureExists dir
