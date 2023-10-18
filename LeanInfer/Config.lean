@@ -71,8 +71,8 @@ structure DecodingParams where
   beamSize : UInt64 := numReturnSequences
   minLength : UInt64 := 1
   maxLength : UInt64 := 256
-  lengthPenalty : Float := 1.0
-  patience : Float := 1.0
+  lengthPenalty : Float := 0.0
+  patience : Float := 2.0
   temperature : Float := 1.0
 deriving Repr
 
