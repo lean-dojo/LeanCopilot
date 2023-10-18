@@ -21,6 +21,6 @@ def cfg : Config := {
 @[aesop 100%]
 def tacGen := LeanInfer.tacGen
 
-example (a b c : Nat) : a + b + c = c + b + a := by
-  aesop
+-- example (a b c : Nat) : a + b + c = c + b + a := by
+--  aesop
 

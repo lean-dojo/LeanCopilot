@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <codecvt>
 
 #include "utils.h"
 
@@ -356,17 +357,31 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
       p_translator->translate_batch(batch, opts)[0];
   assert(results.hypotheses.size() == num_return_sequences);
 
-  // Return Lean strings.
-  lean_array_object *arr = reinterpret_cast<lean_array_object *>(
-      lean_alloc_array(num_return_sequences, num_return_sequences));
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+  std::vector<std::string> tacs;
 
   for (int i = 0; i < num_return_sequences; i++) {
-    std::string tac;
+    std::string tac_utf8;
     for (auto &token : results.hypotheses[i]) {
-      tac += token;
+      tac_utf8 += token;
     }
-    arr->m_data[i] =
-        lean_mk_pair(lean_mk_string(tac.c_str()), lean_box_float(0.5));
+
+    try {
+      std::wstring ws = converter.from_bytes(tac_utf8);
+      int l = wcstombs(nullptr, ws.c_str(), 0);
+      char *buf = new char[l + 1];
+      wcstombs(buf, ws.c_str(), l + 1);
+      tacs.push_back(std::string(buf));
+      delete[] buf;
+    } catch (std::range_error) {}
+  }
+
+  // Return Lean strings.
+  int num_valid_sequences = tacs.size();
+  lean_array_object *arr = reinterpret_cast<lean_array_object *>(
+      lean_alloc_array(num_valid_sequences, num_valid_sequences));
+  for (int i = 0; i < num_valid_sequences; i++) {
+    arr->m_data[i] = lean_mk_pair(lean_mk_string(tacs[i].c_str()), lean_box_float(0.5));
   }
 
   return reinterpret_cast<lean_obj_res>(arr);

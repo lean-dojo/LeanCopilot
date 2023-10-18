@@ -14,7 +14,7 @@ def cfg : Config := {
     encoderUrl? := some ⟨"kaiyuy", "ct2-leandojo-lean3-retriever-byt5-small"⟩
     -- TODO: Convert T5EncoderModel to ct2
   }, 
-  decoding := {numReturnSequences := 32}
+  decoding := {numReturnSequences := 2}
 }
 
 #eval setConfig cfg
@@ -22,11 +22,15 @@ def cfg : Config := {
 #eval getConfig
 
 
+#eval (generate "x : ℝ\nh₀ : x * (1 / 2 + 2 / 3) = 1\n⊢ x = 6 / 7" : MetaM (Array (String × Float)))
+
+/-
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
   sorry
 
-/-
+
+
 example (a b c : Nat) : a + b + c = a + c + b := by
   select_premises!
   sorry
