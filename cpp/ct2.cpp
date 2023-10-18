@@ -158,7 +158,7 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
       wcstombs(buf, ws.c_str(), l + 1);
       tacs.push_back(std::string(buf));
       delete[] buf;
-      scores.push_back(results.scores[i]);
+      scores.push_back(std::exp(results.scores[i]));
     } catch (std::range_error) {
     }
   }
@@ -169,6 +169,7 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   lean_array_object *arr = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_valid_sequences, num_valid_sequences));
   for (int i = 0; i < num_valid_sequences; i++) {
+    assert(0.0 <= scores[i] && scores[i] <= 1.0)
     arr->m_data[i] = lean_mk_pair(lean_mk_string(tacs[i].c_str()),
                                   lean_box_float(scores[i]));
   }
