@@ -119,6 +119,7 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   opts.min_decoding_length = min_length;
   opts.max_decoding_length = max_length;
   opts.sampling_temperature = temperature;
+  opts.return_scores = true;
 
   std::vector<std::string> input_tokens;
   lean_array_object *p_arr = lean_to_array(p_input_tokens);
@@ -138,7 +139,7 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
 
   ctranslate2::TranslationResult results =
       p_translator->translate_batch(batch, opts)[0];
-  assert(results.hypotheses.size() == num_return_sequences);
+  assert(results.hypotheses.size() == num_return_sequences && results.scores.size() == num_return_sequences);
 
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
   std::vector<std::string> tacs;
@@ -164,6 +165,7 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
 
   // Return Lean strings.
   int num_valid_sequences = tacs.size();
+  assert(num_valid_sequences == scores.size());
   lean_array_object *arr = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_valid_sequences, num_valid_sequences));
   for (int i = 0; i < num_valid_sequences; i++) {
