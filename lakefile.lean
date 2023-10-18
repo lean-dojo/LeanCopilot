@@ -245,10 +245,12 @@ target libctranslate2 pkg : FilePath := do
         cmd := "cp"
         args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
       }
+      /-
       proc {
         cmd := "rm"
         args := #["-rf", ct2Dir.toString]
       }
+      -/
     return (dst, trace)
   else
     return (dst, ← computeTrace dst)
