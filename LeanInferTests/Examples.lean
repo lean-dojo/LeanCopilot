@@ -22,14 +22,14 @@ def cfg : Config := {
 #eval getConfig
 
 
-#eval (generate "x : ℝ\nh₁ : x * (1 / 2 + 2 / 3) = 1\n⊢ x = 6 / 7" : MetaM (Array (String × Float)))
+-- #eval (generate "x : ℝ\nh₁ : x * (1 / 2 + 2 / 3) = 1\n⊢ x = 6 / 7" : MetaM (Array (String × Float)))
 
-/-
+
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics
+  suggest_tactics!
   sorry
 
-
+/-
 
 example (a b c : Nat) : a + b + c = a + c + b := by
   select_premises!
