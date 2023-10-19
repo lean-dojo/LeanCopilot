@@ -143,13 +143,24 @@ def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
   }
 
 
+def getCt2CmakeFlags : IO (Array String) := do
+  let mut flags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=COMP"]
+  match ← getOS with
+  | .macos =>
+    flags := flags ++ #["-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=ON"]
+  | .linux => 
+    -- TODO: Check CUDA, CuDNN, DNNL, MKL.
+    flags := flags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON", "-DWITH_DNNL=ON", "-DWITH_MKL=ON", "-DWITH_ACCELERATE=OFF"]
+  return flags
+
+
 def buildCmakeProject (root : FilePath) : LogIO Unit := do
   assert! (← root.pathExists) ∧ (← (root / "CMakeLists.txt").pathExists)
   let buildDir := root / "build"
   IO.FS.createDirAll buildDir
   proc {
     cmd := "cmake"
-    args := #["-DBUILD_CLI=OFF", "-DENABLE_CPU_DISPATCH=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=OFF ", ".."]
+    args := (← getCt2CmakeFlags) ++ #[".."]
     cwd := buildDir
   }
   proc {
@@ -184,12 +195,10 @@ target libctranslate2 pkg : FilePath := do
         cmd := "cp"
         args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
       }
-      /-
       proc {
         cmd := "rm"
         args := #["-rf", ct2Dir.toString]
       }
-      -/
     return (dst, trace)
   else
     return (dst, ← computeTrace dst)
