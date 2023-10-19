@@ -144,13 +144,13 @@ def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
 
 
 def getCt2CmakeFlags : IO (Array String) := do
-  let mut flags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=COMP"]
+  let mut flags := #["-DBUILD_CLI=OFF"]
   match ← getOS with
   | .macos =>
-    flags := flags ++ #["-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=ON"]
+    flags := flags ++ #["-DOPENMP_RUNTIME=NONE", "-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=ON"]
   | .linux => 
     -- TODO: Check CUDA, CuDNN, DNNL, MKL.
-    flags := flags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON", "-DWITH_DNNL=ON", "-DWITH_MKL=ON", "-DWITH_ACCELERATE=OFF"]
+    flags := flags ++ #["-DOPENMP_RUNTIME=COMP", "-DWITH_CUDA=ON", "-DWITH_CUDNN=ON", "-DWITH_DNNL=ON", "-DWITH_MKL=ON", "-DWITH_ACCELERATE=OFF"]
   return flags
 
 
@@ -190,6 +190,12 @@ target libctranslate2 pkg : FilePath := do
       proc {
         cmd := "cp"
         args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
+      }
+      -- TODO: Don't hardcode the version "3".
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "3")
+      proc {
+        cmd := "cp"
+        args := #[dst.toString, dst'.toString]
       }
       proc {
         cmd := "cp"

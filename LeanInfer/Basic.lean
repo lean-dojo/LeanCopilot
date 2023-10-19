@@ -71,7 +71,8 @@ def generate (input : String) : m (Array (String × Float)) := do
     let lengthPenalty := config.decoding.lengthPenalty
     let patience := config.decoding.patience
     let temperature := config.decoding.temperature
-    FFI.ct2Generate inputTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+    let tokensWithScores := FFI.ct2Generate inputTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+    tokensWithScores.map fun (ts, s) => (detokenizeByt5 ts, s)
   | .ipc .. => unreachable!
 
   return tacticsWithScores.qsort (·.2 > ·.2)

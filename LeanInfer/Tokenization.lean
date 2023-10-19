@@ -2,7 +2,7 @@ namespace LeanInfer
 
 #eval "\t".length
 
-def byt5Tokens : List String := [
+def byt5Tokens : Array String := #[
   "\u0000",
   "\u0001",
   "\u0002",
@@ -266,8 +266,16 @@ def byteToToken (b : UInt8) : String :=
   byt5Tokens.get! b.toNat
 
 
+def tokenToByte! (t : String) : UInt8 :=
+  byt5Tokens.findIdx? (· = t) |>.get! |>.toUInt8
+
+
 def tokenizeByt5 (text : String) : List String :=
   byteToToken <$> text.toUTF8.toList ++ ["</s>"]
+
+
+def detokenizeByt5 (tokens : Array String) : String :=
+  String.fromUTF8Unchecked ⟨tokens.map tokenToByte!⟩
 
 
 end LeanInfer

@@ -19,7 +19,7 @@ opaque isCt2GeneratorInitialized : Unit → Bool
 @[extern "ct2_generate"]
 opaque ct2Generate (inputTokens : @& Array String) (numReturnSequences : UInt64) (beamSize : UInt64) 
   (minLength : UInt64) (maxLength : UInt64) (lengthPenalty : Float) (patience : Float) (temperature : Float) 
-  : Array (String × Float)
+  : Array (Array String × Float)
 
 @[extern "init_ct2_encoder"]
 opaque initCt2Encoder (modelPath : @& String) : Bool 
