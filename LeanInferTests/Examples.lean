@@ -14,7 +14,7 @@ def cfg : Config := {
     encoderUrl? := some ⟨"kaiyuy", "ct2-leandojo-lean3-retriever-byt5-small"⟩
     -- TODO: Convert T5EncoderModel to ct2
   }, 
-  decoding := {numReturnSequences := 8}
+  decoding := {numReturnSequences := 64}
 }
 
 #eval setConfig cfg
