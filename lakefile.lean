@@ -51,7 +51,7 @@ package LeanInfer where
   -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   precompileModules := true
   buildType := BuildType.debug
-  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++", "-lctranslate2"]
+  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "ctranslate2"]
 
 
