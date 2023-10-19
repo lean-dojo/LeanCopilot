@@ -55,13 +55,13 @@ def generate (input : String) : m (Array (String × Float)) := do
     return #[]
 
   let config ← getConfig
-  match config.backend  with
+  let tacticsWithScores := match config.backend  with
   | .native (.onnx _) =>
     let numReturnSequences := config.decoding.numReturnSequences
     let maxLength := config.decoding.maxLength
     let temperature := config.decoding.temperature
     let beamSize := config.decoding.beamSize
-    return FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
+    FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
   | .native (.ct2 _) => 
     let inputTokens := tokenizeByt5 input |>.toArray
     let numReturnSequences := config.decoding.numReturnSequences
@@ -71,8 +71,10 @@ def generate (input : String) : m (Array (String × Float)) := do
     let lengthPenalty := config.decoding.lengthPenalty
     let patience := config.decoding.patience
     let temperature := config.decoding.temperature
-    return FFI.ct2Generate inputTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+    FFI.ct2Generate inputTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
   | .ipc .. => unreachable!
+
+  return tacticsWithScores.qsort (·.2 > ·.2)
 
 
 private def isEncoderInitialized : m Bool := do

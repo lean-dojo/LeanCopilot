@@ -5,6 +5,7 @@
 
 #include <codecvt>
 #include <iostream>
+#include <locale>
 #include <stdexcept>
 
 #include "utils.h"
@@ -98,11 +99,8 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   if (beam_size <= 0) {
     throw std::invalid_argument("beam_size must be positive.");
   }
-  if (min_length <= 0 || max_length <= 0 || min_length > max_length) {
+  if (min_length < 0 || max_length < 0 || min_length > max_length) {
     throw std::invalid_argument("Invalid min_length or max_length.");
-  }
-  if (length_penalty < 0) {
-    throw std::invalid_argument("length_penalty must be non-negative.");
   }
   if (patience < 1.0) {
     throw std::invalid_argument("patience must be at least 1.0.");
@@ -112,13 +110,25 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   }
 
   ctranslate2::TranslationOptions opts;
+  std::cout << "num_return_sequences: " << num_return_sequences << std::endl;
   opts.num_hypotheses = num_return_sequences;
+  std::cout << "beam_size: " << beam_size << std::endl;
   opts.beam_size = beam_size;
+  std::cout << "patience: " << patience << std::endl;
   opts.patience = patience;
+  std::cout << "length_penalty: " << length_penalty << std::endl;
   opts.length_penalty = length_penalty;
+  std::cout << "min_length: " << min_length << std::endl;
   opts.min_decoding_length = min_length;
+  std::cout << "max_length: " << max_length << std::endl;
   opts.max_decoding_length = max_length;
+  std::cout << "temperature: " << temperature << std::endl;
   opts.sampling_temperature = temperature;
+  opts.sampling_topk = 0;
+  opts.sampling_topp = 1.0;
+  opts.max_input_length = 0;
+  opts.use_vmap = true;
+  opts.disable_unk = true;
   opts.return_scores = true;
 
   std::vector<std::string> input_tokens;
@@ -132,10 +142,8 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
     input_tokens.push_back(t);
   }
 
-  const std::vector<std::vector<std::string>> batch = {input_tokens};
-  // const std::vector<std::vector<std::string>> batch = {{"n", " ", ":", " ",
-  // "\u00e2", "\u0084", "\u0095", "\n", "\u00e2", "\u008a", "\u00a2", " ", "g",
-  // "c", "d", " ", "n", " ", "n", " ", "=", " ", "n", "</s>"}};
+  // const std::vector<std::vector<std::string>> batch = {input_tokens};  // h₁
+  const std::vector<std::vector<std::string>> batch = {{"x", " ", ":", " ", "\u00e2", "\u0084", "\u009d", "\n", "h", "\u00e2", "\u0082", "\u0080", " ", ":", " ", "x", " ", "=", " ", "1", "\n", "⊢", " ", "x", " ", "=", " ", "1", "</s>"}};
 
   ctranslate2::TranslationResult results =
       p_translator->translate_batch(batch, opts)[0];
@@ -145,18 +153,24 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   std::vector<std::string> tacs;
   std::vector<double> scores;
 
+  setlocale(LC_ALL, "");
+
   for (int i = 0; i < num_return_sequences; i++) {
     std::string tac_utf8;
     for (auto &token : results.hypotheses[i]) {
+      assert(std::find(byt5_vocab.begin(), byt5_vocab.end(), token) != std::end(byt5_vocab));
       tac_utf8 += token;
     }
+    // std::cout << tac_utf8 << std::endl;
 
     try {
       std::wstring ws = converter.from_bytes(tac_utf8);
       int l = wcstombs(nullptr, ws.c_str(), 0);
+      // std::cout << l << std::endl;
       char *buf = new char[l + 1];
       wcstombs(buf, ws.c_str(), l + 1);
       tacs.push_back(std::string(buf));
+      // std::cout << "\t" << std::string(buf) << std::endl;
       delete[] buf;
       scores.push_back(std::exp(results.scores[i]));
     } catch (std::range_error) {

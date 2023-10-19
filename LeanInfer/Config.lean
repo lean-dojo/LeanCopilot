@@ -69,16 +69,16 @@ def Backend.isValid : Backend → Bool
 structure DecodingParams where
   numReturnSequences : UInt64
   beamSize : UInt64 := numReturnSequences
-  minLength : UInt64 := 1
-  maxLength : UInt64 := 256
+  minLength : UInt64 := 0
+  maxLength : UInt64 := 1024
   lengthPenalty : Float := 0.0
   patience : Float := 2.0
   temperature : Float := 1.0
 deriving Repr
 
 def DecodingParams.isValid (params : DecodingParams) : Bool :=
-  params.numReturnSequences ≥ 1 ∧ params.beamSize ≥ 1 ∧ params.minLength ≥ 1 ∧ 
-    params.maxLength ≥ params.minLength ∧ params.lengthPenalty ≥ 0.0 ∧ params.patience ≥ 1.0 ∧ params.temperature ≥ 0.0
+  params.numReturnSequences ≥ 1 ∧ params.beamSize ≥ 1 ∧ params.minLength ≥ 0 ∧ 
+    params.maxLength ≥ params.minLength ∧ params.patience ≥ 1.0 ∧ params.temperature ≥ 0.0
 
 structure Config where
   backend : Backend
