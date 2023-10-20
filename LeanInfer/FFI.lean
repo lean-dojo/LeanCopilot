@@ -11,7 +11,7 @@ opaque onnxGenerate (input : @& String) (numReturnSequences : UInt64) (maxLength
 (temperature : Float) (beamSize : UInt64) : Array (String × Float)
 
 @[extern "init_ct2_generator"]
-opaque initCt2Generator (modelPath : @& String) (device : @& String) (computeType : @& String) : Bool 
+opaque initCt2Generator (modelPath : @& String) (device : @& String) (computeType : @& String) (deviceIndex : @& Array UInt64) (intraThreads : UInt64) : Bool 
 
 @[extern "is_ct2_generator_initialized"]
 opaque isCt2GeneratorInitialized : Unit → Bool

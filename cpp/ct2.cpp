@@ -13,39 +13,8 @@
 ctranslate2::Translator *p_translator = nullptr;
 ctranslate2::Encoder *p_encoder = nullptr;
 
-std::vector<std::string> byt5_tokenize(const char *input) {
-  std::vector<std::string> tokens;
-  int l = strlen(input);
-  for (int i = 0; i < l; i++) {
-    tokens.push_back(std::string(1, input[i]));
-  }
-  return tokens;
-}
-
-extern "C" uint8_t init_ct2_generator(b_lean_obj_arg model_path,
-                                      b_lean_obj_arg device,
-                                      b_lean_obj_arg compute_type) {
-  const char *path = lean_string_cstr(model_path);
-  if (!exists(path)) {
-    return false;
-  }
-  if (p_translator != nullptr) {
-    delete p_translator;
-  }
-  ctranslate2::Device d = ctranslate2::str_to_device(lean_string_cstr(device));
-  p_translator = new ctranslate2::Translator(path, d);
-  return true;
-}
-
-inline bool is_ct2_generator_initialized_aux() {
-  return p_translator != nullptr;
-}
-
-extern "C" uint8_t is_ct2_generator_initialized(lean_object *) {
-  return is_ct2_generator_initialized_aux();
-}
-
-std::vector<std::string> byt5_vocab = {
+const std::string EOS_TOKEN = "</s>";
+const std::vector<std::string> byt5_vocab = {
     "\u0000", "\u0001", "\u0002", "\u0003", "\u0004", "\u0005", "\u0006",
     "\u0007", "\\b",    "\t",     "\n",     "\u000b", "\\f",    "\r",
     "\u000e", "\u000f", "\u0010", "\u0011", "\u0012", "\u0013", "\u0014",
@@ -84,11 +53,65 @@ std::vector<std::string> byt5_vocab = {
     "\u00f5", "\u00f6", "\u00f7", "\u00f8", "\u00f9", "\u00fa", "\u00fb",
     "\u00fc", "\u00fd", "\u00fe", "\u00ff"};
 
-extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
-                                     uint64_t num_return_sequences,
-                                     uint64_t beam_size, uint64_t min_length,
-                                     int64_t max_length, double length_penalty,
-                                     double patience, double temperature) {
+std::vector<std::string> byt5_tokenize(const char *input) {
+  std::vector<std::string> tokens;
+  int l = strlen(input);
+  for (int i = 0; i < l; i++) {
+    tokens.push_back(std::string(1, input[i]));
+  }
+  return tokens;
+}
+
+extern "C" uint8_t init_ct2_generator(
+    b_lean_obj_arg _model_path,    // String
+    b_lean_obj_arg _device,        // String
+    b_lean_obj_arg _compute_type,  // String
+    b_lean_obj_arg _device_index,  // Array UInt64
+    uint64_t intra_threads) {      // UInt64
+  const char *model_path = lean_string_cstr(_model_path);
+  if (!exists(model_path)) {
+    return false;
+  }
+
+  if (p_translator != nullptr) {
+    delete p_translator;
+    p_translator = nullptr;
+  }
+
+  ctranslate2::Device device =
+      ctranslate2::str_to_device(lean_string_cstr(_device));
+  ctranslate2::ComputeType compute_type =
+      ctranslate2::str_to_compute_type(lean_string_cstr(_compute_type));
+  std::vector<int> device_indices;
+  const lean_array_object *p_arr = lean_to_array(_device_index);
+  for (int i = 0; i < p_arr->m_size; i++) {
+    device_indices.push_back(lean_unbox_uint64(p_arr->m_data[i]));
+  }
+  ctranslate2::ReplicaPoolConfig config;
+  config.num_threads_per_replica = intra_threads;
+
+  p_translator = new ctranslate2::Translator(model_path, device, compute_type,
+                                             device_indices, config);
+  return true;
+}
+
+inline bool is_ct2_generator_initialized_aux() {
+  return p_translator != nullptr;
+}
+
+extern "C" uint8_t is_ct2_generator_initialized(lean_object *) {
+  return is_ct2_generator_initialized_aux();
+}
+
+extern "C" lean_obj_res ct2_generate(
+    b_lean_obj_arg _input_tokens,   //  Array String
+    uint64_t num_return_sequences,  // UInt64
+    uint64_t beam_size,             // UInt64
+    uint64_t min_length,            // UInt64
+    uint64_t max_length,            // UInt64
+    double length_penalty,          // Float
+    double patience,                // Float
+    double temperature) {           // Float
   // Check the arguments.
   if (!is_ct2_generator_initialized_aux()) {
     throw std::runtime_error("CT2 generator is not initialized.");
@@ -109,20 +132,14 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
     throw std::invalid_argument("temperature must be positive.");
   }
 
+  // Set beam search's hyperparameters.
   ctranslate2::TranslationOptions opts;
-  // std::cout << "num_return_sequences: " << num_return_sequences << std::endl;
   opts.num_hypotheses = num_return_sequences;
-  // sstd::cout << "beam_size: " << beam_size << std::endl;
   opts.beam_size = beam_size;
-  // sstd::cout << "patience: " << patience << std::endl;
   opts.patience = patience;
-  // sstd::cout << "length_penalty: " << length_penalty << std::endl;
   opts.length_penalty = length_penalty;
-  // sstd::cout << "min_length: " << min_length << std::endl;
   opts.min_decoding_length = min_length;
-  // sstd::cout << "max_length: " << max_length << std::endl;
   opts.max_decoding_length = max_length;
-  // sstd::cout << "temperature: " << temperature << std::endl;
   opts.sampling_temperature = temperature;
   opts.sampling_topk = 0;
   opts.sampling_topp = 1.0;
@@ -131,28 +148,27 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
   opts.disable_unk = true;
   opts.return_scores = true;
 
+  // Get the input tokens ready.
   std::vector<std::string> input_tokens;
-  lean_array_object *p_arr = lean_to_array(p_input_tokens);
+  const lean_array_object *p_arr = lean_to_array(_input_tokens);
   for (int i = 0; i < p_arr->m_size; i++) {
     std::string t = lean_string_cstr(p_arr->m_data[i]);
-    if (t != "</s>" && std::find(byt5_vocab.begin(), byt5_vocab.end(), t) ==
-                           std::end(byt5_vocab)) {
+    if (t != EOS_TOKEN && std::find(byt5_vocab.begin(), byt5_vocab.end(), t) ==
+                              std::end(byt5_vocab)) {
       throw std::invalid_argument("Invalid token: " + t);
     }
     input_tokens.push_back(t);
   }
-
+  assert(input_tokens.back() == EOS_TOKEN);
   const std::vector<std::vector<std::string>> batch = {input_tokens};
-  // const std::vector<std::vector<std::string>> batch = {{"x", " ", ":", " ",
-  // "\u00e2", "\u0084", "\u009d", "\n", "h", "\u00e2", "\u0082", "\u0080", " ",
-  // ":", " ", "x", " ", "=", " ", "1", "\n", "⊢", " ", "x", " ", "=", " ", "1",
-  // "</s>"}};
 
+  // Generate tactics with beam search.
   ctranslate2::TranslationResult results =
       p_translator->translate_batch(batch, opts)[0];
   assert(results.hypotheses.size() == num_return_sequences &&
          results.scores.size() == num_return_sequences);
 
+  // Return the output.
   lean_array_object *output = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_return_sequences, num_return_sequences));
 
@@ -163,10 +179,8 @@ extern "C" lean_obj_res ct2_generate(b_lean_obj_arg p_input_tokens,
     for (int j = 0; j < l; j++) {
       tokens->m_data[j] = lean_mk_string(results.hypotheses[i][j].c_str());
     }
-
     double score = std::exp(results.scores[i]);
     assert(0.0 <= score && score <= 1.0);
-
     output->m_data[i] = lean_mk_pair(reinterpret_cast<lean_obj_arg>(tokens),
                                      lean_box_float(score));
   }

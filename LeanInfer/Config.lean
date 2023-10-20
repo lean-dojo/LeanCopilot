@@ -24,9 +24,9 @@ structure CTranslate2Params where
   generatorUrl? : Option HuggingFaceURL := none
   encoderUrl? : Option HuggingFaceURL := none
   device : String := "auto"
-  deviceIndex : UInt64 ⊕ (List UInt64) := .inl 0
+  deviceIndex : Array UInt64 := #[0]
   computeType : String := "default"
-  interThreads : UInt64 := 1
+  -- interThreads : UInt64 := 1
   intraThreads : UInt64 := 0
 deriving Repr
 
@@ -37,7 +37,7 @@ def isValidComputeType (computeType : String) : Bool :=
   #["default", "auto", "int8", "int8_float32", "int8_float16", "int8_bfloat16", "int16", "float16", "bfloat16", "float32"].contains computeType
 
 def CTranslate2Params.isValid (params : CTranslate2Params) : Bool :=
-  isValidUrl params.generatorUrl? ∧ isValidUrl params.encoderUrl? ∧ isValidDevice params.device ∧ isValidComputeType params.computeType ∧ params.interThreads ≥ 1
+  isValidUrl params.generatorUrl? ∧ isValidUrl params.encoderUrl? ∧ isValidDevice params.device ∧ isValidComputeType params.computeType
 
 inductive NativeBackend where
   | onnx : OnnxParams → NativeBackend
@@ -91,7 +91,7 @@ def Config.isValid (config : Config) : Bool :=
 def safeConfig : Config := {
   backend := .native $ .onnx {
     generatorUrl? := some ⟨"kaiyuy", "onnx-leandojo-lean4-tacgen-byt5-small"⟩,
-    encoderUrl? := some ⟨"kaiyuy", "onnx-leandojo-lean4-retriever-byt5-small"⟩,
+    -- encoderUrl? := some ⟨"kaiyuy", "onnx-leandojo-lean4-retriever-byt5-small"⟩,
   },
   decoding := {
     numReturnSequences := 8,

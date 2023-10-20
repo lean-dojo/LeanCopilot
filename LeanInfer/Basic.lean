@@ -42,7 +42,7 @@ private def initGenerator : m Bool := do
   | .native (.onnx _) =>
        FFI.initOnnxGenerator dir.toString
   | .native (.ct2 params) =>
-      FFI.initCt2Generator dir.toString params.device params.computeType
+      FFI.initCt2Generator dir.toString params.device params.computeType params.deviceIndex params.intraThreads
   | .ipc .. => unreachable!
 
   if ¬ success then
