@@ -215,27 +215,29 @@ extern "C" uint8_t is_ct2_encoder_initialized(lean_object *) {
   return is_ct2_encoder_initialized_aux();
 }
 
-extern "C" lean_obj_res ct2_encode(b_lean_obj_arg input) {
-  const std::vector<std::vector<std::string>> batch = {
-      byt5_tokenize(lean_string_cstr(input))};
+extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
+  std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
+  // std::vector<std::string> input_tokens = {"n", " ", ":", " ", "\u00e2",
+  // "\u0084", "\u0095", "\n", "\u00e2", "\u008a", "\u00a2", " ", "g", "c", "d",
+  // " ", "n", " ", "n", " ", "=", " ", "n", EOS_TOKEN};
+  assert(input_tokens.back() == EOS_TOKEN);
+
   ctranslate2::EncoderForwardOutput results =
-      p_encoder->forward_batch_async(batch).get();
-  ctranslate2::StorageView hidden_state = results.pooler_output.value();
+      p_encoder->forward_batch_async({input_tokens}).get();
+  ctranslate2::StorageView hidden_state = results.last_hidden_state;
 
-  /*
-  std::vector<long long> s = hidden_state.shape();
-  std::cout << s.size() << std::endl;
-  for (int i = 0; i < s.size(); i++) {
-    std::cout << s[i] << std::endl;
+  assert(hidden_state.dim(0) == 1);
+  int l = hidden_state.dim(1);
+  int d = hidden_state.dim(2);
+  lean_object *arr = lean_mk_empty_float_array(lean_box(d));
+
+  for (ctranslate2::dim_t i = 0; i < d; i++) {
+    double sum = 0.0;
+    for (ctranslate2::dim_t j = 0; j < l; j++) {
+      sum += hidden_state.scalar_at<float>({0, j, i});
+    }
+    lean_float_array_push(arr, sum / l);
   }
-  */
 
-  lean_object *arr = lean_mk_empty_float_array(lean_box(10));
-  // Not implemented yet.
-  lean_float_array_push(arr, 0.34);
-  lean_float_array_push(arr, 0.84);
-  lean_float_array_push(arr, 0.57);
-  lean_float_array_push(arr, 2.63);
-  lean_float_array_push(arr, 0.67);
   return arr;
 }

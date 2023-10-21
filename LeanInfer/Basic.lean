@@ -24,7 +24,7 @@ private def isGeneratorInitialized : m Bool := do
 
 
 private def initGenerator : m Bool := do
-  let some dir ← Cache.getGeneratorDir | throwError "Cannot find the generator model."
+  let some dir ← Cache.getGeneratorDir | throwError "decoderUrl? not set."
   let success : Bool := match ← getBackend with
   | .native (.onnx _) =>
        FFI.initOnnxGenerator dir.toString
@@ -80,7 +80,7 @@ private def isEncoderInitialized : m Bool := do
 
 
 private def initNativeEncoder (initFn : String → Bool) : m Bool := do
-  let some dir ← Cache.getEncoderDir | throwError "Cannot find the encoder model."
+  let some dir ← Cache.getEncoderDir | throwError "encoderUrl? not set."
   if initFn dir.toString then
     return true
   else
@@ -89,9 +89,6 @@ private def initNativeEncoder (initFn : String → Bool) : m Bool := do
 
 
 private def initEncoder : m Bool := do
-  if ← isEncoderInitialized then
-    return true
-    
   match ← getBackend with
   | .native (.onnx _) => unreachable!
   | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder 
@@ -99,20 +96,21 @@ private def initEncoder : m Bool := do
 
 
 def encode (input : String) : m FloatArray := do
-  if ¬ (← initEncoder) then
+  if ¬ (← isEncoderInitialized) ∧ ¬ (← initEncoder) then
     return FloatArray.mk #[]
 
   match ← getBackend  with
   | .native (.onnx _) => unreachable!
   | .native (.ct2 _) => 
-    return FFI.ct2Encode input
+    let inputTokens := tokenizeByt5 input true |>.toArray
+    return FFI.ct2Encode inputTokens
   | .ipc .. => unreachable!
 
 
 def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
-  println! query
-  return #[("hello", 0.5)]  -- Not implemented yet.
+  logInfo s!"{query}"
+  return #[("NotImplemented", 0.5)]
 
 end
 

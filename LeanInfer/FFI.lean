@@ -28,6 +28,6 @@ opaque initCt2Encoder (modelPath : @& String) : Bool
 opaque isCt2EncoderInitialized : Unit → Bool
 
 @[extern "ct2_encode"]
-opaque ct2Encode (input : @& String) : FloatArray
+opaque ct2Encode (inputTokens : @& Array String) : FloatArray
 
 end LeanInfer.FFI
