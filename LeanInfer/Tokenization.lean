@@ -270,8 +270,12 @@ def tokenToByte! (t : String) : UInt8 :=
   byt5Tokens.findIdx? (· = t) |>.get! |>.toUInt8
 
 
-def tokenizeByt5 (text : String) : List String :=
-  byteToToken <$> text.toUTF8.toList ++ ["</s>"]
+def tokenizeByt5 (text : String) (addEOS : Bool) : List String :=
+  let tokens := byteToToken <$> text.toUTF8.toList
+  if addEOS then
+    tokens ++ ["</s>"]
+  else
+    tokens
 
 
 def detokenizeByt5 (tokens : Array String) : String :=

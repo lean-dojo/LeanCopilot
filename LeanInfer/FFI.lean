@@ -17,7 +17,7 @@ opaque initCt2Generator (modelPath : @& String) (device : @& String) (computeTyp
 opaque isCt2GeneratorInitialized : Unit → Bool
 
 @[extern "ct2_generate"]
-opaque ct2Generate (inputTokens : @& Array String) (numReturnSequences : UInt64) (beamSize : UInt64) 
+opaque ct2Generate (inputTokens : @& Array String) (targetPrefixTokens : @& Array String) (numReturnSequences : UInt64) (beamSize : UInt64) 
   (minLength : UInt64) (maxLength : UInt64) (lengthPenalty : Float) (patience : Float) (temperature : Float) 
   : Array (Array String × Float)
 

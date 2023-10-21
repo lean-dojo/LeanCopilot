@@ -103,15 +103,32 @@ extern "C" uint8_t is_ct2_generator_initialized(lean_object *) {
   return is_ct2_generator_initialized_aux();
 }
 
+std::vector<std::string> convert_tokens(b_lean_obj_arg _tokens) {
+  std::vector<std::string> tokens;
+  const lean_array_object *p_arr = lean_to_array(_tokens);
+
+  for (int i = 0; i < p_arr->m_size; i++) {
+    std::string t = lean_string_cstr(p_arr->m_data[i]);
+    if (t != EOS_TOKEN && std::find(byt5_vocab.begin(), byt5_vocab.end(), t) ==
+                              std::end(byt5_vocab)) {
+      throw std::invalid_argument("Invalid token: " + t);
+    }
+    tokens.push_back(t);
+  }
+
+  return tokens;
+}
+
 extern "C" lean_obj_res ct2_generate(
-    b_lean_obj_arg _input_tokens,   //  Array String
-    uint64_t num_return_sequences,  // UInt64
-    uint64_t beam_size,             // UInt64
-    uint64_t min_length,            // UInt64
-    uint64_t max_length,            // UInt64
-    double length_penalty,          // Float
-    double patience,                // Float
-    double temperature) {           // Float
+    b_lean_obj_arg _input_tokens,          //  Array String
+    b_lean_obj_arg _target_prefix_tokens,  // Array String
+    uint64_t num_return_sequences,         // UInt64
+    uint64_t beam_size,                    // UInt64
+    uint64_t min_length,                   // UInt64
+    uint64_t max_length,                   // UInt64
+    double length_penalty,                 // Float
+    double patience,                       // Float
+    double temperature) {                  // Float
   // Check the arguments.
   if (!is_ct2_generator_initialized_aux()) {
     throw std::runtime_error("CT2 generator is not initialized.");
@@ -149,22 +166,14 @@ extern "C" lean_obj_res ct2_generate(
   opts.return_scores = true;
 
   // Get the input tokens ready.
-  std::vector<std::string> input_tokens;
-  const lean_array_object *p_arr = lean_to_array(_input_tokens);
-  for (int i = 0; i < p_arr->m_size; i++) {
-    std::string t = lean_string_cstr(p_arr->m_data[i]);
-    if (t != EOS_TOKEN && std::find(byt5_vocab.begin(), byt5_vocab.end(), t) ==
-                              std::end(byt5_vocab)) {
-      throw std::invalid_argument("Invalid token: " + t);
-    }
-    input_tokens.push_back(t);
-  }
+  std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
   assert(input_tokens.back() == EOS_TOKEN);
-  const std::vector<std::vector<std::string>> batch = {input_tokens};
+  std::vector<std::string> target_prefix_tokens =
+      convert_tokens(_target_prefix_tokens);
 
   // Generate tactics with beam search.
-  ctranslate2::TranslationResult results =
-      p_translator->translate_batch(batch, opts)[0];
+  ctranslate2::TranslationResult results = p_translator->translate_batch(
+      {input_tokens}, {target_prefix_tokens}, opts)[0];
   assert(results.hypotheses.size() == num_return_sequences &&
          results.scores.size() == num_return_sequences);
 

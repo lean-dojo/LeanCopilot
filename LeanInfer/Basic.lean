@@ -43,7 +43,7 @@ def setConfig (config : Config) : CoreM Unit := do
   assert! ← initGenerator
 
 
-def generate (input : String) : m (Array (String × Float)) := do
+def generate (input : String) (targetPrefix : String) : m (Array (String × Float)) := do
   if ¬ (← isGeneratorInitialized) ∧ ¬ (← initGenerator) then
     return #[]
 
@@ -56,7 +56,8 @@ def generate (input : String) : m (Array (String × Float)) := do
     let beamSize := config.decoding.beamSize
     FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
   | .native (.ct2 _) => 
-    let inputTokens := tokenizeByt5 input |>.toArray
+    let inputTokens := tokenizeByt5 input true |>.toArray
+    let targetPrefixTokens := tokenizeByt5 targetPrefix false |>.toArray
     let numReturnSequences := config.decoding.numReturnSequences
     let beamSize := config.decoding.beamSize
     let minLength := config.decoding.minLength
@@ -64,7 +65,7 @@ def generate (input : String) : m (Array (String × Float)) := do
     let lengthPenalty := config.decoding.lengthPenalty
     let patience := config.decoding.patience
     let temperature := config.decoding.temperature
-    let tokensWithScores := FFI.ct2Generate inputTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+    let tokensWithScores := FFI.ct2Generate inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
     tokensWithScores.map fun (ts, s) => (detokenizeByt5 ts, s)
   | .ipc .. => unreachable!
 
