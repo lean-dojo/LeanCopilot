@@ -24,9 +24,6 @@ private def isGeneratorInitialized : m Bool := do
 
 
 private def initGenerator : m Bool := do
-  if ← isGeneratorInitialized then
-    return true
-
   let some dir ← Cache.getGeneratorDir | throwError "Cannot find the generator model."
   let success : Bool := match ← getBackend with
   | .native (.onnx _) =>
@@ -40,8 +37,14 @@ private def initGenerator : m Bool := do
   return success
 
 
+def setConfig (config : Config) : CoreM Unit := do
+  assert! config.isValid
+  configRef.modify fun _ => config
+  assert! ← initGenerator
+
+
 def generate (input : String) : m (Array (String × Float)) := do
-  if ¬ (← initGenerator) then
+  if ¬ (← isGeneratorInitialized) ∧ ¬ (← initGenerator) then
     return #[]
 
   let config ← getConfig

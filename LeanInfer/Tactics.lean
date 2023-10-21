@@ -1,6 +1,7 @@
 import Lean
 import LeanInfer.Basic
 import LeanInfer.Frontend
+import Aesop.Util.Basic
 
 open Lean Elab Tactic
 
@@ -39,13 +40,15 @@ elab_rules : tactic
     logInfo s!"{← encode input.getString}"
 
   | `(tactic | suggest_tactics%$tac) => do
-    let tacticsWithScores ← suggestTactics
+    let (tacticsWithScores, elapsed) ← Aesop.time suggestTactics
+    logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
     let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
     
   | `(tactic | suggest_tactics!%$tac) => do
     Cache.checkGenerator
-    let tacticsWithScores ← suggestTactics
+    let (tacticsWithScores, elapsed) ← Aesop.time suggestTactics
+    logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
     let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
 

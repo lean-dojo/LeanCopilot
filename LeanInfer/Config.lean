@@ -25,7 +25,7 @@ structure CTranslate2Params where
   encoderUrl? : Option HuggingFaceURL := none
   device : String := "auto"
   deviceIndex : Array UInt64 := #[0]
-  computeType : String := "default"
+  computeType : String := "auto"
   -- interThreads : UInt64 := 1
   intraThreads : UInt64 := 0
 deriving Repr
@@ -110,10 +110,6 @@ section
 variable {m : Type → Type} [Monad m] [MonadLiftT IO m] [MonadLiftT (ST IO.RealWorld) m]
 
 def getConfig : IO Config := configRef.get
-
-def setConfig (config : Config) : IO Unit := do
-  assert! config.isValid
-  configRef.modify fun _ => config
 
 def getBackend : m Backend := do
   return (← getConfig).backend
