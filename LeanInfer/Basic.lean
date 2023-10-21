@@ -23,22 +23,12 @@ private def isGeneratorInitialized : m Bool := do
   | .ipc .. => unreachable!
 
 
-private def initNativeGenerator (initFn : String → Bool) : m Bool := do
-  let some dir ← Cache.getGeneratorDir | throwError "Cannot find the generator model."
-  if initFn dir.toString then
-    return true
-  else
-    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
-    return false
-
-
 private def initGenerator : m Bool := do
   if ← isGeneratorInitialized then
     return true
 
   let some dir ← Cache.getGeneratorDir | throwError "Cannot find the generator model."
-  let config ← getConfig
-  let success : Bool := match config.backend with
+  let success : Bool := match ← getBackend with
   | .native (.onnx _) =>
        FFI.initOnnxGenerator dir.toString
   | .native (.ct2 params) =>
