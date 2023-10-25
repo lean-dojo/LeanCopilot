@@ -9,14 +9,14 @@ namespace LeanInfer
 namespace Core
 
 @[extern "init_generator"]
-private opaque init_generator (modelDir : @& String) : Bool 
+private opaque init_generator (modelDir : @& String) : Bool
 
 @[extern "is_initialized"]
 private opaque is_initialized : Unit → Bool
 
 -- https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/text_generation
 @[extern "generate"]
-private opaque generate (input : @& String) (numReturnSequences : UInt64) (maxLength : UInt64) 
+private opaque generate (input : @& String) (numReturnSequences : UInt64) (maxLength : UInt64)
 (temperature : Float) (numBeams : UInt64) : Array (String × Float)
 
 @[extern "encode"]
@@ -33,11 +33,11 @@ private def init_generator : CoreM Bool := do
   else if Core.init_generator (← Cache.getModelDir).toString then
     return true
   else
-    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
+    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few minutes."
     return false
 
-def generate (input : String) (numReturnSequences : UInt64 := 8) 
-(maxLength : UInt64 := 256) (temperature : Float := 1.0) 
+def generate (input : String) (numReturnSequences : UInt64 := 8)
+(maxLength : UInt64 := 256) (temperature : Float := 1.0)
 (numBeams : UInt64 := 1) : CoreM (Array (String × Float)) := do
   if ← init_generator then
     return Core.generate input numReturnSequences maxLength temperature numBeams
@@ -55,7 +55,7 @@ def retrieve (input : String) : IO (Array (String × Float)) := do
 def ppTacticState : List MVarId → MetaM String
   | [] => return "no goals"
   | [g] => return (← Meta.ppGoal g).pretty
-  | goals => 
+  | goals =>
       return (← goals.foldlM (init := "") (fun a b => do return s!"{a}\n\n{(← Meta.ppGoal b).pretty}")).trim
 
 def getPpTacticState : TacticM String := do
@@ -84,7 +84,7 @@ elab_rules : tactic
     let tacticsWithScores ← suggestTactics
     let tactics := tacticsWithScores.map (·.1)
     addSuggestions tac tactics.toList
-    
+
   | `(tactic | suggest_tactics!%$tac) => do
     Cache.checkModel
     let tacticsWithScores ← suggestTactics
@@ -93,7 +93,7 @@ elab_rules : tactic
 
   | `(tactic | suggest_premises) => do
     let input ← getPpTacticState
-    let suggestions ← timeit s!"Time for retriving premises:" (retrieve input)
+    let suggestions ← timeit s!"Time for retrieving premises:" (retrieve input)
     let premises := suggestions.map (·.1)
     logInfo s!"{premises}"
 
