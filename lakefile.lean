@@ -176,7 +176,7 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
     "-DWITH_MKL=" ++ (if hasMkl then "ON" else "OFF"),
     "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF")
     ]
-  logInfo s!"Using CTranslate2 cmake flags: {String.join flags.toList}"
+  logInfo s!"Using CTranslate2 cmake flags: {flags}"
   assert! ← runCmake root flags
 
 /--
