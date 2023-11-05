@@ -4,17 +4,17 @@
  [{"git":
    {"url": "https://github.com/leanprover/std4",
     "subDir?": null,
-    "rev": "ab21923ce1717d48a8d3d17e77bf6cdd3122eed8",
+    "rev": "d628d7c5ebd68fec2f357c7e1c46197d0ec45c95",
     "opts": {},
     "name": "std",
-    "inputRev?": "main",
+    "inputRev?": "stable",
     "inherited": false}},
   {"git":
    {"url": "https://github.com/JLimperg/aesop",
     "subDir?": null,
-    "rev": "d859b2465200f9067091ac88faf9786eaa02472b",
+    "rev": "0654e7a1ba1542c3a24f936e52a40b3fee6c13c0",
     "opts": {},
     "name": "aesop",
-    "inputRev?": "master",
+    "inputRev?": "stable",
     "inherited": false}}],
  "name": "LeanInfer"}

@@ -29,11 +29,11 @@ def getArch? : BaseIO (Option SupportedArch) := do
 
 
 def getArch : IO SupportedArch := do
-  if let some arch ← getArch? then 
-    return arch 
+  if let some arch ← getArch? then
+    return arch
   else
     error "Unknown architecture"
-  
+
 
 structure SupportedPlatform where
   os : SupportedOS
@@ -143,30 +143,58 @@ def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
   }
 
 
-def getCt2CmakeFlags : IO (Array String) := do
-  let mut flags := #["-DBUILD_CLI=OFF"]
-  match ← getOS with
-  | .macos =>
-    flags := flags ++ #["-DOPENMP_RUNTIME=NONE", "-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=ON"]
-  | .linux => 
-    -- TODO: Check CUDA, CuDNN, DNNL, MKL.
-    flags := flags ++ #["-DOPENMP_RUNTIME=COMP", "-DWITH_CUDA=ON", "-DWITH_CUDNN=ON", "-DWITH_DNNL=ON", "-DWITH_MKL=ON", "-DWITH_ACCELERATE=OFF"]
-  return flags
-
-
-def buildCmakeProject (root : FilePath) : LogIO Unit := do
+def runCmake (root : FilePath) (flags : Array String) : LogIO Bool := do
   assert! (← root.pathExists) ∧ (← (root / "CMakeLists.txt").pathExists)
   let buildDir := root / "build"
+  if ← buildDir.pathExists then
+    IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
-  proc {
+  testProc {
     cmd := "cmake"
-    args := (← getCt2CmakeFlags) ++ #[".."]
+    args := flags ++ #[".."]
     cwd := buildDir
   }
+
+
+def autoCt2Cmake (root : FilePath) : LogIO Unit := do
+  let basicFlags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=OFF"]
+  assert! ← runCmake root basicFlags
+
+  let hasOpenMP ← runCmake root (basicFlags ++ #["-DOPENMP_RUNTIME=COMP"])
+  let hasCuda := if Platform.isOSX then false else ← runCmake root (basicFlags ++ #["-DWITH_CUDA=ON"])
+  let hasCudnn := if ¬ hasCuda then False else ← runCmake root (basicFlags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"])
+  let hasDnnl ← runCmake root (basicFlags ++ #["-DWITH_DNNL=ON"])
+  let hasMkl ← runCmake root (basicFlags ++ #["-DWITH_MKL=ON"])
+  let hasAccelerate := if ¬ Platform.isOSX then false else ← runCmake root (basicFlags ++ #["-DWITH_ACCELERATE=ON"])
+
+  let flags := #[
+    "-DBUILD_CLI=OFF",
+    "-DOPENMP_RUNTIME=" ++ (if hasOpenMP then "COMP" else "NONE"),
+    "-DWITH_CUDA=" ++ (if hasCuda then "ON" else "OFF"),
+    "-DWITH_CUDNN=" ++ (if hasCudnn then "ON" else "OFF"),
+    "-DWITH_DNNL=" ++ (if hasDnnl then "ON" else "OFF"),
+    "-DWITH_MKL=" ++ (if hasMkl then "ON" else "OFF"),
+    "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF")
+    ]
+  logInfo s!"Using CTranslate2 cmake flags: {flags}"
+  assert! ← runCmake root flags
+
+/--
+Build CTranslate2 from source using cmake.
+TODO: Include the flags into the trace.
+-/
+def buildCmakeProject (root : FilePath) : LogIO Unit := do
+  -- Run cmake.
+  if let some flags := get_config? Ct2Flags then
+    logInfo s!"Using CTranslate2 cmake flags: {flags}"
+    let _ ← runCmake root flags.splitOn.toArray
+  else
+    autoCt2Cmake root
+  -- Run make.
   proc {
     cmd := "make"
     args := #["-j8"]
-    cwd := buildDir
+    cwd := root / "build"
   }
 
 
@@ -212,10 +240,7 @@ target libctranslate2 pkg : FilePath := do
 
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
-  let mut flags := #["-fPIC", "-std=c++17", optLevel]
-  match get_config? targetArch with
-  | none => pure ()
-  | some arch => flags := flags.push s!"--target={arch}"
+  let flags := #["-fPIC", "-std=c++17", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
@@ -242,5 +267,5 @@ extern_lib libleanffi pkg := do
   buildStaticLib (pkg.nativeLibDir / name) #[onnxO, ct2O]
 
 
-require std from git "https://github.com/leanprover/std4" @ "main"
-require aesop from git "https://github.com/JLimperg/aesop" @ "master"
+require std from git "https://github.com/leanprover/std4" @ "stable"
+require aesop from git "https://github.com/JLimperg/aesop" @ "stable"
