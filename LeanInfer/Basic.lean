@@ -12,7 +12,7 @@ namespace LeanInfer
 
 section
 
-variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m] 
+variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m]
   [MonadOptions m] [MonadLiftT (ST IO.RealWorld) m] [MonadLiftT IO m] [MonadError m]
 
 
@@ -40,7 +40,8 @@ private def initGenerator : m Bool := do
 def setConfig (config : Config) : CoreM Unit := do
   assert! config.isValid
   configRef.modify fun _ => config
-  assert! ← initGenerator
+  if ← isGeneratorInitialized then
+    assert! ← initGenerator
 
 
 def generate (input : String) (targetPrefix : String) : m (Array (String × Float)) := do
@@ -55,7 +56,7 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     let temperature := config.decoding.temperature
     let beamSize := config.decoding.beamSize
     FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
-  | .native (.ct2 _) => 
+  | .native (.ct2 _) =>
     let inputTokens := tokenizeByt5 input true |>.toArray
     let targetPrefixTokens := tokenizeByt5 targetPrefix false |>.toArray
     let numReturnSequences := config.decoding.numReturnSequences
@@ -91,7 +92,7 @@ private def initNativeEncoder (initFn : String → Bool) : m Bool := do
 private def initEncoder : m Bool := do
   match ← getBackend with
   | .native (.onnx _) => unreachable!
-  | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder 
+  | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder
   | .ipc .. => unreachable!
 
 
@@ -101,7 +102,7 @@ def encode (input : String) : m FloatArray := do
 
   match ← getBackend  with
   | .native (.onnx _) => unreachable!
-  | .native (.ct2 _) => 
+  | .native (.ct2 _) =>
     let inputTokens := tokenizeByt5 input true |>.toArray
     return FFI.ct2Encode inputTokens
   | .ipc .. => unreachable!
