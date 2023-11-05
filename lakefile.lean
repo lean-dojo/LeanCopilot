@@ -53,7 +53,7 @@ package LeanInfer where
   buildType := BuildType.debug
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "ctranslate2"]
-
+ 
 
 @[default_target]
 lean_lib LeanInfer {
