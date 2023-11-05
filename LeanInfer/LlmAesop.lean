@@ -1,4 +1,4 @@
-import LeanInfer.Basic
+import LeanInfer.Tactics
 import Aesop
 
 open Lean
@@ -6,6 +6,6 @@ open Lean
 namespace LeanInfer
 
 def tacGen : Aesop.TacGen := fun (mvarId : MVarId) => do
-  return ← generate (← ppTacticState [mvarId])
+  return ← generate (← ppTacticState [mvarId]) ""
 
 end LeanInfer

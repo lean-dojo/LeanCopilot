@@ -1,101 +1,121 @@
 import Lean
-import LeanInfer.Frontend
 import LeanInfer.Cache
+import LeanInfer.FFI
+import LeanInfer.Config
+import LeanInfer.Tokenization
 
-open Lean Elab Tactic
+open Lean
+
+set_option autoImplicit false
 
 namespace LeanInfer
 
-namespace Core
+section
 
-@[extern "init_generator"]
-private opaque init_generator (modelDir : @& String) : Bool
+variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m]
+  [MonadOptions m] [MonadLiftT (ST IO.RealWorld) m] [MonadLiftT IO m] [MonadError m]
 
-@[extern "is_initialized"]
-private opaque is_initialized : Unit → Bool
 
--- https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/text_generation
-@[extern "generate"]
-private opaque generate (input : @& String) (numReturnSequences : UInt64) (maxLength : UInt64)
-(temperature : Float) (numBeams : UInt64) : Array (String × Float)
+private def isGeneratorInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return FFI.isOnnxGeneratorInitialized ()
+  | .native (.ct2 _) => return FFI.isCt2GeneratorInitialized ()
+  | .ipc .. => unreachable!
 
-@[extern "encode"]
-private opaque encode (input : @& String) : FloatArray
 
-end Core
+private def initGenerator : m Bool := do
+  let some dir ← Cache.getGeneratorDir | throwError "decoderUrl? not set."
+  let success : Bool := match ← getBackend with
+  | .native (.onnx _) =>
+       FFI.initOnnxGenerator dir.toString
+  | .native (.ct2 params) =>
+      FFI.initCt2Generator dir.toString params.device params.computeType params.deviceIndex params.intraThreads
+  | .ipc .. => unreachable!
 
-private def is_initialized : IO Bool := do
-  return Core.is_initialized ()
+  if ¬ success then
+    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
+  return success
 
-private def init_generator : CoreM Bool := do
-  if ← is_initialized then
-    return true
-  else if Core.init_generator (← Cache.getModelDir).toString then
-    return true
-  else
-    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few minutes."
-    return false
 
-def generate (input : String) (numReturnSequences : UInt64 := 8)
-(maxLength : UInt64 := 256) (temperature : Float := 1.0)
-(numBeams : UInt64 := 1) : CoreM (Array (String × Float)) := do
-  if ← init_generator then
-    return Core.generate input numReturnSequences maxLength temperature numBeams
-  else
+def generate (input : String) (targetPrefix : String) : m (Array (String × Float)) := do
+  if ¬ (← isGeneratorInitialized) ∧ ¬ (← initGenerator) then
     return #[]
 
-def encode (input : String) : IO FloatArray := do
-  return Core.encode input
+  let config ← getConfig
+  let tacticsWithScores := match config.backend  with
+  | .native (.onnx _) =>
+    let numReturnSequences := config.decoding.numReturnSequences
+    let maxLength := config.decoding.maxLength
+    let temperature := config.decoding.temperature
+    let beamSize := config.decoding.beamSize
+    FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
+  | .native (.ct2 _) =>
+    let inputTokens := tokenizeByt5 input true |>.toArray
+    let targetPrefixTokens := tokenizeByt5 targetPrefix false |>.toArray
+    let numReturnSequences := config.decoding.numReturnSequences
+    let beamSize := config.decoding.beamSize
+    let minLength := config.decoding.minLength
+    let maxLength := config.decoding.maxLength
+    let lengthPenalty := config.decoding.lengthPenalty
+    let patience := config.decoding.patience
+    let temperature := config.decoding.temperature
+    let tokensWithScores := FFI.ct2Generate inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+    tokensWithScores.map fun (ts, s) => (detokenizeByt5 ts, s)
+  | .ipc .. => unreachable!
 
-def retrieve (input : String) : IO (Array (String × Float)) := do
+  return tacticsWithScores.qsort (·.2 > ·.2)
+
+
+private def isEncoderInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return unreachable!
+  | .native (.ct2 _) => return FFI.isCt2EncoderInitialized ()
+  | .ipc .. => unreachable!
+
+
+private def initNativeEncoder (initFn : String → Bool) : m Bool := do
+  let some dir ← Cache.getEncoderDir | throwError "encoderUrl? not set."
+  if initFn dir.toString then
+    return true
+  else
+    logWarning  "Cannot find the encoder model. If you would like to download it, run `select_premises!` and wait for a few mintues."
+    return false
+
+
+private def initEncoder : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder
+  | .ipc .. => unreachable!
+
+
+def encode (input : String) : m FloatArray := do
+  if ¬ (← isEncoderInitialized) ∧ ¬ (← initEncoder) then
+    return FloatArray.mk #[]
+
+  match ← getBackend  with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) =>
+    let inputTokens := tokenizeByt5 input true |>.toArray
+    return FFI.ct2Encode inputTokens
+  | .ipc .. => unreachable!
+
+
+def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
-  println! query
-  return #[("hello", 0.5)]  -- Not implemented yet.
+  logInfo s!"{query}"
+  return #[("NotImplemented", 0.5)]
 
-def ppTacticState : List MVarId → MetaM String
-  | [] => return "no goals"
-  | [g] => return (← Meta.ppGoal g).pretty
-  | goals =>
-      return (← goals.foldlM (init := "") (fun a b => do return s!"{a}\n\n{(← Meta.ppGoal b).pretty}")).trim
+end
 
-def getPpTacticState : TacticM String := do
-  let goals ← getUnsolvedGoals
-  ppTacticState goals
 
-def suggestTactics : TacticM (Array (String × Float)) := do
-  let input ← getPpTacticState
-  let suggestions ← generate input
-  return suggestions
-
-syntax "trace_generate" str : tactic
-syntax "trace_encode" str : tactic
-syntax "suggest_tactics" : tactic
-syntax "suggest_tactics!" : tactic
-syntax "suggest_premises" : tactic
-
-elab_rules : tactic
-  | `(tactic | trace_generate $input:str) => do
-    logInfo s!"{← generate input.getString}"
-
-  | `(tactic | trace_encode $input:str) => do
-    logInfo s!"{← encode input.getString}"
-
-  | `(tactic | suggest_tactics%$tac) => do
-    let tacticsWithScores ← suggestTactics
-    let tactics := tacticsWithScores.map (·.1)
-    addSuggestions tac tactics.toList
-
-  | `(tactic | suggest_tactics!%$tac) => do
-    Cache.checkModel
-    let tacticsWithScores ← suggestTactics
-    let tactics := tacticsWithScores.map (·.1)
-    addSuggestions tac tactics.toList
-
-  | `(tactic | suggest_premises) => do
-    let input ← getPpTacticState
-    let suggestions ← timeit s!"Time for retrieving premises:" (retrieve input)
-    let premises := suggestions.map (·.1)
-    logInfo s!"{premises}"
+def setConfig (config : Config) : CoreM Unit := do
+  assert! config.isValid
+  configRef.modify fun _ => config
+  if ← isGeneratorInitialized then
+    assert! ← initGenerator
+  if ← isEncoderInitialized then
+    assert! ← initEncoder
 
 
 end LeanInfer

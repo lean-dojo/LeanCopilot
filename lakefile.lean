@@ -25,27 +25,14 @@ deriving Inhabited, BEq
 
 
 def getArch? : BaseIO (Option SupportedArch) := do
-  let proc := IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
-  let .ok output ← proc.toBaseIO
-    | return none
-  let arch := output.stdout.trim
-  if arch ∈ ["arm64", "aarch64"] then
-    return some .arm64
-  else if arch == "x86_64" then
-    return some .x86_64
-  else
-    return none
+  return some .x86_64
 
 
 def getArch : IO SupportedArch := do
-  if let some arch ← getArch? then 
-    return arch 
+  if let some arch ← getArch? then
+    return arch
   else
     error "Unknown architecture"
-
-
-elab "is_arm?" : term => do
-  return toExpr <| (← getArch?).map (· matches .arm64)
 
 
 structure SupportedPlatform where
@@ -60,13 +47,13 @@ def getPlatform : IO SupportedPlatform := do
 
 
 package LeanInfer where
-  preferReleaseBuild := get_config? noCloudRelease |>.isNone
+  -- preferReleaseBuild := get_config? noCloudRelease |>.isNone
+  -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
   precompileModules := true
-  buildType := BuildType.release
-  buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
-  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lstdc++"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime"]
-
+  buildType := BuildType.debug
+  moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "ctranslate2"]
+ 
 
 @[default_target]
 lean_lib LeanInfer {
@@ -84,26 +71,6 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
   else s!"lib{name}.so.{v}"
 
 
-def getClangSearchPaths : IO (Array FilePath) := do
-  let output ← IO.Process.output {
-    cmd := "clang++", args := #["-v", "-lstdc++"]
-  }
-  let mut paths := #[]
-  for s in output.stderr.splitOn do
-    if s.startsWith "-L/" then
-      paths := paths.push (s.drop 2 : FilePath).normalize
-  return paths
-
-
-def getLibPath (name : String) : IO (Option FilePath) := do
-  let searchPaths ← getClangSearchPaths
-  for path in searchPaths do
-    let libPath := path / name
-    if ← libPath.pathExists then
-      return libPath
-  return none
-
-
 def afterReleaseSync (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindAsync fun _ _ => build
@@ -116,47 +83,6 @@ def afterReleaseAsync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α)
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
     Job.async build
-
-
-def copyLibJob (pkg : Package) (libName : String) : IndexBuildM (BuildJob FilePath) :=
-  afterReleaseAsync pkg do
-  if !Platform.isOSX then  -- Only required for Linux
-    let dst := pkg.nativeLibDir / libName
-    try
-      let depTrace := Hash.ofString libName
-      let trace ← buildFileUnlessUpToDate dst depTrace do
-        let some src ← getLibPath libName | error s!"{libName} not found"
-        logStep s!"Copying from {src} to {dst}"
-        proc {
-          cmd := "cp"
-          args := #[src.toString, dst.toString]
-        }
-        -- TODO: Use relative symbolic links instead.
-        proc {
-          cmd := "cp"
-          args := #[src.toString, dst.toString.dropRight 2]
-        }
-        proc {
-          cmd := "cp"
-          args := #[dst.toString, dst.toString.dropRight 4]
-        }
-      pure (dst, trace)
-    else
-      pure (dst, ← computeTrace dst)
-  else
-    pure ("", .nil)
-
-
-target libcpp pkg : FilePath := do
-  copyLibJob pkg "libc++.so.1.0"
-
-
-target libcppabi pkg : FilePath := do
-  copyLibJob pkg "libc++abi.so.1.0"
-
-
-target libunwind pkg : FilePath := do
-  copyLibJob pkg "libunwind.so.1.0"
 
 
 def getOnnxPlatform : IO String := do
@@ -209,42 +135,144 @@ target libonnxruntime pkg : FilePath := do
     return (dst, ← computeTrace dst)
 
 
+def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
+  proc {
+    cmd := "git"
+    args := #["clone", "--recursive", url]
+    cwd := cwd
+  }
+
+
+def runCmake (root : FilePath) (flags : Array String) : LogIO Bool := do
+  assert! (← root.pathExists) ∧ (← (root / "CMakeLists.txt").pathExists)
+  let buildDir := root / "build"
+  if ← buildDir.pathExists then
+    IO.FS.removeDirAll buildDir
+  IO.FS.createDirAll buildDir
+  testProc {
+    cmd := "cmake"
+    args := flags ++ #[".."]
+    cwd := buildDir
+  }
+
+
+def autoCt2Cmake (root : FilePath) : LogIO Unit := do
+  let basicFlags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=OFF"]
+  assert! ← runCmake root basicFlags
+
+  let hasOpenMP ← runCmake root (basicFlags.erase "-DOPENMP_RUNTIME=NONE" |>.push "-DOPENMP_RUNTIME=COMP")
+  let hasCuda := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON"))
+  let hasCudnn := hasCuda && (← runCmake root ((basicFlags.erase "-DWITH_CUDA=OFF" |>.erase "-DWITH_CUDNN=OFF") ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]))
+  let hasDnnl ← runCmake root (basicFlags.erase "-DWITH_DNNL=OFF" |>.push "-DWITH_DNNL=ON")
+  let hasAccelerate := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_ACCELERATE=OFF" |>.push "-DWITH_ACCELERATE=ON"))
+  let hasMkl := ¬ hasAccelerate && (← runCmake root (basicFlags.erase "-DWITH_MKL=OFF" |>.push "-DWITH_MKL=ON"))
+
+  let flags := #[
+    "-DBUILD_CLI=OFF",
+    "-DOPENMP_RUNTIME=" ++ (if hasOpenMP then "COMP" else "NONE"),
+    "-DWITH_CUDA=" ++ (if hasCuda then "ON" else "OFF"),
+    "-DWITH_CUDNN=" ++ (if hasCudnn then "ON" else "OFF"),
+    "-DWITH_DNNL=" ++ (if hasDnnl then "ON" else "OFF"),
+    "-DWITH_MKL=" ++ (if hasMkl then "ON" else "OFF"),
+    "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF")
+    ]
+  logInfo s!"Using CTranslate2 cmake flags: {flags}"
+  assert! ← runCmake root flags
+
+/--
+Build CTranslate2 from source using cmake.
+TODO: Include the flags into the trace.
+-/
+def buildCmakeProject (root : FilePath) : LogIO Unit := do
+  -- Run cmake.
+  if let some flags := get_config? Ct2Flags then
+    logInfo s!"Using CTranslate2 cmake flags: {flags}"
+    let _ ← runCmake root flags.splitOn.toArray
+  else
+    autoCt2Cmake root
+  -- Run make.
+  proc {
+    cmd := "make"
+    args := #["-j8"]
+    cwd := root / "build"
+  }
+
+
+/- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
+target libctranslate2 pkg : FilePath := do
+  afterReleaseAsync pkg do
+  let _ ← getPlatform
+  let dst := pkg.nativeLibDir / (nameToSharedLib "ctranslate2")
+  createParentDirs dst
+  let ct2URL := "https://github.com/OpenNMT/CTranslate2"
+
+  try
+    let depTrace := Hash.ofString ct2URL
+    let trace ← buildFileUnlessUpToDate dst depTrace do
+      logStep s!"Cloning CTranslate2 from {ct2URL} into {pkg.buildDir}"
+      gitClone ct2URL pkg.buildDir
+
+      logStep s!"Building CTranslate2 with cmake"
+      let ct2Dir := pkg.buildDir / "CTranslate2"
+      buildCmakeProject ct2Dir
+      proc {
+        cmd := "cp"
+        args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
+      }
+      -- TODO: Don't hardcode the version "3".
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "3")
+      proc {
+        cmd := "cp"
+        args := #[dst.toString, dst'.toString]
+      }
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
+      }
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
+      }
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
+      }
+      proc {
+        cmd := "rm"
+        args := #["-rf", ct2Dir.toString]
+      }
+    return (dst, trace)
+  else
+    return (dst, ← computeTrace dst)
+
+
 def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
-  let mut flags := #["-fPIC", "-std=c++11", "-stdlib=libc++", optLevel]
-  match get_config? targetArch with
-  | none => pure ()
-  | some arch => flags := flags.push s!"--target={arch}"
+  let flags := #["-fPIC", "-std=c++17", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
   buildFileAfterDepList oFile (srcJob :: deps) (extraDepTrace := computeHash flags) fun deps =>
-    compileO path.toString oFile deps[0]! args "clang++"
+    compileO path.toString oFile deps[0]! args "c++"
 
 
-target generator.o pkg : FilePath := do
+target onnx.o pkg : FilePath := do
   let onnx ← libonnxruntime.fetch
-  let cpp ← libcpp.fetch
-  let cppabi ← libcppabi.fetch
-  let unwind ← libunwind.fetch
-  let build := buildCpp pkg "cpp/generator.cpp" [onnx, cpp, cppabi, unwind]
+  let build := buildCpp pkg "cpp/onnx.cpp" [onnx]
   afterReleaseSync pkg build
 
 
-target retriever.o pkg : FilePath := do
-  let onnx ← libonnxruntime.fetch
-  let cpp ← libcpp.fetch
-  let cppabi ← libcppabi.fetch
-  let unwind ← libunwind.fetch
-  let build := buildCpp pkg "cpp/retriever.cpp" [onnx, cpp, cppabi, unwind]
+target ct2.o pkg : FilePath := do
+  let ct2 ← libctranslate2.fetch
+  let build := buildCpp pkg "cpp/ct2.cpp" [ct2]
   afterReleaseSync pkg build
 
 
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
-  let oGen ← generator.o.fetch
-  let oRet ← retriever.o.fetch
-  buildStaticLib (pkg.nativeLibDir / name) #[oGen, oRet]
+  let onnxO ← onnx.o.fetch
+  let ct2O ← ct2.o.fetch
+  buildStaticLib (pkg.nativeLibDir / name) #[onnxO, ct2O]
 
 
 require std from git "https://github.com/leanprover/std4" @ "main"
