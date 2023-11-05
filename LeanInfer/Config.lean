@@ -8,21 +8,17 @@ set_option autoImplicit false
 namespace LeanInfer
 
 structure OnnxParams where
-  generatorUrl? : Option HuggingFaceURL := none
-  encoderUrl? : Option HuggingFaceURL := none
+  generatorUrl : HuggingFaceURL
+  encoderUrl : HuggingFaceURL
 deriving Repr
 
-def isValidUrl : Option HuggingFaceURL → Bool
-  | none => true
-  | some url => url.isValid
-
 def OnnxParams.isValid (params : OnnxParams) : Bool :=
-  isValidUrl params.generatorUrl? ∧ isValidUrl params.encoderUrl?
+  params.generatorUrl.isValid ∧ params.encoderUrl.isValid
 
 -- https://opennmt.net/CTranslate2/python/ctranslate2.Translator.html#translator
 structure CTranslate2Params where
-  generatorUrl? : Option HuggingFaceURL := none
-  encoderUrl? : Option HuggingFaceURL := none
+  generatorUrl : HuggingFaceURL
+  encoderUrl : HuggingFaceURL
   device : String := "auto"
   deviceIndex : Array UInt64 := #[0]
   computeType : String := "auto"
@@ -37,7 +33,7 @@ def isValidComputeType (computeType : String) : Bool :=
   #["default", "auto", "int8", "int8_float32", "int8_float16", "int8_bfloat16", "int16", "float16", "bfloat16", "float32"].contains computeType
 
 def CTranslate2Params.isValid (params : CTranslate2Params) : Bool :=
-  isValidUrl params.generatorUrl? ∧ isValidUrl params.encoderUrl? ∧ isValidDevice params.device ∧ isValidComputeType params.computeType
+  params.generatorUrl.isValid ∧ params.encoderUrl.isValid ∧ isValidDevice params.device ∧ isValidComputeType params.computeType
 
 inductive NativeBackend where
   | onnx : OnnxParams → NativeBackend
@@ -77,7 +73,7 @@ structure DecodingParams where
 deriving Repr
 
 def DecodingParams.isValid (params : DecodingParams) : Bool :=
-  params.numReturnSequences ≥ 1 ∧ params.beamSize ≥ 1 ∧ params.minLength ≥ 0 ∧ 
+  params.numReturnSequences ≥ 1 ∧ params.beamSize ≥ 1 ∧ params.minLength ≥ 0 ∧
     params.maxLength ≥ params.minLength ∧ params.patience ≥ 1.0 ∧ params.temperature ≥ 0.0
 
 structure Config where
@@ -89,12 +85,12 @@ def Config.isValid (config : Config) : Bool :=
   config.backend.isValid ∧ config.decoding.isValid
 
 def safeConfig : Config := {
-  backend := .native $ .onnx {
-    generatorUrl? := some ⟨"kaiyuy", "onnx-leandojo-lean4-tacgen-byt5-small"⟩,
-    -- encoderUrl? := some ⟨"kaiyuy", "onnx-leandojo-lean4-retriever-byt5-small"⟩,
+  backend := .native $ .ct2 {
+    generatorUrl := ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩,
+    encoderUrl := ⟨"kaiyuy", "ct2-leandojo-lean4-retriever-byt5-small"⟩,
   },
   decoding := {
-    numReturnSequences := 8,
+    numReturnSequences := 64,
   }
 }
 
@@ -119,15 +115,15 @@ def getDecodingParams : m DecodingParams := do
 
 def getGeneratorUrl : m (Option HuggingFaceURL) := do
   match ← getBackend with
-  | .native (.onnx params) => return params.generatorUrl?
-  | .native (.ct2 params) => return params.generatorUrl?
+  | .native (.onnx params) => return params.generatorUrl
+  | .native (.ct2 params) => return params.generatorUrl
   | .ipc _ => return none
 
 
 def getEncoderUrl : m (Option HuggingFaceURL) := do
   match ← getBackend with
-  | .native (.onnx params) => return params.encoderUrl?
-  | .native (.ct2 params) => return params.encoderUrl?
+  | .native (.onnx params) => return params.encoderUrl
+  | .native (.ct2 params) => return params.encoderUrl
   | .ipc _ => return none
 
 end

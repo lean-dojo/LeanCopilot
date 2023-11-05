@@ -275,5 +275,5 @@ extern_lib libleanffi pkg := do
   buildStaticLib (pkg.nativeLibDir / name) #[onnxO, ct2O]
 
 
-require std from git "https://github.com/leanprover/std4" @ "stable"
-require aesop from git "https://github.com/JLimperg/aesop" @ "stable"
+require std from git "https://github.com/leanprover/std4" @ "main"
+require aesop from git "https://github.com/JLimperg/aesop" @ "master"
