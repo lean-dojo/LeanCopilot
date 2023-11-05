@@ -160,12 +160,12 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
   let basicFlags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=OFF"]
   assert! ← runCmake root basicFlags
 
-  let hasOpenMP ← runCmake root (basicFlags ++ #["-DOPENMP_RUNTIME=COMP"])
-  let hasCuda := if Platform.isOSX then false else ← runCmake root (basicFlags ++ #["-DWITH_CUDA=ON"])
-  let hasCudnn := if ¬ hasCuda then False else ← runCmake root (basicFlags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"])
-  let hasDnnl ← runCmake root (basicFlags ++ #["-DWITH_DNNL=ON"])
-  let hasMkl ← runCmake root (basicFlags ++ #["-DWITH_MKL=ON"])
-  let hasAccelerate := if ¬ Platform.isOSX then false else ← runCmake root (basicFlags ++ #["-DWITH_ACCELERATE=ON"])
+  let hasOpenMP ← runCmake root (basicFlags.erase "-DOPENMP_RUNTIME=NONE" |>.push "-DOPENMP_RUNTIME=COMP")
+  let hasCuda := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON"))
+  let hasCudnn := hasCuda && (← runCmake root ((basicFlags.erase "-DWITH_CUDA=OFF" |>.erase "-DWITH_CUDNN=OFF") ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]))
+  let hasDnnl ← runCmake root (basicFlags.erase "-DWITH_DNNL=OFF" |>.push "-DWITH_DNNL=ON")
+  let hasAccelerate := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_ACCELERATE=OFF" |>.push "-DWITH_ACCELERATE=ON"))
+  let hasMkl := ¬ hasAccelerate && (← runCmake root (basicFlags.erase "-DWITH_MKL=OFF" |>.push "-DWITH_MKL=ON"))
 
   let flags := #[
     "-DBUILD_CLI=OFF",
@@ -176,7 +176,7 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
     "-DWITH_MKL=" ++ (if hasMkl then "ON" else "OFF"),
     "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF")
     ]
-  logInfo s!"Using CTranslate2 cmake flags: {flags}"
+  logInfo s!"Using CTranslate2 cmake flags: {String.join flags.toList}"
   assert! ← runCmake root flags
 
 /--
