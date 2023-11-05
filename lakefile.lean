@@ -230,6 +230,10 @@ target libctranslate2 pkg : FilePath := do
         args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
       }
       proc {
+        cmd := "wget"
+        args := #["https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp", "-O", "build/include/json.hpp"]
+      }
+      proc {
         cmd := "rm"
         args := #["-rf", ct2Dir.toString]
       }
