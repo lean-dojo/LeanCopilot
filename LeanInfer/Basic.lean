@@ -37,13 +37,6 @@ private def initGenerator : m Bool := do
   return success
 
 
-def setConfig (config : Config) : CoreM Unit := do
-  assert! config.isValid
-  configRef.modify fun _ => config
-  if ← isGeneratorInitialized then
-    assert! ← initGenerator
-
-
 def generate (input : String) (targetPrefix : String) : m (Array (String × Float)) := do
   if ¬ (← isGeneratorInitialized) ∧ ¬ (← initGenerator) then
     return #[]
@@ -114,5 +107,15 @@ def retrieve (input : String) : m (Array (String × Float)) := do
   return #[("NotImplemented", 0.5)]
 
 end
+
+
+def setConfig (config : Config) : CoreM Unit := do
+  assert! config.isValid
+  configRef.modify fun _ => config
+  if ← isGeneratorInitialized then
+    assert! ← initGenerator
+  if ← isEncoderInitialized then
+    assert! ← initEncoder
+
 
 end LeanInfer
