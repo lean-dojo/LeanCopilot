@@ -37,6 +37,7 @@ You may also see the [example here](https://github.com/yangky11/lean4-example/bl
 
 After `import LeanInfer`, you can use the tactic `suggest_tactics` to generate tactic suggestions (see the image above and [this example](LeanInferTests/Examples.lean)). You can click on any of the suggested tactics to use it in the proof.
 
+You may provide a prefix to constrain the generated tactics. For example, `suggest_tactics "rw"` would only generate tactics starting with `rw`.
 
 ### Searching for Proofs
 

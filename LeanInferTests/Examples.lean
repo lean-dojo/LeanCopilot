@@ -25,3 +25,8 @@ example (n : Nat) : Nat.gcd n n = n := by
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
   sorry
+
+
+example (a b c : Nat) : a + b + c = a + c + b := by
+  suggest_tactics "rw"  -- You may provide a prefix to contrain the generated tactics.
+  sorry
