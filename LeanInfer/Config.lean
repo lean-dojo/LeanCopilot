@@ -90,7 +90,7 @@ def safeConfig : Config := {
     encoderUrl := ⟨"kaiyuy", "ct2-leandojo-lean4-retriever-byt5-small"⟩,
   },
   decoding := {
-    numReturnSequences := 64,
+    numReturnSequences := 32,
   }
 }
 
