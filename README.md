@@ -12,10 +12,11 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 * Git LFS
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 * CMake >= 3.7
-* At least one of [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html), [Accelerate](https://developer.apple.com/documentation/accelerate), [DNNL](https://github.com/oneapi-src/oneDNN), and [OpenBLAS](https://www.openblas.net/). Most systems have them pre-installed, so you may not need to do anything. However, if you see the error `No BLAS library found`, it means you don't have any of these libraries. In that case, we recommend MKL for Intel CPUs, Accelerate for Apple, and DNNL for AMD CPUs. OpenBLAS is cross-platform and can be used as a last resort if you cannot install the others.
+* At least one of [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html), [Accelerate](https://developer.apple.com/documentation/accelerate), [DNNL](https://github.com/oneapi-src/oneDNN), and [OpenBLAS](https://www.openblas.net/). Most systems have them pre-installed, so you may not need to do anything. However, if you see the error `No BLAS library found`, it means you don't have any of these libraries. In that case, we recommend MKL for Intel CPUs, Accelerate for Apple, and DNNL for AMD CPUs. OpenBLAS is cross-platform and can be used as a last resort if you cannot install the others. We are happy to help if you have trouble installing these libraries.
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
 
 **Please run `lake script run LeanInfer/check` to check if the requirements have been satisfied.**
+
 
 ## Adding LeanInfer as a Dependency to Your Project
 
@@ -34,11 +35,12 @@ You may also see the [example here](https://github.com/yangky11/lean4-example/bl
 
 ### Generating Tactic Suggestions
 
-After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)). 
+After `import LeanInfer`, you can use the tactic `suggest_tactics` to generate tactic suggestions (see the image above and [this example](LeanInferTests/Examples.lean)). You can click on any of the suggested tactics to use it in the proof.
 
 
 ### Searching for Proofs
 
+You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#init_llm_aesop` before using aesop (see [this example](LeanInferTests/Aesop.lean)). 
 
 
 ### Selecting Premises

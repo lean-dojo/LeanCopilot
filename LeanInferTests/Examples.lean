@@ -1,4 +1,3 @@
-import Lean
 import LeanInfer
 
 open LeanInfer
@@ -22,7 +21,6 @@ example (n : Nat) : Nat.gcd n n = n := by
   select_premises!
   sorry
 -/
-
 
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
