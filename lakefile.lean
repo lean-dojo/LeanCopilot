@@ -161,7 +161,7 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
   assert! ← runCmake root basicFlags
 
   let hasOpenMP ← runCmake root (basicFlags.erase "-DOPENMP_RUNTIME=NONE" |>.push "-DOPENMP_RUNTIME=COMP")
-  let hasCuda := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON"))
+  let hasCuda ← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON")
   let hasCudnn := hasCuda && (← runCmake root ((basicFlags.erase "-DWITH_CUDA=OFF" |>.erase "-DWITH_CUDNN=OFF") ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]))
   let hasDnnl ← runCmake root (basicFlags.erase "-DWITH_DNNL=OFF" |>.push "-DWITH_DNNL=ON")
   let hasAccelerate := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_ACCELERATE=OFF" |>.push "-DWITH_ACCELERATE=ON"))
@@ -176,7 +176,7 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
     "-DWITH_MKL=" ++ (if hasMkl then "ON" else "OFF"),
     "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF")
     ]
-  logInfo s!"Using CTranslate2 cmake flags: {flags}"
+  logInfo s!"Using CTranslate2 CMake flags: {flags}"
   assert! ← runCmake root flags
 
 /--
@@ -281,6 +281,96 @@ def checkAvailable (cmd : String) : IO Bool := do
     args := #[cmd]
   }
   return proc.exitCode == 0
+
+
+def initGitLFS : IO Unit := do
+  assert! ← checkAvailable "git"
+  let proc ← IO.Process.output {
+    cmd := "git"
+    args := #["lfs", "install"]
+  }
+  if proc.exitCode != 0 then
+    throw $ IO.userError "Failed to initialize Git LFS. Please install it from https://git-lfs.com."
+
+
+def HF_BASE_URL := "https://huggingface.co"
+
+structure HuggingFaceURL where
+  user : Option String
+  modelName : String
+
+instance : ToString HuggingFaceURL where
+  toString url := match url.user with
+  | none => s!"{HF_BASE_URL}/{url.modelName}"
+  | some user => s!"{HF_BASE_URL}/{user}/{url.modelName}"
+
+
+def ensureExists (dir : FilePath) : IO Unit := do
+  if !(← dir.pathExists)  then
+    IO.FS.createDirAll dir
+
+
+def getHomeDir : IO FilePath := do
+  let some dir ← IO.getEnv "HOME" | throw $ IO.userError "Cannot find the $HOME environment variable."
+  return dir
+
+
+def getDefaultCacheDir : IO FilePath := do
+  return (← getHomeDir) / ".cache" / "lean_infer"
+
+
+def getCacheDir : IO FilePath := do
+  let defaultCacheDir ← getDefaultCacheDir
+  let dir := match ← IO.getEnv "LEAN_INFER_CACHE_DIR" with
+  | some dir => (dir : FilePath)
+  | none => defaultCacheDir
+  ensureExists dir
+  return dir.normalize
+
+
+def getModelDir (url : HuggingFaceURL) : IO FilePath := do
+  let cacheDir ← getCacheDir
+  let dir := match url.user with
+  | none => cacheDir / url.modelName
+  | some user => cacheDir / user / url.modelName
+  return dir.normalize
+
+
+def hasLocalChange (root : FilePath) : IO Bool := do
+  if ¬ (← root.pathExists) then
+    return true
+  assert! ← checkAvailable "git"
+  let proc ← IO.Process.output {
+    cmd := "git"
+    args := #["diff", "--shortstat"]
+    cwd := root
+  }
+  return proc.exitCode == 0 ∧ proc.stdout != ""
+
+
+def downloadIfNecessary (url : HuggingFaceURL) : IO Unit := do
+  let dir := ← getModelDir url
+  if ¬ (← hasLocalChange dir) then
+    println! s!"The model is available at {dir}"
+    return ()
+
+  println! s!"Downloading the model into {dir}"
+  let some parentDir := dir.parent | unreachable!
+  ensureExists parentDir
+  initGitLFS
+  let proc ← IO.Process.output {
+    cmd := "git"
+    args := #["clone", toString url]
+    cwd := parentDir
+  }
+  if proc.exitCode != 0 then
+    throw $ IO.userError s!"Failed to download the model. You download it manually from {url} and store it in `{dir}/`. See https://huggingface.co/docs/hub/models-downloading for details."
+
+
+script download do
+  downloadIfNecessary ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩
+  downloadIfNecessary ⟨"kaiyuy", "ct2-leandojo-lean4-retriever-byt5-small"⟩
+  return 0
 
 
 def checkGitLFS : IO Bool := do

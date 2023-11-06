@@ -23,8 +23,8 @@ private def isGeneratorInitialized : m Bool := do
   | .ipc .. => unreachable!
 
 
-private def initGenerator : m Bool := do
-  let some dir ← Cache.getGeneratorDir | throwError "decoderUrl? not set."
+def initGenerator : IO Bool := do
+  let dir ← Cache.getGeneratorDir
   let success : Bool := match ← getBackend with
   | .native (.onnx _) =>
        FFI.initOnnxGenerator dir.toString
@@ -33,7 +33,7 @@ private def initGenerator : m Bool := do
   | .ipc .. => unreachable!
 
   if ¬ success then
-    logWarning  "Cannot find the generator model. If you would like to download it, run `suggest_tactics!` and wait for a few mintues."
+    throw $ IO.userError "Cannot find the generator model. Please run `lake script run LeanInfer/download`."
   return success
 
 
@@ -73,16 +73,16 @@ private def isEncoderInitialized : m Bool := do
   | .ipc .. => unreachable!
 
 
-private def initNativeEncoder (initFn : String → Bool) : m Bool := do
-  let some dir ← Cache.getEncoderDir | throwError "encoderUrl? not set."
+private def initNativeEncoder (initFn : String → Bool) : IO Bool := do
+  let dir ← Cache.getEncoderDir
   if initFn dir.toString then
     return true
   else
-    logWarning  "Cannot find the encoder model. If you would like to download it, run `select_premises!` and wait for a few mintues."
+    throw $ IO.userError "Cannot find the encoder model. Please run `lake script run LeanInfer/download`."
     return false
 
 
-private def initEncoder : m Bool := do
+def initEncoder : m Bool := do
   match ← getBackend with
   | .native (.onnx _) => unreachable!
   | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder

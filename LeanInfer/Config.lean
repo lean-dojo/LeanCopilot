@@ -113,18 +113,18 @@ def getBackend : m Backend := do
 def getDecodingParams : m DecodingParams := do
   return (← getConfig).decoding
 
-def getGeneratorUrl : m (Option HuggingFaceURL) := do
+def getGeneratorUrl : m HuggingFaceURL := do
   match ← getBackend with
   | .native (.onnx params) => return params.generatorUrl
   | .native (.ct2 params) => return params.generatorUrl
-  | .ipc _ => return none
+  | .ipc _ => return unreachable!
 
 
-def getEncoderUrl : m (Option HuggingFaceURL) := do
+def getEncoderUrl : m HuggingFaceURL := do
   match ← getBackend with
   | .native (.onnx params) => return params.encoderUrl
   | .native (.ct2 params) => return params.encoderUrl
-  | .ipc _ => return none
+  | .ipc _ => return unreachable!
 
 end
 

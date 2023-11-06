@@ -22,16 +22,28 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 ```lean
 require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "main"
 ```
-2. Run `lake update LeanInfer && lake build`
+2. Run `lake update LeanInfer`
+3. Run `lake script run LeanInfer/download` to download the models from Hugging Face to `~/.cache/lean_infer/`
+4. Run `lake build`
 
 You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
 
-## Using LeanInfer's Tactic Generator
+## Using LeanInfer
+
+### Generating Tactic Suggestions
 
 After `import LeanInfer`, you can use the tactic `suggest_tactics` (see the image above and [this example](https://github.com/yangky11/lean4-example/blob/ab7bc199aedb66992689412ceb8b5a1e44af7ec5/Lean4Example.lean#L12)). 
 
-For the first time, it may ask you to download the model by running `suggest_tactics!`. The model will be downloaded to `~/.cache/lean_infer/` by default, but the path can be overridden by the `LEAN_INFER_CACHE_DIR` environment variable.
+
+### Searching for Proofs
+
+
+
+### Selecting Premises
+
+Comming soon.
+
 
 
 ## Questions and Bugs

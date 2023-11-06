@@ -11,6 +11,7 @@ def HF_BASE_URL := "https://huggingface.co"
 structure HuggingFaceURL where
   user : Option String
   modelName : String
+deriving Inhabited
 
 instance : ToString HuggingFaceURL where
   toString url := match url.user with

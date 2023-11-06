@@ -15,4 +15,5 @@ cd lean4-example
 git checkout LeanInfer-demo
 
 # Build lean4-example.
+lake script run LeanInfer/download
 lake build

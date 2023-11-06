@@ -1,14 +1,11 @@
 import Lean
 import LeanInfer
 
-open Lean
 open LeanInfer
 
-set_option autoImplicit false
-
+/-
 #eval getConfig
 
-/-
 def cfg : Config := {
   backend := .native $ .ct2 {
     generatorUrl := some ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩,
@@ -26,10 +23,7 @@ example (n : Nat) : Nat.gcd n n = n := by
   sorry
 -/
 
-#eval Cache.checkGenerator
 
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics!
-  -- `suggest_tactics!` downloads the model to `~/.cache/lean_infer` before using it to generate tactics.
-  -- After the model is downloaded, you should change it to `suggest_tactics!`, which is faster.
+  suggest_tactics
   sorry
