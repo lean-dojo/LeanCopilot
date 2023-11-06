@@ -53,7 +53,7 @@ package LeanInfer where
   buildType := BuildType.debug
   moreLinkArgs := #[s!"-L{__dir__}/build/lib", "-lonnxruntime", "-lctranslate2"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "onnxruntime", s!"--load-dynlib={__dir__}/build/lib/" ++ nameToSharedLib "ctranslate2"]
- 
+
 
 @[default_target]
 lean_lib LeanInfer {
@@ -273,6 +273,39 @@ extern_lib libleanffi pkg := do
   let onnxO ← onnx.o.fetch
   let ct2O ← ct2.o.fetch
   buildStaticLib (pkg.nativeLibDir / name) #[onnxO, ct2O]
+
+
+def checkAvailable (cmd : String) : IO Bool := do
+  let proc ← IO.Process.output {
+    cmd := "which",
+    args := #[cmd]
+  }
+  return proc.exitCode == 0
+
+
+def checkGitLFS : IO Bool := do
+  if ← checkAvailable "git" then
+    let proc ← IO.Process.output {
+      cmd := "git"
+      args := #["lfs", "install"]
+    }
+    return proc.exitCode == 0
+  else
+    return false
+
+
+script check do
+  if Platform.isWindows then
+    error "Windows is not supported"
+  if ¬ (← checkGitLFS) then
+    error "Git LFS is not installed"
+  if ¬ (← checkAvailable "c++") then
+    error "C++ compiler is not installed"
+  if ¬ (← checkAvailable "cmake") then
+    error "CMake is not installed"
+  if ¬ (← checkAvailable "make") then
+    error "Make is not installed"
+  return 0
 
 
 require std from git "https://github.com/leanprover/std4" @ "main"
