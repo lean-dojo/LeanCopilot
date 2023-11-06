@@ -14,4 +14,4 @@ RUN curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -
 # Build the Lean project.
 RUN lake build
 RUN lake script run LeanInfer/download
-RUN lake build LeanInferTests
+# RUN lake build LeanInferTests

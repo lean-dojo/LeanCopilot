@@ -25,16 +25,18 @@ private def isGeneratorInitialized : m Bool := do
 
 def initGenerator : IO Bool := do
   let dir ← Cache.getGeneratorDir
-  let success : Bool := match ← getBackend with
+  if ¬ (← dir.pathExists) then
+    throw $ IO.userError "Cannot find the generator model. Please run `lake script run LeanInfer/download`."
+    return false
+
+  match ← getBackend with
   | .native (.onnx _) =>
-       FFI.initOnnxGenerator dir.toString
+    assert! FFI.initOnnxGenerator dir.toString
   | .native (.ct2 params) =>
-      FFI.initCt2Generator dir.toString params.device params.computeType params.deviceIndex params.intraThreads
+    assert! FFI.initCt2Generator dir.toString params.device params.computeType params.deviceIndex params.intraThreads
   | .ipc .. => unreachable!
 
-  if ¬ success then
-    throw $ IO.userError "Cannot find the generator model. Please run `lake script run LeanInfer/download`."
-  return success
+  return true
 
 
 def generate (input : String) (targetPrefix : String) : m (Array (String × Float)) := do
@@ -73,20 +75,18 @@ private def isEncoderInitialized : m Bool := do
   | .ipc .. => unreachable!
 
 
-private def initNativeEncoder (initFn : String → Bool) : IO Bool := do
+def initEncoder : IO Bool := do
   let dir ← Cache.getEncoderDir
-  if initFn dir.toString then
-    return true
-  else
+  if ¬ (← dir.pathExists) then
     throw $ IO.userError "Cannot find the encoder model. Please run `lake script run LeanInfer/download`."
     return false
 
-
-def initEncoder : m Bool := do
   match ← getBackend with
   | .native (.onnx _) => unreachable!
-  | .native (.ct2 _) => initNativeEncoder FFI.initCt2Encoder
+  | .native (.ct2 _) => assert! FFI.initCt2Encoder dir.toString
   | .ipc .. => unreachable!
+
+  return true
 
 
 def encode (input : String) : m FloatArray := do
