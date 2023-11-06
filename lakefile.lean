@@ -305,6 +305,7 @@ script check do
     error "CMake is not installed"
   if ¬ (← checkAvailable "make") then
     error "Make is not installed"
+  println! "Looks good to me!"
   return 0
 
 
