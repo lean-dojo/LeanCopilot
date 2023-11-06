@@ -12,7 +12,7 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 * Git LFS
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 * CMake >= 3.7
-* Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn) for GPU acceleration
+* Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
 
 **Please run `lake script run LeanInfer/check` to check if the requirements have been satisfied.**
 
