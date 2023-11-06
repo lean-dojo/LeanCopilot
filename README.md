@@ -13,6 +13,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 * Supported platforms: Linux and macOS (:warning: maybe also Windows WSL, but untested)
 * [Git LFS](https://git-lfs.com/)
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
+* CMake >= 3.7
 * Optional: CUDA and [cuDNN](https://developer.nvidia.com/cudnn) for GPU acceleration
 
 **Please run `lake script run LeanInfer/check` to check if the requirements have been satisfied.**
