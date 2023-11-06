@@ -24,7 +24,7 @@ It is in an early stage of development. In the long term, we aim to integrate Le
 ```lean
 require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "main"
 ```
-2. Run `lake update LeanInfer && lake build`.
+2. Run `lake update LeanInfer && lake build`, which may take a few minutes.
 
 You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanInfer-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
