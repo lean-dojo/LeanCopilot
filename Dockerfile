@@ -4,7 +4,7 @@ WORKDIR /LeanInfer
 COPY . .
 
 # Install dependencies.
-RUN apt-get update && apt-get install -y curl wget git git-lfs clang lld libc++-dev cmake
+RUN apt-get update && apt-get install -y curl wget git git-lfs cmake libopenblas-dev
 
 # Install elan.
 ENV ELAN_HOME="/.elan"
@@ -14,4 +14,4 @@ RUN curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -
 # Build the Lean project.
 RUN lake build
 RUN lake script run LeanInfer/download
-# RUN lake build LeanInferTests
+RUN lake build LeanInferTests
