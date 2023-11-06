@@ -169,7 +169,7 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
   let hasOpenBLAS := ¬ hasDNNL && ¬ hasAccelerate && ¬ hasMKL && (← runCmake root (basicFlags.erase "-DWITH_OPENBLAS=OFF" |>.push "-DWITH_OPENBLAS=ON"))
 
   if ¬ (hasMKL ∨ hasAccelerate ∨ hasDNNL ∨ hasOpenBLAS) then
-    error "No BLAS library found"
+    error "No BLAS library found. You need at least one of MKL, Accelerate, DNNL, or OpenBLAS. See https://github.com/lean-dojo/LeanInfer#requirements for details."
 
   let flags := #[
     "-DBUILD_CLI=OFF",
