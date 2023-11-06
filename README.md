@@ -1,11 +1,9 @@
 LeanInfer: Native Neural Network Inference in Lean 4
 =============================================
 
-LeanInfer provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). 
-
 <img width="1087" alt="LeanInfer" src="https://github.com/lean-dojo/LeanInfer/assets/5431913/f87ec407-29a5-4468-b2fb-a2f6e9105ae9">
 
-It is in an early stage of development. In the long term, we aim to integrate Lean and machine learning by providing a general and efficient way to run the inference of neural networks in Lean. 
+LeanInfer provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). It is in an early stage of development. In the long term, we aim to integrate Lean and machine learning by providing a general and efficient way to run the inference of neural networks in Lean. 
 
 
 ## Requirements
