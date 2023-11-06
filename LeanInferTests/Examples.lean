@@ -26,6 +26,10 @@ example (n : Nat) : Nat.gcd n n = n := by
   sorry
 -/
 
+#eval Cache.checkGenerator
+
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics
+  suggest_tactics!
+  -- `suggest_tactics!` downloads the model to `~/.cache/lean_infer` before using it to generate tactics.
+  -- After the model is downloaded, you should change it to `suggest_tactics!`, which is faster.
   sorry

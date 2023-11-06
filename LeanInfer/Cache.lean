@@ -91,18 +91,22 @@ private def hasLocalChange (root : FilePath) : IO Bool := do
   }
   return proc.exitCode == 0 ∧ proc.stdout != ""
 
-def checkGenerator : IO Unit := do
+def checkGenerator : CoreM Unit := do
   let some modelDir ← getGeneratorDir | return ()
   if ← hasLocalChange modelDir then
     IO.FS.removeDirAll modelDir
-  if ¬(← modelDir.pathExists) then
+  if ← modelDir.pathExists then
+    logInfo "The generator model is available locally."
+  else
     downloadGenerator
 
-def checkEncoder : IO Unit := do
+def checkEncoder : CoreM Unit := do
   let some modelDir ← getEncoderDir | return ()
   if ← hasLocalChange modelDir then
     IO.FS.removeDirAll modelDir
-  if ¬(← modelDir.pathExists) then
+  if ← modelDir.pathExists then
+    logInfo "The encoder model is available locally."
+  else
     downloadEncoder
 
 end LeanInfer.Cache
