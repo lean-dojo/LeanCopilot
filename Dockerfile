@@ -4,7 +4,7 @@ WORKDIR /LeanInfer
 COPY . .
 
 # Install dependencies.
-RUN apt-get update && apt-get install -y curl wget git git-lfs clang lld libc++-dev
+RUN apt-get update && apt-get install -y curl wget git git-lfs clang lld libc++-dev cmake
 
 # Install elan.
 ENV ELAN_HOME="/.elan"
