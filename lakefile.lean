@@ -161,20 +161,23 @@ def autoCt2Cmake (root : FilePath) : LogIO Unit := do
   assert! ← runCmake root basicFlags
 
   let hasOpenMP ← runCmake root (basicFlags.erase "-DOPENMP_RUNTIME=NONE" |>.push "-DOPENMP_RUNTIME=COMP")
-  let hasCuda ← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON")
-  let hasCudnn := hasCuda && (← runCmake root ((basicFlags.erase "-DWITH_CUDA=OFF" |>.erase "-DWITH_CUDNN=OFF") ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]))
-  let hasDnnl ← runCmake root (basicFlags.erase "-DWITH_DNNL=OFF" |>.push "-DWITH_DNNL=ON")
+  let hasCUDA ← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON")
+  let hasCuDNN := hasCUDA && (← runCmake root ((basicFlags.erase "-DWITH_CUDA=OFF" |>.erase "-DWITH_CUDNN=OFF") ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]))
+  let hasDNNL ← runCmake root (basicFlags.erase "-DWITH_DNNL=OFF" |>.push "-DWITH_DNNL=ON")
   let hasAccelerate := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_ACCELERATE=OFF" |>.push "-DWITH_ACCELERATE=ON"))
-  let hasMkl := ¬ hasAccelerate && (← runCmake root (basicFlags.erase "-DWITH_MKL=OFF" |>.push "-DWITH_MKL=ON"))
-  let hasOpenBLAS := ¬ hasDnnl && ¬ hasAccelerate && ¬ hasMkl && (← runCmake root (basicFlags.erase "-DWITH_OPENBLAS=OFF" |>.push "-DWITH_OPENBLAS=ON"))
+  let hasMKL := ¬ hasAccelerate && (← runCmake root (basicFlags.erase "-DWITH_MKL=OFF" |>.push "-DWITH_MKL=ON"))
+  let hasOpenBLAS := ¬ hasDNNL && ¬ hasAccelerate && ¬ hasMKL && (← runCmake root (basicFlags.erase "-DWITH_OPENBLAS=OFF" |>.push "-DWITH_OPENBLAS=ON"))
+
+  if ¬ (hasMKL ∨ hasAccelerate ∨ hasDNNL ∨ hasOpenBLAS) then
+    error "No BLAS library found"
 
   let flags := #[
     "-DBUILD_CLI=OFF",
     "-DOPENMP_RUNTIME=" ++ (if hasOpenMP then "COMP" else "NONE"),
-    "-DWITH_CUDA=" ++ (if hasCuda then "ON" else "OFF"),
-    "-DWITH_CUDNN=" ++ (if hasCudnn then "ON" else "OFF"),
-    "-DWITH_DNNL=" ++ (if hasDnnl then "ON" else "OFF"),
-    "-DWITH_MKL=" ++ (if hasMkl then "ON" else "OFF"),
+    "-DWITH_CUDA=" ++ (if hasCUDA then "ON" else "OFF"),
+    "-DWITH_CUDNN=" ++ (if hasCuDNN then "ON" else "OFF"),
+    "-DWITH_DNNL=" ++ (if hasDNNL then "ON" else "OFF"),
+    "-DWITH_MKL=" ++ (if hasMKL then "ON" else "OFF"),
     "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF"),
     "-DWITH_OPENBLAS=" ++ (if hasOpenBLAS then "ON" else "OFF")
     ]

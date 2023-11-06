@@ -12,6 +12,7 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 * Git LFS
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 * CMake >= 3.7
+* At least one of [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html), [Accelerate](https://developer.apple.com/documentation/accelerate), [DNNL](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/). Many machines have at least one of them pre-installed. If you don't have any of them, we recommend MKL for Intel CPUs, Accelerate for Apple, and DNNL for AMD CPUs. OpenBLAS is cross-platform and can be used as a last resort if you cannot install the others.
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
 
 **Please run `lake script run LeanInfer/check` to check if the requirements have been satisfied.**
