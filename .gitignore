@@ -2,4 +2,4 @@
 /lake-packages/*
 
 .vscode
-.olean
+*.olean
