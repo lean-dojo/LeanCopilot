@@ -46,7 +46,7 @@ You can combine the LLM-generated tactic suggestions with [aesop](https://github
 
 ### Selecting Premises
 
-Comming soon.
+Coming soon.
 
 
 
