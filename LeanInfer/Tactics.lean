@@ -66,7 +66,7 @@ elab_rules : tactic
 
   | `(tactic | pp_state) => do
     let state ← getPpTacticState
-    logInfo s!"State:\n{state}"
+    logInfo state
 
   | `(tactic | suggest_tactics%$tac $pfx:str) => do
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
