@@ -47,6 +47,7 @@ def selectPremises : TacticM (Array (String × Float)) := do
 
 syntax "trace_generate" str : tactic
 syntax "trace_encode" str : tactic
+syntax "pp_state" : tactic
 syntax "suggest_tactics" : tactic
 syntax "suggest_tactics" str : tactic
 syntax "select_premises" : tactic
@@ -62,6 +63,10 @@ elab_rules : tactic
 
   | `(tactic | trace_encode $input:str) => do
     logInfo s!"{← encode input.getString}"
+
+  | `(tactic | pp_state) => do
+    let state ← getPpTacticState
+    logInfo s!"State:\n{state}"
 
   | `(tactic | suggest_tactics%$tac $pfx:str) => do
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
