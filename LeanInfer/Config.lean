@@ -65,7 +65,7 @@ def Backend.isValid : Backend → Bool
 structure DecodingParams where
   numReturnSequences : UInt64
   beamSize : UInt64 := numReturnSequences
-  minLength : UInt64 := 0
+  minLength : UInt64 := 1
   maxLength : UInt64 := 1024
   lengthPenalty : Float := 0.0
   patience : Float := 2.0

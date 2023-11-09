@@ -8,12 +8,26 @@ open Lean
 
 set_option autoImplicit false
 
+
 namespace LeanInfer
 
 section
 
+
 variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m]
   [MonadOptions m] [MonadLiftT (ST IO.RealWorld) m] [MonadLiftT IO m] [MonadError m]
+
+
+register_option LeanInfer.verbose : Bool := {
+  defValue := false
+  descr := "Log various debugging information when running LeanInfer."
+}
+
+
+def isVerbose : m Bool := do
+  match LeanInfer.verbose.get? (← getOptions) with
+  | some true => return true
+  | _ => return false
 
 
 private def isGeneratorInitialized : m Bool := do
@@ -65,7 +79,11 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     tokensWithScores.map fun (ts, s) => (detokenizeByt5 ts, s)
   | .ipc .. => unreachable!
 
-  return tacticsWithScores.qsort (·.2 > ·.2)
+  let rankedTactics := tacticsWithScores.qsort (·.2 > ·.2)
+  if ← isVerbose then
+    logInfo $ rankedTactics.foldl (init := "Generated tactics with scores:\n")
+      fun acc (t, s) => acc ++ s!"  {t}: {s}\n"
+  return rankedTactics
 
 
 private def isEncoderInitialized : m Bool := do

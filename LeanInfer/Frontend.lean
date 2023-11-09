@@ -1,4 +1,4 @@
-/- 
+/-
 The MIT License (MIT)
 
 Copyright (c) 2023 Sean Welleck
@@ -76,7 +76,7 @@ export default function(props) {
         e('li', {onClick: () => onClick(suggestion),
           className:
             suggestion[1] === 'ProofDone' ? 'link pointer dim green' :
-            suggestion[1] === 'Valid' ? 'link pointer dim blue' :
+            suggestion[1] === 'Valid' || suggestion[1] === 'Unknown' ? 'link pointer dim blue' :
             'link pointer dim',
           title: 'Apply suggestion'},
           suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
@@ -91,6 +91,7 @@ inductive CheckResult : Type
   | ProofDone
   | Valid
   | Invalid
+  | Unknown
   deriving ToJson, Ord
 
 /- Check whether the suggestion `s` completes the proof, is valid (does
@@ -119,15 +120,17 @@ def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
 /- Adds multiple suggestions to the Lean InfoView.
    Code based on `Std.Tactic.addSuggestion`. -/
 def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
-    (origSpan? : Option Syntax := none)
-    (extraMsg : String := "") : Lean.Elab.Tactic.TacticM Unit := do
+    (check : Bool) (origSpan? : Option Syntax := none) (extraMsg : String := "") : Lean.Elab.Tactic.TacticM Unit := do
   if let some tacticRange := (origSpan?.getD tacRef).getRange? then
     if let some argRange := (origSpan?.getD pfxRef).getRange? then
       let map ← getFileMap
       let start := findLineStart map.source tacticRange.start
       let body := map.source.findAux (· ≠ ' ') tacticRange.start start
 
-      let checks ← suggestions.mapM checkSuggestion
+      let checks := if check then
+        ← suggestions.mapM checkSuggestion
+      else
+        suggestions.map fun _ => CheckResult.Unknown
       let texts := suggestions.map fun text => (
         (Std.Format.prettyExtra (text.stripSuffix "\n")
          (indent := (body - start).1)

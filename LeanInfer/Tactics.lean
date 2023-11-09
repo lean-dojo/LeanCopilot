@@ -10,6 +10,18 @@ set_option autoImplicit false
 namespace LeanInfer
 
 
+register_option LeanInfer.suggest_tactics.check : Bool := {
+  defValue := true
+  descr := "Check if the generated tactics are valid or if they can prove the goal."
+}
+
+
+def checkTactics : CoreM Bool := do
+  match LeanInfer.suggest_tactics.check.get? (← getOptions) with
+  | some false => return false
+  | _ => return true
+
+
 def ppTacticState : List MVarId → MetaM String
   | [] => return "no goals"
   | [g] => return (← Meta.ppGoal g).pretty
@@ -23,7 +35,10 @@ def getPpTacticState : TacticM String := do
 
 
 def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) := do
-  generate (← getPpTacticState) targetPrefix
+  let state ← getPpTacticState
+  if ← isVerbose then
+    logInfo s!"State:\n{state}"
+  generate state targetPrefix
 
 
 def selectPremises : TacticM (Array (String × Float)) := do
@@ -50,9 +65,10 @@ elab_rules : tactic
 
   | `(tactic | suggest_tactics%$tac $pfx:str) => do
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
-    logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
+    if ← isVerbose then
+      logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
     let tactics := tacticsWithScores.map (·.1)
-    addSuggestions tac pfx tactics.toList
+    addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do
     let premisesWithScores ← selectPremises
