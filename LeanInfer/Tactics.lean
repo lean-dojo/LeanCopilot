@@ -69,10 +69,14 @@ elab_rules : tactic
     logInfo state
 
   | `(tactic | suggest_tactics%$tac $pfx:str) => do
+    logInfo s!"Step 0: ¬Generating tactics for prefix {pfx}"
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
+    logInfo s!"Step 1: \n{tacticsWithScores}"
     if ← isVerbose then
       logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
+    logInfo s!"Step 2\n"
     let tactics := tacticsWithScores.map (·.1)
+    logInfo s!"Step 3: \n{tactics}"
     addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do
