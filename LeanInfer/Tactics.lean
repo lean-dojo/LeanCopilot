@@ -51,6 +51,8 @@ syntax "pp_state" : tactic
 syntax "suggest_tactics" : tactic
 syntax "suggest_tactics" str : tactic
 syntax "select_premises" : tactic
+syntax "suggest_tactics_weak" : tactic
+syntax "suggest_tactics_weak" str : tactic
 
 
 macro_rules
@@ -78,6 +80,17 @@ elab_rules : tactic
     let tactics := tacticsWithScores.map (·.1)
     logInfo s!"Step 3: \n{tactics}"
     addSuggestions tac pfx tactics.toList (← checkTactics)
+
+  | `(tactic | suggest_tactics_weak%$tac $pfx:str) => do
+    logInfo s!"Step 0: ¬Generating tactics for prefix {pfx}"
+    let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
+    logInfo s!"Step 1: \n{tacticsWithScores}"
+    if ← isVerbose then
+      logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
+    logInfo s!"Step 2\n"
+    let tactics := tacticsWithScores.map (·.1)
+    logInfo s!"Step 3: \n{tactics}"
+    -- addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do
     let premisesWithScores ← selectPremises
