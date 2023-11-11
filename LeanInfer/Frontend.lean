@@ -68,22 +68,26 @@ export default function(props) {
         }] }
     })
   }
+  const suggestionElement = props.suggestions.length > 0
+    ? [
+      'Try this: ',
+      ...(props.suggestions.map((suggestion, i) =>
+          e('li', {onClick: () => onClick(suggestion),
+            className:
+              suggestion[1] === 'ProofDone' ? 'link pointer dim green' :
+              suggestion[1] === 'Valid' ? 'link pointer dim blue' :
+              'link pointer dim',
+            title: 'Apply suggestion'},
+            suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
+        )
+      )),
+      props.info
+    ]
+    : 'No valid suggestions.';
   return e('div',
   {className: 'ml1'},
-  e('ul', {className: 'font-code pre-wrap'}, [
-    'Try this: ',
-    ...(props.suggestions.map((suggestion, i) =>
-        e('li', {onClick: () => onClick(suggestion),
-          className:
-            suggestion[1] === 'ProofDone' ? 'link pointer dim green' :
-            suggestion[1] === 'Valid' || suggestion[1] === 'Unknown' ? 'link pointer dim blue' :
-            'link pointer dim',
-          title: 'Apply suggestion'},
-          suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
-      )
-    )),
-    props.info
-  ]))
+  e('ul', {className: 'font-code pre-wrap'},
+  suggestionElement))
 }"
 
 
