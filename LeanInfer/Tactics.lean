@@ -58,6 +58,9 @@ syntax "suggest_tactics_weak" str : tactic
 macro_rules
   | `(tactic | suggest_tactics%$tac) => `(tactic | suggest_tactics%$tac "")
 
+macro_rules
+  | `(tactic | suggest_tactics_weak%$tac) => `(tactic | suggest_tactics_weak%$tac "")
+
 
 elab_rules : tactic
   | `(tactic | trace_generate $input:str) => do
