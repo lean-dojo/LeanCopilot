@@ -72,7 +72,9 @@ elab_rules : tactic
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
     if ← isVerbose then
       logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
+    logInfo s!"Step 1: \n{tacticsWithScores}"
     let tactics := tacticsWithScores.map (·.1)
+    logInfo s!"Step 2: \n{tactics}"
     addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do
