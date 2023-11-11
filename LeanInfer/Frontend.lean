@@ -131,18 +131,26 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       let start := findLineStart map.source tacticRange.start
       let body := map.source.findAux (· ≠ ' ') tacticRange.start start
 
-      let checks := if check then
-        ← suggestions.mapM checkSuggestion
-      else
-        suggestions.map fun _ => CheckResult.Unknown
+      -- let checks := if check then
+      --   ← suggestions.mapM checkSuggestion
+      -- else
+      --   suggestions.map fun _ => CheckResult.Unknown
+      -- let texts := suggestions.map fun text => (
+      --   (Std.Format.prettyExtra (text.stripSuffix "\n")
+      --    (indent := (body - start).1)
+      --    (column := (tacticRange.start - start).1)
+      -- ))
+
+      -- let textsAndChecks := texts.zip checks |>.toArray |>.qsort
+      --   fun a b => compare a.2 b.2 = Ordering.lt
+
+      let checks := suggestions.map fun _ => CheckResult.Unknown
       let texts := suggestions.map fun text => (
         (Std.Format.prettyExtra (text.stripSuffix "\n")
          (indent := (body - start).1)
          (column := (tacticRange.start - start).1)
       ))
-
-      let textsAndChecks := texts.zip checks |>.toArray |>.qsort
-        fun a b => compare a.2 b.2 = Ordering.lt
+      let textsAndChecks := texts.zip checks |>.toArray
 
       let start := (tacRef.getRange?.getD tacticRange).start
       let stop := (pfxRef.getRange?.getD argRange).stop
