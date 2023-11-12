@@ -100,7 +100,30 @@ inductive CheckResult : Type
 
 /- Check whether the suggestion `s` completes the proof, is valid (does
 not result in an error message), or is invalid. -/
-def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
+def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
+  -- let s := s_c.1
+  -- let check := s_c.2
+  if check == true then
+    withoutModifyingState do
+    try
+      match Parser.runParserCategory (← getEnv) `tactic s with
+        | Except.ok stx =>
+          try
+            _ ← Lean.Elab.Tactic.evalTactic stx
+            let goals ← Lean.Elab.Tactic.getUnsolvedGoals
+            if (← getThe Core.State).messages.hasErrors then
+              pure CheckResult.Invalid
+            else if goals.isEmpty then
+              pure CheckResult.ProofDone
+            else
+              pure CheckResult.Valid
+          catch _ =>
+            pure CheckResult.Invalid
+        | Except.error _ =>
+          pure CheckResult.Invalid
+    catch _ => pure CheckResult.Invalid
+  else pure CheckResult.Unknown
+
   -- withoutModifyingState do
   -- try
   --   match Parser.runParserCategory (← getEnv) `tactic s with
@@ -119,7 +142,7 @@ def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
   --     | Except.error _ =>
   --       pure CheckResult.Invalid
   -- catch _ => pure CheckResult.Invalid
-  pure CheckResult.Unknown
+  -- pure CheckResult.Unknown
 
 
 /- Adds multiple suggestions to the Lean InfoView.
@@ -135,10 +158,14 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       -- let checks := suggestions.map fun _ => CheckResult.Unknown
       -- println! "check option: {check}"
       -- logInfo s!"check option: {check}"
-      let checks := if check then
-        ← suggestions.mapM checkSuggestion
-      else
-        suggestions.map fun _ => CheckResult.Unknown
+      -- Append 'check' to each entry in suggestions and form a list of pairs
+      -- let suggestions_with_check := suggestions.map (λ s => (s, check))
+      -- let checks ← suggestions_with_check.map checkSuggestion
+      let checks ← suggestions.mapM (checkSuggestion check)
+      -- let checks := if check then
+      --   ← suggestions.mapM checkSuggestion
+      -- else
+      --   suggestions.map fun _ => CheckResult.Unknown
       let texts := suggestions.map fun text => (
         (Std.Format.prettyExtra (text.stripSuffix "\n")
          (indent := (body - start).1)

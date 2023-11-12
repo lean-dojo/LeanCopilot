@@ -83,6 +83,7 @@ elab_rules : tactic
     let tactics := tacticsWithScores.map (·.1)
     logInfo s!"Step 3: \n{tactics}"
     addSuggestions tac pfx tactics.toList (← checkTactics)
+    logInfo s!"Step 4: \n{(← checkTactics)}"
 
   | `(tactic | suggest_tactics_weak%$tac $pfx:str) => do
     logInfo s!"Step 0: ¬Generating tactics for prefix {pfx}"
