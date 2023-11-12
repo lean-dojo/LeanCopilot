@@ -74,7 +74,7 @@ elab_rules : tactic
     logInfo state
 
   | `(tactic | suggest_tactics%$tac $pfx:str) => do
-    logInfo s!"Step 0: ¬Generating tactics for prefix {pfx}"
+    logInfo s!"Step 0: Generating tactics for prefix {pfx}"
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
     logInfo s!"Step 1: \n{tacticsWithScores}"
     if ← isVerbose then

@@ -103,6 +103,7 @@ not result in an error message), or is invalid. -/
 def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
   -- let s := s_c.1
   -- let check := s_c.2
+  logInfo s!"checking suggestion: {s}"
   if check == true then
     withoutModifyingState do
     try
