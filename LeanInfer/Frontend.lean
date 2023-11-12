@@ -31,6 +31,11 @@ Examples:
 
 Author: Sean Welleck
 -/
+
+/-
+This file is adapted from the frontend of the `llmstep` tactic
+for LLM-based next-step suggestions in Lean4, built by Sean Welleck.
+-/
 import Lean.Widget.UserWidget
 import Std.Lean.Position
 import Std.Lean.Format
@@ -38,15 +43,6 @@ import Std.Data.String.Basic
 
 open Lean
 
-/- Calls a `suggest.py` python script with the given prefix and pretty-printed goal. -/
-def runSuggest (pre goal : String) : IO (List String) := do
-  let cwd ← IO.currentDir
-  let path := cwd / "python" / "suggest.py"
-  unless ← path.pathExists do
-    dbg_trace f!"{path}"
-    throw <| IO.userError "could not find python script suggest.py"
-  let s ← IO.Process.run { cmd := "python3", args := #[path.toString, goal, pre] }
-  return s.splitOn "[SUGGESTION]"
 
 /- Display clickable suggestions in the VSCode Lean Infoview.
     When a suggestion is clicked, this widget replaces the `llmstep` call
@@ -68,22 +64,26 @@ export default function(props) {
         }] }
     })
   }
+  const suggestionElement = props.suggestions.length > 0
+    ? [
+      'Try this: ',
+      ...(props.suggestions.map((suggestion, i) =>
+          e('li', {onClick: () => onClick(suggestion),
+            className:
+              suggestion[1] === 'ProofDone' ? 'link pointer dim green' :
+              suggestion[1] === 'Valid' ? 'link pointer dim blue' :
+              'link pointer dim',
+            title: 'Apply suggestion'},
+            suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
+        )
+      )),
+      props.info
+    ]
+    : 'No valid suggestions.';
   return e('div',
   {className: 'ml1'},
-  e('ul', {className: 'font-code pre-wrap'}, [
-    'Try this: ',
-    ...(props.suggestions.map((suggestion, i) =>
-        e('li', {onClick: () => onClick(suggestion),
-          className:
-            suggestion[1] === 'ProofDone' ? 'link pointer dim green' :
-            suggestion[1] === 'Valid' || suggestion[1] === 'Unknown' ? 'link pointer dim blue' :
-            'link pointer dim',
-          title: 'Apply suggestion'},
-          suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
-      )
-    )),
-    props.info
-  ]))
+  e('ul', {className: 'font-code pre-wrap'},
+  suggestionElement))
 }"
 
 
@@ -96,25 +96,27 @@ inductive CheckResult : Type
 
 /- Check whether the suggestion `s` completes the proof, is valid (does
 not result in an error message), or is invalid. -/
-def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
-  withoutModifyingState do
-  try
-    match Parser.runParserCategory (← getEnv) `tactic s with
-      | Except.ok stx =>
-        try
-          _ ← Lean.Elab.Tactic.evalTactic stx
-          let goals ← Lean.Elab.Tactic.getUnsolvedGoals
-          if (← getThe Core.State).messages.hasErrors then
+def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
+  if check == true then
+    withoutModifyingState do
+    try
+      match Parser.runParserCategory (← getEnv) `tactic s with
+        | Except.ok stx =>
+          try
+            _ ← Lean.Elab.Tactic.evalTactic stx
+            let goals ← Lean.Elab.Tactic.getUnsolvedGoals
+            if (← getThe Core.State).messages.hasErrors then
+              pure CheckResult.Invalid
+            else if goals.isEmpty then
+              pure CheckResult.ProofDone
+            else
+              pure CheckResult.Valid
+          catch _ =>
             pure CheckResult.Invalid
-          else if goals.isEmpty then
-            pure CheckResult.ProofDone
-          else
-            pure CheckResult.Valid
-        catch _ =>
+        | Except.error _ =>
           pure CheckResult.Invalid
-      | Except.error _ =>
-        pure CheckResult.Invalid
     catch _ => pure CheckResult.Invalid
+  else pure CheckResult.Unknown
 
 
 /- Adds multiple suggestions to the Lean InfoView.
@@ -126,11 +128,7 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       let map ← getFileMap
       let start := findLineStart map.source tacticRange.start
       let body := map.source.findAux (· ≠ ' ') tacticRange.start start
-
-      let checks := if check then
-        ← suggestions.mapM checkSuggestion
-      else
-        suggestions.map fun _ => CheckResult.Unknown
+      let checks ← suggestions.mapM (checkSuggestion check)
       let texts := suggestions.map fun text => (
         (Std.Format.prettyExtra (text.stripSuffix "\n")
          (indent := (body - start).1)
