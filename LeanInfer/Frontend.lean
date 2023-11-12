@@ -101,25 +101,25 @@ inductive CheckResult : Type
 /- Check whether the suggestion `s` completes the proof, is valid (does
 not result in an error message), or is invalid. -/
 def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
-  withoutModifyingState do
-  try
-    match Parser.runParserCategory (← getEnv) `tactic s with
-      | Except.ok stx =>
-        try
-          _ ← Lean.Elab.Tactic.evalTactic stx
-          let goals ← Lean.Elab.Tactic.getUnsolvedGoals
-          if (← getThe Core.State).messages.hasErrors then
-            pure CheckResult.Invalid
-          else if goals.isEmpty then
-            pure CheckResult.ProofDone
-          else
-            pure CheckResult.Valid
-        catch _ =>
-          pure CheckResult.Invalid
-      | Except.error _ =>
-        pure CheckResult.Invalid
-  catch _ => pure CheckResult.Invalid
-  -- pure CheckResult.Unknown
+  -- withoutModifyingState do
+  -- try
+  --   match Parser.runParserCategory (← getEnv) `tactic s with
+  --     | Except.ok stx =>
+  --       try
+  --         _ ← Lean.Elab.Tactic.evalTactic stx
+  --         let goals ← Lean.Elab.Tactic.getUnsolvedGoals
+  --         if (← getThe Core.State).messages.hasErrors then
+  --           pure CheckResult.Invalid
+  --         else if goals.isEmpty then
+  --           pure CheckResult.ProofDone
+  --         else
+  --           pure CheckResult.Valid
+  --       catch _ =>
+  --         pure CheckResult.Invalid
+  --     | Except.error _ =>
+  --       pure CheckResult.Invalid
+  -- catch _ => pure CheckResult.Invalid
+  pure CheckResult.Unknown
 
 
 /- Adds multiple suggestions to the Lean InfoView.
