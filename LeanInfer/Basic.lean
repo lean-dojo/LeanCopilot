@@ -65,7 +65,7 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     let temperature := config.decoding.temperature
     let beamSize := config.decoding.beamSize
     let rawOutputs := FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
-    rawOutputs.filter (λ (entry : String × Float) => entry.fst ≠ "aesop")
+    rawOutputs.filter fun (entry : String × Float) => entry.fst ≠ "aesop"
   | .native (.ct2 _) =>
     let inputTokens := tokenizeByt5 input true |>.toArray
     let targetPrefixTokens := tokenizeByt5 targetPrefix false |>.toArray
