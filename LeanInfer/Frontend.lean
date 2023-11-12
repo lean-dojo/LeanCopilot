@@ -163,7 +163,7 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       -- let suggestions_with_check := suggestions.map (λ s => (s, check))
       -- let checks ← suggestions_with_check.map checkSuggestion
 
-      let checks ← suggestions.mapM (checkSuggestion check)
+      -- let checks ← suggestions.mapM (checkSuggestion check)
 
       let mut checks : List CheckResult := []
       for suggestion in suggestions do
