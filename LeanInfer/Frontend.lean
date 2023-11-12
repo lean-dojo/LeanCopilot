@@ -171,7 +171,8 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       -- let mut suggestions := ["simp only [sup_inf_left]", "rw [sup_inf_right, h]", "exact h b c", "rw [sup_inf_sdiff]",
       --                         "symm", "simp only [sup_inf_right, h]", "ext", "rw [sup_inf_right, sup_comm]",
       --                         "rw [sup_inf_left, inf_comm]", "simp_rw [sup_inf_left, h]"]
-      let mut suggestions := ["aesop"]
+      -- let mut suggestions := ["aesop"]
+
       let checks ← suggestions.mapM (checkSuggestion check)
 
       -- let mut checks : List CheckResult := []
