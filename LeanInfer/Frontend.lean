@@ -167,7 +167,7 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
 
       let mut checks : List CheckResult := []
       for suggestion in suggestions do
-        logInfo s!"checking suggestion: {suggestion}"
+        println! s!"checking suggestion: {suggestion}"
         let result ← checkSuggestion check suggestion
         checks := result :: checks
 
