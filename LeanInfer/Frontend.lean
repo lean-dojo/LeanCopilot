@@ -105,6 +105,7 @@ def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckRe
   -- let check := s_c.2
   -- logInfo s!"checking suggestion: {s}"
   if check == true then
+    println! s!"checking suggestion: {s}"
     withoutModifyingState do
     try
       match Parser.runParserCategory (← getEnv) `tactic s with
@@ -163,13 +164,17 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       -- let suggestions_with_check := suggestions.map (λ s => (s, check))
       -- let checks ← suggestions_with_check.map checkSuggestion
 
-      -- let checks ← suggestions.mapM (checkSuggestion check)
+      let mut suggestions := ["rw [sup_inf_self, sup_comm]", "apply h", "rfl", "rw [h]", "apply le_antisymm",
+                              "congr", "simp", "rw [sup_inf_left]", "simp only [h]", "exact h _ _ _", "rw [inf_comm]",
+                              "rw [sup_inf_right]", "rw [sup_inf_left, h]", "simp [h]", "rw [sup_comm]",
+                              "rw [sup_inf_left, sup_comm]", "congr 1", "simp only [sup_inf_left, h]", "simp_rw [h]", "apply congr_arg", "rw [sup_inf_self]"]
+      let checks ← suggestions.mapM (checkSuggestion check)
 
-      let mut checks : List CheckResult := []
-      for suggestion in suggestions do
-        println! s!"checking suggestion: {suggestion}"
-        let result ← checkSuggestion check suggestion
-        checks := result :: checks
+      -- let mut checks : List CheckResult := []
+      -- for suggestion in suggestions do
+      --   println! s!"checking suggestion: {suggestion}"
+      --   let result ← checkSuggestion check suggestion
+      --   checks := result :: checks
 
       -- let checks := if check then
       --   ← suggestions.mapM checkSuggestion
