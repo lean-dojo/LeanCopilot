@@ -103,7 +103,7 @@ not result in an error message), or is invalid. -/
 def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
   -- let s := s_c.1
   -- let check := s_c.2
-  logInfo s!"checking suggestion: {s}"
+  -- logInfo s!"checking suggestion: {s}"
   if check == true then
     withoutModifyingState do
     try
@@ -162,7 +162,15 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       -- Append 'check' to each entry in suggestions and form a list of pairs
       -- let suggestions_with_check := suggestions.map (λ s => (s, check))
       -- let checks ← suggestions_with_check.map checkSuggestion
+
       let checks ← suggestions.mapM (checkSuggestion check)
+
+      let mut checks : List CheckResult := []
+      for suggestion in suggestions do
+        logInfo s!"checking suggestion: {suggestion}"
+        let result ← checkSuggestion check suggestion
+        checks := result :: checks
+
       -- let checks := if check then
       --   ← suggestions.mapM checkSuggestion
       -- else
