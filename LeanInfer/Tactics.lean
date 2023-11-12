@@ -51,15 +51,10 @@ syntax "pp_state" : tactic
 syntax "suggest_tactics" : tactic
 syntax "suggest_tactics" str : tactic
 syntax "select_premises" : tactic
-syntax "suggest_tactics_weak" : tactic
-syntax "suggest_tactics_weak" str : tactic
 
 
 macro_rules
   | `(tactic | suggest_tactics%$tac) => `(tactic | suggest_tactics%$tac "")
-
-macro_rules
-  | `(tactic | suggest_tactics_weak%$tac) => `(tactic | suggest_tactics_weak%$tac "")
 
 
 elab_rules : tactic
@@ -74,28 +69,11 @@ elab_rules : tactic
     logInfo state
 
   | `(tactic | suggest_tactics%$tac $pfx:str) => do
-    logInfo s!"Step 0: Generating tactics for prefix {pfx}"
     let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
-    logInfo s!"Step 1: \n{tacticsWithScores}"
     if ← isVerbose then
       logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
-    logInfo s!"Step 2\n"
     let tactics := tacticsWithScores.map (·.1)
-    logInfo s!"Step 3: \n{tactics}"
     addSuggestions tac pfx tactics.toList (← checkTactics)
-    logInfo s!"Step 4: \n{(← checkTactics)}"
-
-  | `(tactic | suggest_tactics_weak%$tac $pfx:str) => do
-    logInfo s!"Step 0: ¬Generating tactics for prefix {pfx}"
-    let (tacticsWithScores, elapsed) ← Aesop.time $ suggestTactics pfx.getString
-    logInfo s!"Step 1: \n{tacticsWithScores}"
-    if ← isVerbose then
-      logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
-    logInfo s!"Step 2\n"
-    let tactics := tacticsWithScores.map (·.1)
-    logInfo s!"Step 3: \n{tactics}"
-    logInfo s!"Step 4: \n{(← checkTactics)}"
-    -- addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do
     let premisesWithScores ← selectPremises

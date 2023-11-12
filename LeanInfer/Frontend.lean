@@ -31,6 +31,11 @@ Examples:
 
 Author: Sean Welleck
 -/
+
+/-
+This file is adapted from the frontend of the `llmstep` tactic
+for LLM-based next-step suggestions in Lean4, built by Sean Welleck.
+-/
 import Lean.Widget.UserWidget
 import Std.Lean.Position
 import Std.Lean.Format
@@ -38,15 +43,6 @@ import Std.Data.String.Basic
 
 open Lean
 
--- /- Calls a `suggest.py` python script with the given prefix and pretty-printed goal. -/
--- def runSuggest (pre goal : String) : IO (List String) := do
---   let cwd ← IO.currentDir
---   let path := cwd / "python" / "suggest.py"
---   unless ← path.pathExists do
---     dbg_trace f!"{path}"
---     throw <| IO.userError "could not find python script suggest.py"
---   let s ← IO.Process.run { cmd := "python3", args := #[path.toString, goal, pre] }
---   return s.splitOn "[SUGGESTION]"
 
 /- Display clickable suggestions in the VSCode Lean Infoview.
     When a suggestion is clicked, this widget replaces the `llmstep` call
@@ -101,9 +97,6 @@ inductive CheckResult : Type
 /- Check whether the suggestion `s` completes the proof, is valid (does
 not result in an error message), or is invalid. -/
 def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
-  -- let s := s_c.1
-  -- let check := s_c.2
-  -- logInfo s!"checking suggestion: {s}"
   if check == true then
     println! s!"checking suggestion: {s}"
     withoutModifyingState do
@@ -126,26 +119,6 @@ def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckRe
     catch _ => pure CheckResult.Invalid
   else pure CheckResult.Unknown
 
-  -- withoutModifyingState do
-  -- try
-  --   match Parser.runParserCategory (← getEnv) `tactic s with
-  --     | Except.ok stx =>
-  --       try
-  --         _ ← Lean.Elab.Tactic.evalTactic stx
-  --         let goals ← Lean.Elab.Tactic.getUnsolvedGoals
-  --         if (← getThe Core.State).messages.hasErrors then
-  --           pure CheckResult.Invalid
-  --         else if goals.isEmpty then
-  --           pure CheckResult.ProofDone
-  --         else
-  --           pure CheckResult.Valid
-  --       catch _ =>
-  --         pure CheckResult.Invalid
-  --     | Except.error _ =>
-  --       pure CheckResult.Invalid
-  -- catch _ => pure CheckResult.Invalid
-  -- pure CheckResult.Unknown
-
 
 /- Adds multiple suggestions to the Lean InfoView.
    Code based on `Std.Tactic.addSuggestion`. -/
@@ -156,35 +129,7 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       let map ← getFileMap
       let start := findLineStart map.source tacticRange.start
       let body := map.source.findAux (· ≠ ' ') tacticRange.start start
-
-      -- let checks := suggestions.map fun _ => CheckResult.Unknown
-      -- println! "check option: {check}"
-      -- logInfo s!"check option: {check}"
-      -- Append 'check' to each entry in suggestions and form a list of pairs
-      -- let suggestions_with_check := suggestions.map (λ s => (s, check))
-      -- let checks ← suggestions_with_check.map checkSuggestion
-
-      -- let mut suggestions := ["rw [sup_inf_self, sup_comm]", "apply h", "rfl", "rw [h]", "apply le_antisymm",
-      --                         "congr", "simp", "rw [sup_inf_left]", "simp only [h]", "exact h _ _ _", "rw [inf_comm]",
-      --                         "rw [sup_inf_right]", "rw [sup_inf_left, h]", "simp [h]", "rw [sup_comm]",
-      --                         "rw [sup_inf_left, sup_comm]", "congr 1", "simp only [sup_inf_left, h]", "simp_rw [h]", "apply congr_arg", "rw [sup_inf_self]"]
-      -- let mut suggestions := ["simp only [sup_inf_left]", "rw [sup_inf_right, h]", "exact h b c", "rw [sup_inf_sdiff]",
-      --                         "symm", "simp only [sup_inf_right, h]", "ext", "rw [sup_inf_right, sup_comm]",
-      --                         "rw [sup_inf_left, inf_comm]", "simp_rw [sup_inf_left, h]"]
-      -- let mut suggestions := ["aesop"]
-
       let checks ← suggestions.mapM (checkSuggestion check)
-
-      -- let mut checks : List CheckResult := []
-      -- for suggestion in suggestions do
-      --   println! s!"checking suggestion: {suggestion}"
-      --   let result ← checkSuggestion check suggestion
-      --   checks := result :: checks
-
-      -- let checks := if check then
-      --   ← suggestions.mapM checkSuggestion
-      -- else
-      --   suggestions.map fun _ => CheckResult.Unknown
       let texts := suggestions.map fun text => (
         (Std.Format.prettyExtra (text.stripSuffix "\n")
          (indent := (body - start).1)
