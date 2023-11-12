@@ -98,7 +98,6 @@ inductive CheckResult : Type
 not result in an error message), or is invalid. -/
 def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
   if check == true then
-    println! s!"checking suggestion: {s}"
     withoutModifyingState do
     try
       match Parser.runParserCategory (← getEnv) `tactic s with
