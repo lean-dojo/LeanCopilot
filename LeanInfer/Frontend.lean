@@ -134,6 +134,7 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
 
       -- let checks := suggestions.map fun _ => CheckResult.Unknown
       -- println! "check option: {check}"
+      logInfo s!"check option: {check}"
       let checks := if check then
         ← suggestions.mapM checkSuggestion
       else
