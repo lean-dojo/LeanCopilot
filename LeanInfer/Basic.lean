@@ -64,7 +64,8 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     let maxLength := config.decoding.maxLength
     let temperature := config.decoding.temperature
     let beamSize := config.decoding.beamSize
-    FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
+    let rawOutputs := FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
+    rawOutputs.filter (λ (entry : String × Float) => entry.fst ≠ "aesop")
   | .native (.ct2 _) =>
     let inputTokens := tokenizeByt5 input true |>.toArray
     let targetPrefixTokens := tokenizeByt5 targetPrefix false |>.toArray
@@ -76,7 +77,9 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     let patience := config.decoding.patience
     let temperature := config.decoding.temperature
     let tokensWithScores := FFI.ct2Generate inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
-    tokensWithScores.map fun (ts, s) => (detokenizeByt5 ts, s)
+    tokensWithScores.filterMap fun (ts, s) => match detokenizeByt5 ts with
+    | "aesop" => none
+    | t => some (t, s)
   | .ipc .. => unreachable!
 
   let rankedTactics := tacticsWithScores.qsort (·.2 > ·.2)
