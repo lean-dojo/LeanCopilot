@@ -38,15 +38,15 @@ import Std.Data.String.Basic
 
 open Lean
 
-/- Calls a `suggest.py` python script with the given prefix and pretty-printed goal. -/
-def runSuggest (pre goal : String) : IO (List String) := do
-  let cwd ← IO.currentDir
-  let path := cwd / "python" / "suggest.py"
-  unless ← path.pathExists do
-    dbg_trace f!"{path}"
-    throw <| IO.userError "could not find python script suggest.py"
-  let s ← IO.Process.run { cmd := "python3", args := #[path.toString, goal, pre] }
-  return s.splitOn "[SUGGESTION]"
+-- /- Calls a `suggest.py` python script with the given prefix and pretty-printed goal. -/
+-- def runSuggest (pre goal : String) : IO (List String) := do
+--   let cwd ← IO.currentDir
+--   let path := cwd / "python" / "suggest.py"
+--   unless ← path.pathExists do
+--     dbg_trace f!"{path}"
+--     throw <| IO.userError "could not find python script suggest.py"
+--   let s ← IO.Process.run { cmd := "python3", args := #[path.toString, goal, pre] }
+--   return s.splitOn "[SUGGESTION]"
 
 /- Display clickable suggestions in the VSCode Lean Infoview.
     When a suggestion is clicked, this widget replaces the `llmstep` call
@@ -101,24 +101,25 @@ inductive CheckResult : Type
 /- Check whether the suggestion `s` completes the proof, is valid (does
 not result in an error message), or is invalid. -/
 def checkSuggestion (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
-  withoutModifyingState do
-  try
-    match Parser.runParserCategory (← getEnv) `tactic s with
-      | Except.ok stx =>
-        try
-          _ ← Lean.Elab.Tactic.evalTactic stx
-          let goals ← Lean.Elab.Tactic.getUnsolvedGoals
-          if (← getThe Core.State).messages.hasErrors then
-            pure CheckResult.Invalid
-          else if goals.isEmpty then
-            pure CheckResult.ProofDone
-          else
-            pure CheckResult.Valid
-        catch _ =>
-          pure CheckResult.Invalid
-      | Except.error _ =>
-        pure CheckResult.Invalid
-    catch _ => pure CheckResult.Invalid
+  -- withoutModifyingState do
+  -- try
+  --   match Parser.runParserCategory (← getEnv) `tactic s with
+  --     | Except.ok stx =>
+  --       try
+  --         _ ← Lean.Elab.Tactic.evalTactic stx
+  --         let goals ← Lean.Elab.Tactic.getUnsolvedGoals
+  --         if (← getThe Core.State).messages.hasErrors then
+  --           pure CheckResult.Invalid
+  --         else if goals.isEmpty then
+  --           pure CheckResult.ProofDone
+  --         else
+  --           pure CheckResult.Valid
+  --       catch _ =>
+  --         pure CheckResult.Invalid
+  --     | Except.error _ =>
+  --       pure CheckResult.Invalid
+  --   catch _ => pure CheckResult.Invalid
+  pure CheckResult.Unknown
 
 
 /- Adds multiple suggestions to the Lean InfoView.
@@ -131,11 +132,11 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       let start := findLineStart map.source tacticRange.start
       let body := map.source.findAux (· ≠ ' ') tacticRange.start start
 
-      let checks := suggestions.map fun _ => CheckResult.Unknown
-      -- let checks := if check then
-      --   ← suggestions.mapM checkSuggestion
-      -- else
-      --   suggestions.map fun _ => CheckResult.Unknown
+      -- let checks := suggestions.map fun _ => CheckResult.Unknown
+      let checks := if check then
+        ← suggestions.mapM checkSuggestion
+      else
+        suggestions.map fun _ => CheckResult.Unknown
       let texts := suggestions.map fun text => (
         (Std.Format.prettyExtra (text.stripSuffix "\n")
          (indent := (body - start).1)
@@ -144,14 +145,6 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
 
       let textsAndChecks := texts.zip checks |>.toArray |>.qsort
         fun a b => compare a.2 b.2 = Ordering.lt
-
-      -- let checks := suggestions.map fun _ => CheckResult.Unknown
-      -- let texts := suggestions.map fun text => (
-      --   (Std.Format.prettyExtra (text.stripSuffix "\n")
-      --    (indent := (body - start).1)
-      --    (column := (tacticRange.start - start).1)
-      -- ))
-      -- let textsAndChecks := texts.zip checks |>.toArray
 
       let start := (tacRef.getRange?.getD tacticRange).start
       let stop := (pfxRef.getRange?.getD argRange).stop
