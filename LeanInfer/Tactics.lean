@@ -93,6 +93,7 @@ elab_rules : tactic
     logInfo s!"Step 2\n"
     let tactics := tacticsWithScores.map (·.1)
     logInfo s!"Step 3: \n{tactics}"
+    logInfo s!"Step 4: \n{(← checkTactics)}"
     -- addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do

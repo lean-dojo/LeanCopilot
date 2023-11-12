@@ -133,7 +133,7 @@ def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
       let body := map.source.findAux (· ≠ ' ') tacticRange.start start
 
       -- let checks := suggestions.map fun _ => CheckResult.Unknown
-      println! "check option: {check}"
+      -- println! "check option: {check}"
       let checks := if check then
         ← suggestions.mapM checkSuggestion
       else
