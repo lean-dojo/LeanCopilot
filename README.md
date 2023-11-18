@@ -20,7 +20,7 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 
 ## Adding LeanInfer as a Dependency to Your Project
 
-1. Add the package configuration option `moreLinkArgs := #["-L./lake-packages/LeanInfer/build/lib", "-L./.lake/packages/LeanInfer/.lake/build/lib/", "-lonnxruntime", "-lctranslate2"]` to lakefile.lean. Also add LeanInfer as a dependency:
+1. Add the package configuration option `moreLinkArgs := #["-L./lake-packages/LeanInfer/build/lib", "-L./.lake/packages/LeanInfer/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]` to lakefile.lean. Also add LeanInfer as a dependency:
 ```lean
 require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "main"
 ```
