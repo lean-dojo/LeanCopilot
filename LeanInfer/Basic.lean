@@ -122,6 +122,27 @@ def encode (input : String) : m FloatArray := do
   | .ipc .. => unreachable!
 
 
+private def isRetrieverInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return unreachable!
+  | .native (.ct2 _) => return FFI.isPremiseEmbeddingsInitialized ()
+  | .ipc .. => unreachable!
+
+
+def initRetriever : IO Bool := do
+  let dir ← Cache.getRetrieverDir
+  if ¬ (← dir.pathExists) then
+    throw $ IO.userError "Cannot find the state embeddings for retrieval. Please run [TODO]."
+    return false
+
+  match ← getBackend with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) => assert! FFI.initPremiseEmbeddings dir.toString
+  | .ipc .. => unreachable!
+
+  return true
+
+
 def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   logInfo s!"{query}"

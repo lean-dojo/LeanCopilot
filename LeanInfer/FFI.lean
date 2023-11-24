@@ -30,6 +30,12 @@ opaque isCt2EncoderInitialized : Unit → Bool
 @[extern "ct2_encode"]
 opaque ct2Encode (inputTokens : @& Array String) : FloatArray
 
+@[extern "init_premise_embeddings"]
+opaque initPremiseEmbeddings (matrixPath : @& String) : Bool
+
+@[extern "is_premise_embeddings_initialized"]
+opaque isPremiseEmbeddingsInitialized : Unit → Bool
+
 @[extern "ct2_retrieve"]
 opaque ct2Retrieve (encodedState : @& Array Float) : FloatArray
 

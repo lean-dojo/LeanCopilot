@@ -48,4 +48,10 @@ def getEncoderDir : IO FilePath := do
   getModelDir (← getEncoderUrl)
 
 
+def getRetrieverDir : IO FilePath := do
+  let cacheDir ← getCacheDir
+  let dir := cacheDir / "state_embeddings" / "embeddings.npy"
+  return dir.normalize
+
+
 end LeanInfer.Cache

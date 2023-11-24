@@ -1,6 +1,7 @@
 import LeanInfer
 
 open LeanInfer
+-- open Lean System
 
 /-
 #eval getConfig
@@ -16,10 +17,20 @@ def cfg : Config := {
 #eval setConfig cfg
 -/
 
+-- def testtest : IO FilePath := do
+def testtest : IO Bool := do
+--   -- LeanInfer.Cache.getRetrieverDir
+  let uuu : Bool <- LeanInfer.initRetriever
+  return LeanInfer.FFI.isPremiseEmbeddingsInitialized ()
+
+#eval testtest
+
+
+
 -- /-
-example (n : Nat) : Nat.gcd n n = n := by
-  select_premises
-  sorry
+-- example (n : Nat) : Nat.gcd n n = n := by
+--   select_premises
+--   sorry
 -- -/
 
 -- set_option LeanInfer.verbose false
