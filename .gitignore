@@ -8,3 +8,7 @@
 cpp/test
 cpp/test.cpp
 cpp/test.o
+cpp/cnpy
+cpp/cnpy.cpp
+embeddings.npy
+simptest.npy
