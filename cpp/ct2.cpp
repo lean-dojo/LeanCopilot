@@ -1,12 +1,16 @@
 #include <ctranslate2/devices.h>
 #include <ctranslate2/encoder.h>
 #include <ctranslate2/translator.h>
+#include <ctranslate2/storage_view.h>
+#include <ctranslate2/ops/matmul.h>
+#include <ctranslate2/ops/topk.h>
 #include <lean/lean.h>
 
 #include <codecvt>
 #include <iostream>
 #include <locale>
 #include <stdexcept>
+#include <vector>
 
 #include "utils.h"
 
@@ -239,5 +243,54 @@ extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
     lean_float_array_push(arr, sum / l);
   }
 
+  return arr;
+}
+
+std::vector<float> premise_embeddings_data {1.0, 2.0, 3.0, 4.0, 
+                                            2.0, 3.0, 4.0, 5.0, 
+                                            3.0, 4.0, 5.0, 6.0
+                                            };
+ctranslate2::Shape premise_embeddings_shape {3, 4};
+ctranslate2::StorageView * premise_embeddings = new ctranslate2::StorageView(
+                                                    premise_embeddings_shape,
+                                                    premise_embeddings_data,
+                                                    ctranslate2::Device::CPU
+                                                    );
+
+extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
+  const lean_array_object *p_arr = lean_to_array(_encoded_state);
+  int col = p_arr->m_size;
+  assert(col == 1472);
+  // assert(col == 4);
+
+
+  std::vector<float> state_embedding_data {1.0, 2.0, 3.0, 4.0};
+  ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView({4, 1}, state_embedding_data.data());
+
+  // for (int i = 0; i < col; i++) {
+  //   state_embedding_data.push_back(lean_unbox_float(p_arr->m_data[i]));
+  // }
+  // ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView({col, 1}, state_embedding_data.data());
+
+  ctranslate2::ops::MatMul matmul(false, false, 1.0);
+  ctranslate2::ops::TopK topk(1, -1);
+
+  ctranslate2::StorageView * probs = new ctranslate2::StorageView({3, 1}, ctranslate2::DataType::FLOAT32);
+  matmul(*premise_embeddings, *state_embedding, *probs);
+  probs->resize({3});
+
+  ctranslate2::StorageView * topk_values = new ctranslate2::StorageView({1}, ctranslate2::DataType::FLOAT32);
+  ctranslate2::StorageView * topk_indices = new ctranslate2::StorageView({1}, ctranslate2::DataType::INT32);
+  topk(*probs, *topk_values, *topk_indices);
+
+  lean_object *arr = lean_mk_empty_float_array(lean_box(1));
+  int *topk_indices_raw = topk_indices->data<int>();
+  for (ctranslate2::dim_t i = 0; i < 1; i++) {
+    lean_float_array_push(arr, topk_indices_raw[i]);
+  }
+
+
+  // lean_object *arr = lean_mk_empty_float_array(lean_box(1));
+  // lean_float_array_push(arr, 1.0);
   return arr;
 }

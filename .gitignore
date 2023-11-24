@@ -3,3 +3,8 @@
 
 .vscode
 *.olean
+.lake
+
+cpp/test
+cpp/test.cpp
+cpp/test.o

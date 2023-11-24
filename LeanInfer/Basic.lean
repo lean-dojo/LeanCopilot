@@ -125,6 +125,8 @@ def encode (input : String) : m FloatArray := do
 def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   logInfo s!"{query}"
+  let topKIndices : FloatArray := FFI.ct2Retrieve query.data
+  logInfo s!"topKIndices: {topKIndices}"
   return #[("NotImplemented", 0.5)]
 
 end

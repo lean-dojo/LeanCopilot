@@ -16,11 +16,11 @@ def cfg : Config := {
 #eval setConfig cfg
 -/
 
-/-
+-- /-
 example (n : Nat) : Nat.gcd n n = n := by
-  select_premises!
+  select_premises
   sorry
--/
+-- -/
 
 -- set_option LeanInfer.verbose false
 -- set_option LeanInfer.suggest_tactics.check true
