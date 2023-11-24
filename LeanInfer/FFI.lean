@@ -37,6 +37,6 @@ opaque initPremiseEmbeddings (matrixPath : @& String) : Bool
 opaque isPremiseEmbeddingsInitialized : Unit → Bool
 
 @[extern "ct2_retrieve"]
-opaque ct2Retrieve (encodedState : @& Array Float) : FloatArray
+opaque ct2Retrieve (encodedState : @& Array Float) : Array (Float × UInt64)
 
 end LeanInfer.FFI

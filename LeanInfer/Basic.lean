@@ -146,8 +146,11 @@ def initRetriever : IO Bool := do
 def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   logInfo s!"{query}"
-  let topKIndices : FloatArray := FFI.ct2Retrieve query.data
+  let topKPremises := FFI.ct2Retrieve query.data
+  let topKIndices := topKPremises.map (·.2)
   logInfo s!"topKIndices: {topKIndices}"
+  let topKScores := topKPremises.map (·.1)
+  logInfo s!"topKScores: {topKScores}"
   return #[("NotImplemented", 0.5)]
 
 end

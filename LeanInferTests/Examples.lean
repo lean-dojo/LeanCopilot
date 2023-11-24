@@ -21,6 +21,7 @@ def cfg : Config := {
 def testtest : IO Bool := do
 --   -- LeanInfer.Cache.getRetrieverDir
   let uuu : Bool <- LeanInfer.initRetriever
+  println! uuu
   return LeanInfer.FFI.isPremiseEmbeddingsInitialized ()
 
 #eval testtest
@@ -28,9 +29,9 @@ def testtest : IO Bool := do
 
 
 -- /-
--- example (n : Nat) : Nat.gcd n n = n := by
---   select_premises
---   sorry
+example (n : Nat) : Nat.gcd n n = n := by
+  select_premises
+  sorry
 -- -/
 
 -- set_option LeanInfer.verbose false

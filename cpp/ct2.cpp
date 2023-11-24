@@ -321,7 +321,7 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   // }
   // ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView({col, 1}, state_embedding_data.data());
   
-  int k = 1;
+  int k = 10;
   ctranslate2::ops::MatMul matmul(false, false, 1.0);
   ctranslate2::ops::TopK topk(k, -1);
 
@@ -335,14 +335,41 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   ctranslate2::StorageView * topk_indices = new ctranslate2::StorageView({k}, ctranslate2::DataType::INT32);
   topk(*probs, *topk_values, *topk_indices);
 
-  lean_object *arr = lean_mk_empty_float_array(lean_box(k));
-  int *topk_indices_raw = topk_indices->data<int>();
-  for (ctranslate2::dim_t i = 0; i < k; i++) {
-    lean_float_array_push(arr, topk_indices_raw[i]);
+  lean_array_object * output = reinterpret_cast<lean_array_object *>(lean_alloc_array(k, k));
+  int *topk_indices_ptr = topk_indices->data<int>();
+  float *topk_values_ptr = topk_values->data<float>();
+  for (int i = 0; i < k; i++) {
+    output->m_data[i] = lean_mk_pair(lean_box_float(static_cast<double>(topk_values_ptr[i])), lean_box_uint64(static_cast<u_int64_t>(topk_indices_ptr[i])));
   }
 
+  return reinterpret_cast<lean_obj_res>(output);
+
+  // lean_object *arr = lean_mk_empty_float_array(lean_box(k));
+  // int *topk_indices_raw = topk_indices->data<int>();
+  // for (ctranslate2::dim_t i = 0; i < k; i++) {
+  //   lean_float_array_push(arr, topk_indices_raw[i]);
+  // }
 
   // lean_object *arr = lean_mk_empty_float_array(lean_box(1));
   // lean_float_array_push(arr, 1.0);
-  return arr;
+  // return arr;
+
+  // // Return the output.
+  // lean_array_object *output = reinterpret_cast<lean_array_object *>(
+  //     lean_alloc_array(num_return_sequences, num_return_sequences));
+
+  // for (int i = 0; i < num_return_sequences; i++) {
+  //   int l = results.hypotheses[i].size();
+  //   lean_array_object *tokens =
+  //       reinterpret_cast<lean_array_object *>(lean_alloc_array(l, l));
+  //   for (int j = 0; j < l; j++) {
+  //     tokens->m_data[j] = lean_mk_string(results.hypotheses[i][j].c_str());
+  //   }
+  //   double score = std::exp(results.scores[i]);
+  //   assert(0.0 <= score && score <= 1.0);
+  //   output->m_data[i] = lean_mk_pair(reinterpret_cast<lean_obj_arg>(tokens),
+  //                                    lean_box_float(score));
+  // }
+
+  // return reinterpret_cast<lean_obj_res>(output);
 }
