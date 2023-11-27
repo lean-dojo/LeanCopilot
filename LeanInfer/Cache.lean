@@ -50,7 +50,7 @@ def getEncoderDir : IO FilePath := do
 
 def getRetrieverDir : IO FilePath := do
   let cacheDir ← getCacheDir
-  let dir := cacheDir / "state_embeddings" / "embeddings.npy"
+  let dir := cacheDir / "premise_selection" / "embeddings.npy"
   return dir.normalize
 
 

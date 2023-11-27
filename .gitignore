@@ -12,3 +12,4 @@ cpp/cnpy
 cpp/cnpy.cpp
 embeddings.npy
 simptest.npy
+premise_dictionary.json

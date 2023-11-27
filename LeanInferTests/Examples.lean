@@ -34,6 +34,10 @@ example (n : Nat) : Nat.gcd n n = n := by
   sorry
 -- -/
 
+example (a b c : Nat) : a + b + c = a + c + b := by
+  select_premises
+  sorry
+
 -- set_option LeanInfer.verbose false
 -- set_option LeanInfer.suggest_tactics.check true
 
