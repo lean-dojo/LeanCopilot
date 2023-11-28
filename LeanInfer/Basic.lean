@@ -164,46 +164,15 @@ def initPremiseDict : IO Bool := do
   return true
 
 
--- structure PremiseDict where
---   index : Nat
---   premise : String
--- deriving FromJson
-
-
--- def loadJsonDict (path: System.FilePath) : m (Array String) := do
---   let file ← IO.FS.readFile path
---   logInfo s!"{Lean.Json.parse file}"
---   -- match Json.parse file with
---   -- | Except.error err => panic! err
---   -- | Except.ok json => match (fromJson? json : Except String (Array PremiseDict)) with
---   --   | .error err => panic! err
---   --   | .ok dict => pure (dict.map (·.premise))
---   return Array.mkArray 152695 "NotImplemented"
-
-
--- def premiseLookup (index : UInt64) : m String := do
---   let dict ← loadJsonDict (← Cache.getPremiseDictDir)
---   -- logInfo s!"{(← Cache.getPremiseDictDir).toString}"
---   -- let dict := Array.mkArray 152695 "NotImplemented"
---   return dict.get! index.toNat
---   -- return "NotImplemented"
-
-
 def retrieve (input : String) : m (Array (String × Float)) := do
   if ¬ (← isPremiseEmbInitialized) ∧ ¬ (← initPremiseEmb) then
     return #[]
   if ¬ (← isPremiseDictInitialized) ∧ ¬ (← initPremiseDict) then
     return #[]
   let query ← encode input
-  -- logInfo s!"{query}"
   let topKSamples := FFI.ct2Retrieve query.data
   let topKPremises := topKSamples.map (·.1)
-  -- For each index, look up the corresponding premise in the dictionary.
-  -- let topKSuggestions ← topKIndices.mapM premiseLookup
-  -- logInfo s!"topKPremises: {topKPremises}"
-  -- logInfo s!"topKSuggestions: {topKSuggestions}"
   let topKScores := topKSamples.map (·.2)
-  -- logInfo s!"topKScores: {topKScores}"
   return topKPremises.zip topKScores
 
 end

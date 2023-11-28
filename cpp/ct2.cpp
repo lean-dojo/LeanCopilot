@@ -19,6 +19,7 @@
 
 using json = nlohmann::json;
 
+
 ctranslate2::Translator *p_translator = nullptr;
 ctranslate2::Encoder *p_encoder = nullptr;
 ctranslate2::StorageView * premise_embeddings = nullptr;
@@ -64,6 +65,7 @@ const std::vector<std::string> byt5_vocab = {
     "\u00f5", "\u00f6", "\u00f7", "\u00f8", "\u00f9", "\u00fa", "\u00fb",
     "\u00fc", "\u00fd", "\u00fe", "\u00ff"};
 
+
 std::vector<std::string> byt5_tokenize(const char *input) {
   std::vector<std::string> tokens;
   int l = strlen(input);
@@ -72,6 +74,7 @@ std::vector<std::string> byt5_tokenize(const char *input) {
   }
   return tokens;
 }
+
 
 extern "C" uint8_t init_ct2_generator(
     b_lean_obj_arg _model_path,    // String
@@ -113,6 +116,7 @@ inline bool is_ct2_generator_initialized_aux() {
 extern "C" uint8_t is_ct2_generator_initialized(lean_object *) {
   return is_ct2_generator_initialized_aux();
 }
+
 
 std::vector<std::string> convert_tokens(b_lean_obj_arg _tokens) {
   std::vector<std::string> tokens;
@@ -208,6 +212,7 @@ extern "C" lean_obj_res ct2_generate(
   return reinterpret_cast<lean_obj_res>(output);
 }
 
+
 extern "C" uint8_t init_ct2_encoder(b_lean_obj_arg model_path) {
   const char *dir = lean_string_cstr(model_path);
   if (!exists(dir)) {
@@ -225,6 +230,7 @@ inline bool is_ct2_encoder_initialized_aux() { return p_encoder != nullptr; }
 extern "C" uint8_t is_ct2_encoder_initialized(lean_object *) {
   return is_ct2_encoder_initialized_aux();
 }
+
 
 extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
   std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
@@ -254,16 +260,16 @@ extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
 }
 
 
-extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg matrix_path) {
-  const char *mat_path = lean_string_cstr(matrix_path);
-  if (!exists(mat_path)) {
+extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg embeddings_path) {
+  const char *emb_path = lean_string_cstr(embeddings_path);
+  if (!exists(emb_path)) {
     return false;
   }
   if (premise_embeddings != nullptr) {
     delete premise_embeddings;
   }
   
-  auto d = npy::read_npy<double>(mat_path);
+  auto d = npy::read_npy<double>(emb_path);
   std::vector<double> data = d.data;
   std::vector<unsigned long> shape = d.shape;
   bool fortran_order = d.fortran_order;
@@ -289,17 +295,6 @@ extern "C" uint8_t is_premise_embeddings_initialized(lean_object *) {
 }
 
 
-// std::vector<float> premise_embeddings_data {1.0, 2.0, 3.0, 4.0, 
-//                                             2.0, 3.0, 4.0, 5.0, 
-//                                             3.0, 4.0, 5.0, 6.0
-//                                             };
-// ctranslate2::Shape premise_embeddings_shape {3, 4};
-// ctranslate2::StorageView * premise_embeddings = new ctranslate2::StorageView(
-//                                                     premise_embeddings_shape,
-//                                                     premise_embeddings_data,
-//                                                     ctranslate2::Device::CPU
-//                                                     );
-
 extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg dictionary_path) {
   const char *dict_path = lean_string_cstr(dictionary_path);
   if (!exists(dict_path)) {
@@ -321,11 +316,9 @@ extern "C" uint8_t is_premise_dictionary_initialized(lean_object *) {
   return is_premise_dictionary_initialized_aux();
 }
 
+
 extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   const lean_array_object *p_arr = lean_to_array(_encoded_state);
-  // int col = p_arr->m_size;
-  // assert(col == 1472);
-  // assert(col == 4);
 
   assert(static_cast<int64_t>(p_arr->m_size) == premise_embeddings->dim(1));
   assert(premise_embeddings != nullptr);
@@ -339,14 +332,6 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
 
   ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView(state_embedding_shape, state_embedding_data, ctranslate2::Device::CPU);
 
-  // std::vector<float> state_embedding_data {1.0, 2.0, 3.0, 4.0};
-  // ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView({4, 1}, state_embedding_data.data());
-
-  // for (int i = 0; i < col; i++) {
-  //   state_embedding_data.push_back(lean_unbox_float(p_arr->m_data[i]));
-  // }
-  // ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView({col, 1}, state_embedding_data.data());
-  
   int k = 10;
   ctranslate2::ops::MatMul matmul(false, false, 1.0);
   ctranslate2::ops::TopK topk(k, -1);
@@ -365,11 +350,6 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   int *topk_indices_ptr = topk_indices->data<int>();
   float *topk_values_ptr = topk_values->data<float>();
 
-  // // print the values in topk_indices_ptr
-  // for (int i = 0; i < k; i++) {
-  //   std::cout << *(topk_indices_ptr+i) << " ";
-  // }
-
   for (int i = 0; i < k; i++) {
     std::string this_premise = (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
     output->m_data[i] = lean_mk_pair(lean_mk_string(this_premise.c_str()),
@@ -378,33 +358,4 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   }
 
   return reinterpret_cast<lean_obj_res>(output);
-
-  // lean_object *arr = lean_mk_empty_float_array(lean_box(k));
-  // int *topk_indices_raw = topk_indices->data<int>();
-  // for (ctranslate2::dim_t i = 0; i < k; i++) {
-  //   lean_float_array_push(arr, topk_indices_raw[i]);
-  // }
-
-  // lean_object *arr = lean_mk_empty_float_array(lean_box(1));
-  // lean_float_array_push(arr, 1.0);
-  // return arr;
-
-  // // Return the output.
-  // lean_array_object *output = reinterpret_cast<lean_array_object *>(
-  //     lean_alloc_array(num_return_sequences, num_return_sequences));
-
-  // for (int i = 0; i < num_return_sequences; i++) {
-  //   int l = results.hypotheses[i].size();
-  //   lean_array_object *tokens =
-  //       reinterpret_cast<lean_array_object *>(lean_alloc_array(l, l));
-  //   for (int j = 0; j < l; j++) {
-  //     tokens->m_data[j] = lean_mk_string(results.hypotheses[i][j].c_str());
-  //   }
-  //   double score = std::exp(results.scores[i]);
-  //   assert(0.0 <= score && score <= 1.0);
-  //   output->m_data[i] = lean_mk_pair(reinterpret_cast<lean_obj_arg>(tokens),
-  //                                    lean_box_float(score));
-  // }
-
-  // return reinterpret_cast<lean_obj_res>(output);
 }
