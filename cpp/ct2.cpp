@@ -1,9 +1,8 @@
 #include <ctranslate2/devices.h>
 #include <ctranslate2/encoder.h>
-#include <ctranslate2/translator.h>
-#include <ctranslate2/storage_view.h>
 #include <ctranslate2/ops/matmul.h>
 #include <ctranslate2/ops/topk.h>
+#include <ctranslate2/translator.h>
 #include <lean/lean.h>
 
 #include <codecvt>
@@ -13,16 +12,15 @@
 #include <stdexcept>
 #include <vector>
 
-#include "utils.h"
-#include "npy.hpp"
 #include "json.hpp"
+#include "npy.hpp"
+#include "utils.h"
 
 using json = nlohmann::json;
 
-
 ctranslate2::Translator *p_translator = nullptr;
 ctranslate2::Encoder *p_encoder = nullptr;
-ctranslate2::StorageView * premise_embeddings = nullptr;
+ctranslate2::StorageView *premise_embeddings = nullptr;
 json *premise_dictionary = nullptr;
 
 const std::string EOS_TOKEN = "</s>";
@@ -65,7 +63,6 @@ const std::vector<std::string> byt5_vocab = {
     "\u00f5", "\u00f6", "\u00f7", "\u00f8", "\u00f9", "\u00fa", "\u00fb",
     "\u00fc", "\u00fd", "\u00fe", "\u00ff"};
 
-
 std::vector<std::string> byt5_tokenize(const char *input) {
   std::vector<std::string> tokens;
   int l = strlen(input);
@@ -74,7 +71,6 @@ std::vector<std::string> byt5_tokenize(const char *input) {
   }
   return tokens;
 }
-
 
 extern "C" uint8_t init_ct2_generator(
     b_lean_obj_arg _model_path,    // String
@@ -116,7 +112,6 @@ inline bool is_ct2_generator_initialized_aux() {
 extern "C" uint8_t is_ct2_generator_initialized(lean_object *) {
   return is_ct2_generator_initialized_aux();
 }
-
 
 std::vector<std::string> convert_tokens(b_lean_obj_arg _tokens) {
   std::vector<std::string> tokens;
@@ -212,7 +207,6 @@ extern "C" lean_obj_res ct2_generate(
   return reinterpret_cast<lean_obj_res>(output);
 }
 
-
 extern "C" uint8_t init_ct2_encoder(b_lean_obj_arg model_path) {
   const char *dir = lean_string_cstr(model_path);
   if (!exists(dir)) {
@@ -230,7 +224,6 @@ inline bool is_ct2_encoder_initialized_aux() { return p_encoder != nullptr; }
 extern "C" uint8_t is_ct2_encoder_initialized(lean_object *) {
   return is_ct2_encoder_initialized_aux();
 }
-
 
 extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
   std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
@@ -259,7 +252,6 @@ extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
   return arr;
 }
 
-
 extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg embeddings_path) {
   const char *emb_path = lean_string_cstr(embeddings_path);
   if (!exists(emb_path)) {
@@ -268,7 +260,7 @@ extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg embeddings_path) {
   if (premise_embeddings != nullptr) {
     delete premise_embeddings;
   }
-  
+
   auto d = npy::read_npy<double>(emb_path);
   std::vector<double> data = d.data;
   std::vector<unsigned long> shape = d.shape;
@@ -284,16 +276,18 @@ extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg embeddings_path) {
   std::transform(shape.begin(), shape.end(), shape_i64.begin(),
                  [](unsigned long ul) { return static_cast<int64_t>(ul); });
 
-  premise_embeddings = new ctranslate2::StorageView(shape_i64, data_f, ctranslate2::Device::CPU);
+  premise_embeddings =
+      new ctranslate2::StorageView(shape_i64, data_f, ctranslate2::Device::CPU);
   return true;
 }
 
-inline bool is_premise_embeddings_initialized_aux() { return premise_embeddings != nullptr; }
+inline bool is_premise_embeddings_initialized_aux() {
+  return premise_embeddings != nullptr;
+}
 
 extern "C" uint8_t is_premise_embeddings_initialized(lean_object *) {
   return is_premise_embeddings_initialized_aux();
 }
-
 
 extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg dictionary_path) {
   const char *dict_path = lean_string_cstr(dictionary_path);
@@ -303,19 +297,20 @@ extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg dictionary_path) {
   if (premise_dictionary != nullptr) {
     delete premise_dictionary;
   }
-  
+
   std::ifstream f(dict_path);
   premise_dictionary = new json(json::parse(f));
-  
+
   return true;
 }
 
-inline bool is_premise_dictionary_initialized_aux() { return premise_dictionary != nullptr; }
+inline bool is_premise_dictionary_initialized_aux() {
+  return premise_dictionary != nullptr;
+}
 
 extern "C" uint8_t is_premise_dictionary_initialized(lean_object *) {
   return is_premise_dictionary_initialized_aux();
 }
-
 
 extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   const lean_array_object *p_arr = lean_to_array(_encoded_state);
@@ -325,36 +320,44 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
 
   std::vector<float> state_embedding_data;
   for (int i = 0; i < p_arr->m_size; i++) {
-    state_embedding_data.push_back(static_cast<float>(lean_unbox_float(p_arr->m_data[i])));
+    state_embedding_data.push_back(
+        static_cast<float>(lean_unbox_float(p_arr->m_data[i])));
   }
 
-  std::vector<int64_t> state_embedding_shape {static_cast<int64_t>(p_arr->m_size), 1};
+  std::vector<int64_t> state_embedding_shape{
+      static_cast<int64_t>(p_arr->m_size), 1};
 
-  ctranslate2::StorageView * state_embedding = new ctranslate2::StorageView(state_embedding_shape, state_embedding_data, ctranslate2::Device::CPU);
+  ctranslate2::StorageView *state_embedding = new ctranslate2::StorageView(
+      state_embedding_shape, state_embedding_data, ctranslate2::Device::CPU);
 
   int k = 10;
   ctranslate2::ops::MatMul matmul(false, false, 1.0);
   ctranslate2::ops::TopK topk(k, -1);
 
-  std::vector<int64_t> probs_shape {premise_embeddings->dim(0), 1};
+  std::vector<int64_t> probs_shape{premise_embeddings->dim(0), 1};
 
-  ctranslate2::StorageView * probs = new ctranslate2::StorageView(probs_shape, ctranslate2::DataType::FLOAT32);
+  ctranslate2::StorageView *probs =
+      new ctranslate2::StorageView(probs_shape, ctranslate2::DataType::FLOAT32);
   matmul(*premise_embeddings, *state_embedding, *probs);
   probs->resize({premise_embeddings->dim(0)});
 
-  ctranslate2::StorageView * topk_values = new ctranslate2::StorageView({k}, ctranslate2::DataType::FLOAT32);
-  ctranslate2::StorageView * topk_indices = new ctranslate2::StorageView({k}, ctranslate2::DataType::INT32);
+  ctranslate2::StorageView *topk_values =
+      new ctranslate2::StorageView({k}, ctranslate2::DataType::FLOAT32);
+  ctranslate2::StorageView *topk_indices =
+      new ctranslate2::StorageView({k}, ctranslate2::DataType::INT32);
   topk(*probs, *topk_values, *topk_indices);
 
-  lean_array_object * output = reinterpret_cast<lean_array_object *>(lean_alloc_array(k, k));
+  lean_array_object *output =
+      reinterpret_cast<lean_array_object *>(lean_alloc_array(k, k));
   int *topk_indices_ptr = topk_indices->data<int>();
   float *topk_values_ptr = topk_values->data<float>();
 
   for (int i = 0; i < k; i++) {
-    std::string this_premise = (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
-    output->m_data[i] = lean_mk_pair(lean_mk_string(this_premise.c_str()),
-                                     lean_box_float(static_cast<double>(topk_values_ptr[i]))
-                                    );
+    std::string this_premise =
+        (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
+    output->m_data[i] =
+        lean_mk_pair(lean_mk_string(this_premise.c_str()),
+                     lean_box_float(static_cast<double>(topk_values_ptr[i])));
   }
 
   return reinterpret_cast<lean_obj_res>(output);
