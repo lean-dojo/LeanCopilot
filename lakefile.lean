@@ -445,3 +445,6 @@ script download do
 
 require std from git "https://github.com/leanprover/std4" @ "main"
 require aesop from git "https://github.com/JLimperg/aesop" @ "master"
+
+meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
