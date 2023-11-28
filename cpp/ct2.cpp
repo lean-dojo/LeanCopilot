@@ -364,8 +364,12 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   lean_array_object * output = reinterpret_cast<lean_array_object *>(lean_alloc_array(k, k));
   int *topk_indices_ptr = topk_indices->data<int>();
   float *topk_values_ptr = topk_values->data<float>();
+
   for (int i = 0; i < k; i++) {
-    output->m_data[i] = lean_mk_pair(lean_box_float(static_cast<double>(topk_values_ptr[i])), lean_box_uint64(static_cast<u_int64_t>(topk_indices_ptr[i])));
+    std::string this_premise = (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
+    output->m_data[i] = lean_mk_pair(lean_mk_string(this_premise.c_str()),
+                                     lean_box_float(static_cast<double>(topk_values_ptr[i]))
+                                    );
   }
 
   return reinterpret_cast<lean_obj_res>(output);

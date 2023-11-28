@@ -43,6 +43,6 @@ opaque initPremiseDictionary (dictionaryPath : @& String) : Bool
 opaque isPremiseDictionaryInitialized : Unit → Bool
 
 @[extern "ct2_retrieve"]
-opaque ct2Retrieve (encodedState : @& Array Float) : Array (Float × UInt64)
+opaque ct2Retrieve (encodedState : @& Array Float) : Array (String × Float)
 
 end LeanInfer.FFI

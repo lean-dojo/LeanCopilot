@@ -18,15 +18,20 @@ def cfg : Config := {
 -/
 
 -- def testtest : IO FilePath := do
-def testtest : IO Bool := do
+def testEmbInit : IO Bool := do
 --   -- LeanInfer.Cache.getRetrieverDir
-  let uuu : Bool <- LeanInfer.initRetriever
+  let uuu : Bool <- LeanInfer.initPremiseEmb
   println! uuu
   return LeanInfer.FFI.isPremiseEmbeddingsInitialized ()
 
-#eval testtest
+#eval testEmbInit
 
+def testDictInit : IO Bool := do
+  let vvv : Bool <- LeanInfer.initPremiseDict
+  println! vvv
+  return LeanInfer.FFI.isPremiseDictionaryInitialized ()
 
+#eval testDictInit
 
 -- /-
 example (n : Nat) : Nat.gcd n n = n := by

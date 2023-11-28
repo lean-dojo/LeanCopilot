@@ -122,14 +122,14 @@ def encode (input : String) : m FloatArray := do
   | .ipc .. => unreachable!
 
 
-private def isRetrieverInitialized : m Bool := do
+private def isPremiseEmbInitialized : m Bool := do
   match ← getBackend with
   | .native (.onnx _) => return unreachable!
   | .native (.ct2 _) => return FFI.isPremiseEmbeddingsInitialized ()
   | .ipc .. => unreachable!
 
 
-def initRetriever : IO Bool := do
+def initPremiseEmb : IO Bool := do
   let dir ← Cache.getPremiseEmbDir
   if ¬ (← dir.pathExists) then
     throw $ IO.userError "Cannot find the premise embeddings for retrieval. Please run [TODO]."
@@ -138,6 +138,27 @@ def initRetriever : IO Bool := do
   match ← getBackend with
   | .native (.onnx _) => unreachable!
   | .native (.ct2 _) => assert! FFI.initPremiseEmbeddings dir.toString
+  | .ipc .. => unreachable!
+
+  return true
+
+
+private def isPremiseDictInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return unreachable!
+  | .native (.ct2 _) => return FFI.isPremiseDictionaryInitialized ()
+  | .ipc .. => unreachable!
+
+
+def initPremiseDict : IO Bool := do
+  let dir ← Cache.getPremiseDictDir
+  if ¬ (← dir.pathExists) then
+    throw $ IO.userError "Cannot find the premise dictionary for retrieval. Please run [TODO]."
+    return false
+
+  match ← getBackend with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) => assert! FFI.initPremiseDictionary dir.toString
   | .ipc .. => unreachable!
 
   return true
@@ -172,12 +193,12 @@ def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   -- logInfo s!"{query}"
   let topKPremises := FFI.ct2Retrieve query.data
-  let topKIndices := topKPremises.map (·.2)
+  let topKIndices := topKPremises.map (·.1)
   -- For each index, look up the corresponding premise in the dictionary.
   -- let topKSuggestions ← topKIndices.mapM premiseLookup
   logInfo s!"topKIndices: {topKIndices}"
   -- logInfo s!"topKSuggestions: {topKSuggestions}"
-  let topKScores := topKPremises.map (·.1)
+  let topKScores := topKPremises.map (·.2)
   logInfo s!"topKScores: {topKScores}"
   return #[("NotImplemented", 0.5)]
 

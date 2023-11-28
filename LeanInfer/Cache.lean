@@ -54,10 +54,10 @@ def getPremiseEmbDir : IO FilePath := do
   return dir.normalize
 
 
--- def getPremiseDictDir : IO FilePath := do
---   let cacheDir ← getCacheDir
---   let dir := cacheDir / "premise_selection" / "dictionary.json"
---   return dir.normalize
+def getPremiseDictDir : IO FilePath := do
+  let cacheDir ← getCacheDir
+  let dir := cacheDir / "premise_selection" / "dictionary.json"
+  return dir.normalize
 
 
 end LeanInfer.Cache
