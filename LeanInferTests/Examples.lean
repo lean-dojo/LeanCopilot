@@ -33,3 +33,8 @@ example (a b c : Nat) : a + b + c = a + c + b := by
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics "rw"  -- You may provide a prefix to constrain the generated tactics.
   sorry
+
+
+example (a b c : Nat) : a + b + c = a + c + b := by
+  select_premises
+  sorry

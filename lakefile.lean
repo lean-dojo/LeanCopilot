@@ -9,7 +9,7 @@ inductive SupportedOS where
 deriving Inhabited, BEq
 
 
-def getOS : IO SupportedOS := do
+def getOS! : IO SupportedOS := do
   if Platform.isWindows then
     error "Windows is not supported"
   if Platform.isOSX then
@@ -24,15 +24,48 @@ inductive SupportedArch where
 deriving Inhabited, BEq
 
 
-def getArch? : BaseIO (Option SupportedArch) := do
-  return some .x86_64
+def nproc : IO Nat := do
+  let out ← IO.Process.output {cmd := "nproc", stdin := .null}
+  return out.stdout.trim.toNat!
 
 
-def getArch : IO SupportedArch := do
+def getArch? : IO (Option SupportedArch) := do
+  let out ← IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
+  let arch := out.stdout.trim
+  if arch ∈ ["arm64", "aarch64"] then
+    return some .arm64
+  else if arch == "x86_64" then
+    return some .x86_64
+  else
+    return none
+
+
+def getArch! : IO SupportedArch := do
   if let some arch ← getArch? then
     return arch
   else
     error "Unknown architecture"
+
+
+def isArm! : IO Bool := do
+  return (← getArch!) == .arm64
+
+
+def hasCUDA : IO Bool := do
+  let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
+  return out.exitCode == 0
+
+
+def useCUDA : IO Bool := do
+  return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
+
+
+def buildArchiveName : String :=
+  let arch := if run_io isArm! then "arm64" else "x86_64"
+  if run_io useCUDA then
+    s!"{arch}-cuda"
+  else
+    arch
 
 
 structure SupportedPlatform where
@@ -40,19 +73,20 @@ structure SupportedPlatform where
   arch : SupportedArch
 
 
-def getPlatform : IO SupportedPlatform := do
+def getPlatform! : IO SupportedPlatform := do
   if Platform.numBits != 64 then
     error "Only 64-bit platforms are supported"
-  return ⟨← getOS, ← getArch⟩
+  return ⟨← getOS!, ← getArch!⟩
 
 
 package LeanInfer where
-  -- preferReleaseBuild := get_config? noCloudRelease |>.isNone
-  -- buildArchive? := is_arm? |>.map (if · then "arm64" else "x86_64")
+  preferReleaseBuild := get_config? noCloudRelease |>.isNone
+  buildArchive? := buildArchiveName
   precompileModules := true
   buildType := BuildType.release
   moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib "onnxruntime", s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib "ctranslate2"]
+  weakLeanArgs := #["onnxruntime", "ctranslate2"].map fun name =>
+    s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib name
 
 
 @[default_target]
@@ -85,22 +119,27 @@ def afterReleaseAsync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α)
     Job.async build
 
 
-def getOnnxPlatform : IO String := do
-  let ⟨os, arch⟩  ← getPlatform
+def getOnnxPlatform! : IO String := do
+  let ⟨os, arch⟩  ← getPlatform!
   match os with
   | .linux => return if arch == .x86_64 then "linux-x64" else "linux-aarch64"
   | .macos => return "osx-universal2"
 
 
+def ensureDirExists (dir : FilePath) : IO Unit := do
+  if !(← dir.pathExists)  then
+    IO.FS.createDirAll dir
+
+
 /- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libonnxruntime pkg : FilePath := do
   afterReleaseAsync pkg do
-  let _ ← getPlatform
+  let _ ← getPlatform!
   let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
   createParentDirs dst
 
   let onnxVersion := "1.15.1"
-  let onnxFileStem := s!"onnxruntime-{← getOnnxPlatform}-{onnxVersion}"
+  let onnxFileStem := s!"onnxruntime-{← getOnnxPlatform!}-{onnxVersion}"
   let onnxFilename := onnxFileStem ++ ".tgz"
   let onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
 
@@ -122,9 +161,18 @@ target libonnxruntime pkg : FilePath := do
         cmd := "cp"
         args := #[dst.toString, dst'.toString]
       }
+      ensureDirExists $ pkg.buildDir / "include"
       proc {
         cmd := "cp"
-        args := #["-r", (onnxStem / "include").toString, (pkg.buildDir / "include").toString]
+        args := #[(onnxStem / "include" / "onnxruntime_cxx_api.h").toString, (pkg.buildDir / "include").toString ++ "/"]
+      }
+      proc {
+        cmd := "cp"
+        args := #[(onnxStem / "include" / "onnxruntime_cxx_inline.h").toString, (pkg.buildDir / "include").toString ++ "/"]
+      }
+      proc {
+        cmd := "cp"
+        args := #[(onnxStem / "include" / "onnxruntime_c_api.h").toString, (pkg.buildDir / "include").toString ++ "/"]
       }
       proc {
         cmd := "rm"
@@ -136,140 +184,160 @@ target libonnxruntime pkg : FilePath := do
 
 
 def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
-  proc {
+  proc (quiet := true) {
     cmd := "git"
     args := #["clone", "--recursive", url]
     cwd := cwd
   }
 
 
-def runCmake (root : FilePath) (flags : Array String) : LogIO Bool := do
+def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   assert! (← root.pathExists) ∧ (← (root / "CMakeLists.txt").pathExists)
   let buildDir := root / "build"
   if ← buildDir.pathExists then
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
-  testProc {
+  let ok ← testProc {
     cmd := "cmake"
     args := flags ++ #[".."]
     cwd := buildDir
   }
+  if ¬ ok then
+    error "Failed to run cmake"
 
 
-def autoCt2Cmake (root : FilePath) : LogIO Unit := do
-  let basicFlags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF", "-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=OFF"]
-  assert! ← runCmake root basicFlags
+target libopenblas pkg : FilePath := do
+  afterReleaseAsync pkg do
+    let rootDir := pkg.buildDir / "OpenBLAS"
+    ensureDirExists rootDir
+    let dst := pkg.nativeLibDir / (nameToSharedLib "openblas")
+    let url := "https://github.com/OpenMathLib/OpenBLAS"
 
-  let hasOpenMP ← runCmake root (basicFlags.erase "-DOPENMP_RUNTIME=NONE" |>.push "-DOPENMP_RUNTIME=COMP")
-  let hasCUDA ← runCmake root (basicFlags.erase "-DWITH_CUDA=OFF" |>.push "-DWITH_CUDA=ON")
-  let hasCuDNN := hasCUDA && (← runCmake root ((basicFlags.erase "-DWITH_CUDA=OFF" |>.erase "-DWITH_CUDNN=OFF") ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]))
-  let hasDNNL ← runCmake root (basicFlags.erase "-DWITH_DNNL=OFF" |>.push "-DWITH_DNNL=ON")
-  let hasAccelerate := Platform.isOSX && (← runCmake root (basicFlags.erase "-DWITH_ACCELERATE=OFF" |>.push "-DWITH_ACCELERATE=ON"))
-  let hasMKL := ¬ hasAccelerate && (← runCmake root (basicFlags.erase "-DWITH_MKL=OFF" |>.push "-DWITH_MKL=ON"))
-  let hasOpenBLAS := ¬ hasDNNL && ¬ hasAccelerate && ¬ hasMKL && (← runCmake root (basicFlags.erase "-DWITH_OPENBLAS=OFF" |>.push "-DWITH_OPENBLAS=ON"))
+    try
+      let depTrace := Hash.ofString url
+      let trace ← buildFileUnlessUpToDate dst depTrace do
+        logStep s!"Cloning OpenBLAS from {url}"
+        gitClone url pkg.buildDir
 
-  if ¬ (hasMKL ∨ hasAccelerate ∨ hasDNNL ∨ hasOpenBLAS) then
-    error "No BLAS library found. You need at least one of MKL, Accelerate, DNNL, or OpenBLAS. See https://github.com/lean-dojo/LeanInfer#requirements for details."
+        let numThreads := min 32 (← nproc)
+        let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
+        logStep s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
+        proc (quiet := true) {
+          cmd := "make"
+          args := flags
+          cwd := rootDir
+        }
+        proc {
+          cmd := "cp"
+          args := #[(rootDir / nameToSharedLib "openblas").toString, dst.toString]
+        }
+        -- TODO: Don't hardcode the version "0".
+        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "openblas" "0")
+        proc {
+          cmd := "cp"
+          args := #[dst.toString, dst'.toString]
+        }
+      return (dst, trace)
 
-  let flags := #[
-    "-DBUILD_CLI=OFF",
-    "-DOPENMP_RUNTIME=" ++ (if hasOpenMP then "COMP" else "NONE"),
-    "-DWITH_CUDA=" ++ (if hasCUDA then "ON" else "OFF"),
-    "-DWITH_CUDNN=" ++ (if hasCuDNN then "ON" else "OFF"),
-    "-DWITH_DNNL=" ++ (if hasDNNL then "ON" else "OFF"),
-    "-DWITH_MKL=" ++ (if hasMKL then "ON" else "OFF"),
-    "-DWITH_ACCELERATE=" ++ (if hasAccelerate then "ON" else "OFF"),
-    "-DWITH_OPENBLAS=" ++ (if hasOpenBLAS then "ON" else "OFF")
-    ]
-  logInfo s!"Using CTranslate2 CMake flags: {flags}"
-  assert! ← runCmake root flags
+    else
+      return (dst, ← computeTrace dst)
 
-/--
-Build CTranslate2 from source using cmake.
-TODO: Include the flags into the trace.
--/
-def buildCmakeProject (root : FilePath) : LogIO Unit := do
-  -- Run cmake.
-  if let some flags := get_config? Ct2Flags then
-    logInfo s!"Using CTranslate2 cmake flags: {flags}"
-    let _ ← runCmake root flags.splitOn.toArray
+
+def getCt2CmakeFlags : IO (Array String) := do
+  let mut flags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF"]
+
+  match ← getOS! with
+  | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
+  | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
+
+  if ← useCUDA then
+    flags := flags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]
   else
-    autoCt2Cmake root
-  -- Run make.
-  proc {
-    cmd := "make"
-    args := #["-j8"]
-    cwd := root / "build"
-  }
+    flags := flags ++ #["-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF"]
+
+  return flags
 
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
+  if (← getOS!) == .linux then
+    let openblas ← libopenblas.fetch
+    let _ ← openblas.await
+
   afterReleaseAsync pkg do
-  let _ ← getPlatform
-  let dst := pkg.nativeLibDir / (nameToSharedLib "ctranslate2")
-  createParentDirs dst
-  let ct2URL := "https://github.com/OpenNMT/CTranslate2"
+    let dst := pkg.nativeLibDir / (nameToSharedLib "ctranslate2")
+    createParentDirs dst
+    let ct2URL := "https://github.com/OpenNMT/CTranslate2"
 
-  try
-    let depTrace := Hash.ofString ct2URL
-    let trace ← buildFileUnlessUpToDate dst depTrace do
-      logStep s!"Cloning CTranslate2 from {ct2URL} into {pkg.buildDir}"
-      gitClone ct2URL pkg.buildDir
+    try
+      let depTrace := Hash.ofString ct2URL
+      let trace ← buildFileUnlessUpToDate dst depTrace do
+        logStep s!"Cloning CTranslate2 from {ct2URL}"
+        gitClone ct2URL pkg.buildDir
 
-      logStep s!"Building CTranslate2 with cmake"
-      let ct2Dir := pkg.buildDir / "CTranslate2"
-      buildCmakeProject ct2Dir
-      proc {
-        cmd := "cp"
-        args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
-      }
-      -- TODO: Don't hardcode the version "3".
-      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "3")
-      proc {
-        cmd := "cp"
-        args := #[dst.toString, dst'.toString]
-      }
-      proc {
-        cmd := "cp"
-        args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
-      }
-      proc {
-        cmd := "cp"
-        args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
-      }
-      proc {
-        cmd := "cp"
-        args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
-      }
-      proc {
-        cmd := "rm"
-        args := #["-rf", ct2Dir.toString]
-      }
-    return (dst, trace)
-  else
-    return (dst, ← computeTrace dst)
+        let ct2Dir := pkg.buildDir / "CTranslate2"
+        let flags ← getCt2CmakeFlags
+        logStep s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
+        runCmake ct2Dir flags
+        let numThreads := min 32 (← nproc)
+        logStep s!"Building CTranslate2 with `make -j{numThreads}`"
+        proc {
+          cmd := "make"
+          args := #[s!"-j{numThreads}"]
+          cwd := ct2Dir / "build"
+        }
+
+        ensureDirExists $ pkg.buildDir / "include"
+        proc {
+          cmd := "cp"
+          args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
+        }
+        -- TODO: Don't hardcode the version "3".
+        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "3")
+        proc {
+          cmd := "cp"
+          args := #[dst.toString, dst'.toString]
+        }
+        proc {
+          cmd := "cp"
+          args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
+        }
+        proc {
+          cmd := "cp"
+          args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
+        }
+        proc {
+          cmd := "cp"
+          args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
+        }
+        proc {
+          cmd := "rm"
+          args := #["-rf", ct2Dir.toString]
+        }
+      return (dst, trace)
+    else
+      return (dst, ← computeTrace dst)
 
 
-def buildCpp (pkg : Package) (path : FilePath) (deps : List (BuildJob FilePath)) : SchedulerM (BuildJob FilePath) := do
+def buildCpp (pkg : Package) (path : FilePath) (dep : BuildJob FilePath) : SchedulerM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let flags := #["-fPIC", "-std=c++17", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
-  buildFileAfterDepList oFile (srcJob :: deps) (extraDepTrace := computeHash flags) fun deps =>
+  buildFileAfterDepList oFile [srcJob, dep] (extraDepTrace := computeHash flags) fun deps =>
     compileO path.toString oFile deps[0]! args "c++"
 
 
 target onnx.o pkg : FilePath := do
   let onnx ← libonnxruntime.fetch
-  let build := buildCpp pkg "cpp/onnx.cpp" [onnx]
+  let build := buildCpp pkg "cpp/onnx.cpp" onnx
   afterReleaseSync pkg build
 
 
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
-  let build := buildCpp pkg "cpp/ct2.cpp" [ct2]
+  let build := buildCpp pkg "cpp/ct2.cpp" ct2
   afterReleaseSync pkg build
 
 
@@ -300,19 +368,16 @@ def initGitLFS : IO Unit := do
 
 def HF_BASE_URL := "https://huggingface.co"
 
+
 structure HuggingFaceURL where
   user : Option String
   modelName : String
+
 
 instance : ToString HuggingFaceURL where
   toString url := match url.user with
   | none => s!"{HF_BASE_URL}/{url.modelName}"
   | some user => s!"{HF_BASE_URL}/{user}/{url.modelName}"
-
-
-def ensureExists (dir : FilePath) : IO Unit := do
-  if !(← dir.pathExists)  then
-    IO.FS.createDirAll dir
 
 
 def getHomeDir : IO FilePath := do
@@ -329,7 +394,7 @@ def getCacheDir : IO FilePath := do
   let dir := match ← IO.getEnv "LEAN_INFER_CACHE_DIR" with
   | some dir => (dir : FilePath)
   | none => defaultCacheDir
-  ensureExists dir
+  ensureDirExists dir
   return dir.normalize
 
 
@@ -361,7 +426,7 @@ def downloadIfNecessary (url : HuggingFaceURL) : IO Unit := do
 
   println! s!"Downloading the model into {dir}"
   let some parentDir := dir.parent | unreachable!
-  ensureExists parentDir
+  ensureDirExists parentDir
   initGitLFS
   let proc ← IO.Process.output {
     cmd := "git"
@@ -375,32 +440,6 @@ def downloadIfNecessary (url : HuggingFaceURL) : IO Unit := do
 script download do
   downloadIfNecessary ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩
   downloadIfNecessary ⟨"kaiyuy", "ct2-leandojo-lean4-retriever-byt5-small"⟩
-  return 0
-
-
-def checkGitLFS : IO Bool := do
-  if ← checkAvailable "git" then
-    let proc ← IO.Process.output {
-      cmd := "git"
-      args := #["lfs", "install"]
-    }
-    return proc.exitCode == 0
-  else
-    return false
-
-
-script check do
-  if Platform.isWindows then
-    error "Windows is not supported"
-  if ¬ (← checkGitLFS) then
-    error "Git LFS is not installed"
-  if ¬ (← checkAvailable "c++") then
-    error "C++ compiler is not installed"
-  if ¬ (← checkAvailable "cmake") then
-    error "CMake is not installed"
-  if ¬ (← checkAvailable "make") then
-    error "Make is not installed"
-  println! "Looks good to me!"
   return 0
 
 

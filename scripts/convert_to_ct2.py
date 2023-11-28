@@ -124,4 +124,4 @@ tokenizer = AutoTokenizer.from_pretrained("kaiyuy/leandojo-lean4-retriever-byt5-
 output = encoder.forward_batch(
     [tokenizer.convert_ids_to_tokens(tokenizer.encode(state))]
 )
-feature = np.array(output).mean(axis=1)
+feature = np.array(output.last_hidden_state).mean(axis=1)
