@@ -7,6 +7,7 @@
 #include <lean/lean.h>
 
 #include <codecvt>
+#include <fstream>
 #include <iostream>
 #include <locale>
 #include <stdexcept>
@@ -14,10 +15,14 @@
 
 #include "utils.h"
 #include "npy.hpp"
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 ctranslate2::Translator *p_translator = nullptr;
 ctranslate2::Encoder *p_encoder = nullptr;
 ctranslate2::StorageView * premise_embeddings = nullptr;
+json *premise_dictionary = nullptr;
 
 const std::string EOS_TOKEN = "</s>";
 const std::vector<std::string> byt5_vocab = {
@@ -294,6 +299,27 @@ extern "C" uint8_t is_premise_embeddings_initialized(lean_object *) {
 //                                                     premise_embeddings_data,
 //                                                     ctranslate2::Device::CPU
 //                                                     );
+
+extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg dictionary_path) {
+  const char *dict_path = lean_string_cstr(dictionary_path);
+  if (!exists(dict_path)) {
+    return false;
+  }
+  if (premise_dictionary != nullptr) {
+    delete premise_dictionary;
+  }
+  
+  std::ifstream f("dictionary.json");
+  premise_dictionary = new json(json::parse(f));
+  
+  return true;
+}
+
+inline bool is_premise_dictionary_initialized_aux() { return premise_dictionary != nullptr; }
+
+extern "C" uint8_t is_premise_dictionary_initialized(lean_object *) {
+  return is_premise_dictionary_initialized_aux();
+}
 
 extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   const lean_array_object *p_arr = lean_to_array(_encoded_state);

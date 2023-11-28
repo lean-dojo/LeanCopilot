@@ -130,9 +130,9 @@ private def isRetrieverInitialized : m Bool := do
 
 
 def initRetriever : IO Bool := do
-  let dir ← Cache.getRetrieverDir
+  let dir ← Cache.getPremiseEmbDir
   if ¬ (← dir.pathExists) then
-    throw $ IO.userError "Cannot find the state embeddings for retrieval. Please run [TODO]."
+    throw $ IO.userError "Cannot find the premise embeddings for retrieval. Please run [TODO]."
     return false
 
   match ← getBackend with
@@ -143,12 +143,40 @@ def initRetriever : IO Bool := do
   return true
 
 
+-- structure PremiseDict where
+--   index : Nat
+--   premise : String
+-- deriving FromJson
+
+
+-- def loadJsonDict (path: System.FilePath) : m (Array String) := do
+--   let file ← IO.FS.readFile path
+--   logInfo s!"{Lean.Json.parse file}"
+--   -- match Json.parse file with
+--   -- | Except.error err => panic! err
+--   -- | Except.ok json => match (fromJson? json : Except String (Array PremiseDict)) with
+--   --   | .error err => panic! err
+--   --   | .ok dict => pure (dict.map (·.premise))
+--   return Array.mkArray 152695 "NotImplemented"
+
+
+-- def premiseLookup (index : UInt64) : m String := do
+--   let dict ← loadJsonDict (← Cache.getPremiseDictDir)
+--   -- logInfo s!"{(← Cache.getPremiseDictDir).toString}"
+--   -- let dict := Array.mkArray 152695 "NotImplemented"
+--   return dict.get! index.toNat
+--   -- return "NotImplemented"
+
+
 def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
-  logInfo s!"{query}"
+  -- logInfo s!"{query}"
   let topKPremises := FFI.ct2Retrieve query.data
   let topKIndices := topKPremises.map (·.2)
+  -- For each index, look up the corresponding premise in the dictionary.
+  -- let topKSuggestions ← topKIndices.mapM premiseLookup
   logInfo s!"topKIndices: {topKIndices}"
+  -- logInfo s!"topKSuggestions: {topKSuggestions}"
   let topKScores := topKPremises.map (·.1)
   logInfo s!"topKScores: {topKScores}"
   return #[("NotImplemented", 0.5)]

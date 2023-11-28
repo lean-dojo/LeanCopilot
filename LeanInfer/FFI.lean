@@ -36,6 +36,12 @@ opaque initPremiseEmbeddings (matrixPath : @& String) : Bool
 @[extern "is_premise_embeddings_initialized"]
 opaque isPremiseEmbeddingsInitialized : Unit → Bool
 
+@[extern "init_premise_dictionary"]
+opaque initPremiseDictionary (dictionaryPath : @& String) : Bool
+
+@[extern "is_premise_dictionary_initialized"]
+opaque isPremiseDictionaryInitialized : Unit → Bool
+
 @[extern "ct2_retrieve"]
 opaque ct2Retrieve (encodedState : @& Array Float) : Array (Float × UInt64)
 

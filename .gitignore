@@ -10,6 +10,8 @@ cpp/test.cpp
 cpp/test.o
 cpp/cnpy
 cpp/cnpy.cpp
+cpp/cjson.cpp
+cpp/cjson
 embeddings.npy
 simptest.npy
-premise_dictionary.json
+dictionary.json
