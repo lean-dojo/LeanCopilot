@@ -11,7 +11,7 @@ private def getHomeDir : IO FilePath := do
   return dir
 
 
-private def ensureExists (dir : FilePath) : IO Unit := do
+private def ensureDirExists (dir : FilePath) : IO Unit := do
   if !(← dir.pathExists)  then
     IO.FS.createDirAll dir
 
@@ -25,7 +25,7 @@ def getCacheDir : IO FilePath := do
   let dir := match ← IO.getEnv "LEAN_INFER_CACHE_DIR" with
   | some dir => (dir : FilePath)
   | none => defaultCacheDir
-  ensureExists dir
+  ensureDirExists dir
   return dir.normalize
 
 

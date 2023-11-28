@@ -9,6 +9,9 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 ## Requirements
 
 * Supported platforms: Linux and macOS (:warning: maybe also Windows WSL, but untested)
+* xcode-select --install
+
+
 * Git LFS
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 * CMake >= 3.7
