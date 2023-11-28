@@ -56,9 +56,13 @@ def hasCUDA : IO Bool := do
   return out.exitCode == 0
 
 
+def useCUDA : IO Bool := do
+  return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
+
+
 def buildArchiveName : String :=
   let arch := if run_io isArm! then "arm64" else "x86_64"
-  if run_io hasCUDA then
+  if run_io useCUDA then
     s!"{arch}-cuda"
   else
     arch
@@ -206,7 +210,7 @@ target libopenblas pkg : FilePath := do
   afterReleaseAsync pkg do
     let rootDir := pkg.buildDir / "OpenBLAS"
     ensureDirExists rootDir
-    let dst := rootDir / (nameToSharedLib "openblas")
+    let dst := pkg.nativeLibDir / (nameToSharedLib "openblas")
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
     try
@@ -223,6 +227,16 @@ target libopenblas pkg : FilePath := do
           args := flags
           cwd := rootDir
         }
+        proc {
+          cmd := "cp"
+          args := #[(rootDir / nameToSharedLib "openblas").toString, dst.toString]
+        }
+        -- TODO: Don't hardcode the version "0".
+        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "openblas" "0")
+        proc {
+          cmd := "cp"
+          args := #[dst.toString, dst'.toString]
+        }
       return (dst, trace)
 
     else
@@ -236,7 +250,7 @@ def getCt2CmakeFlags : IO (Array String) := do
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
 
-  if ← hasCUDA then
+  if ← useCUDA then
     flags := flags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]
   else
     flags := flags ++ #["-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF"]
