@@ -9,16 +9,8 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 ## Requirements
 
 * Supported platforms: Linux and macOS (:warning: maybe also Windows WSL, but untested)
-* xcode-select --install
-
-
 * Git LFS
-* A C++17 compatible compiler, e.g., recent versions of GCC or Clang
-* CMake >= 3.7
-* At least one of [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html), [Accelerate](https://developer.apple.com/documentation/accelerate), [DNNL](https://github.com/oneapi-src/oneDNN), or [OpenBLAS](https://www.openblas.net/). Most systems have them pre-installed, so you may not need to do anything. However, if you see the error `No BLAS library found`, it means you don't have any of these libraries. In that case, we recommend MKL for Intel CPUs, Accelerate for Apple, and DNNL for AMD CPUs. OpenBLAS is cross-platform and can be used as a last resort if you cannot install the others. We are happy to help if you have trouble installing these libraries.
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
-
-**Please run `lake script run LeanInfer/check` to check if the requirements have been satisfied.**
 
 
 ## Adding LeanInfer as a Dependency to Your Project
@@ -27,7 +19,7 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 
 1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanInfer/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]` to lakefile.lean. Also add LeanInfer as a dependency:
 ```lean
-require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "main"
+require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "v0.0.9"
 ```
 2. Run `lake update LeanInfer`
 3. Run `lake script run LeanInfer/download` to download the models from Hugging Face to `~/.cache/lean_infer/`

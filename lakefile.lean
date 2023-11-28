@@ -443,31 +443,5 @@ script download do
   return 0
 
 
-def checkGitLFS : IO Bool := do
-  if ← checkAvailable "git" then
-    let proc ← IO.Process.output {
-      cmd := "git"
-      args := #["lfs", "install"]
-    }
-    return proc.exitCode == 0
-  else
-    return false
-
-
-script check do
-  if Platform.isWindows then
-    error "Windows is not supported"
-  if ¬ (← checkGitLFS) then
-    error "Git LFS is not installed"
-  if ¬ (← checkAvailable "c++") then
-    error "C++ compiler is not installed"
-  if ¬ (← checkAvailable "cmake") then
-    error "CMake is not installed"
-  if ¬ (← checkAvailable "make") then
-    error "Make is not installed"
-  println! "Looks good to me!"
-  return 0
-
-
 require std from git "https://github.com/leanprover/std4" @ "main"
 require aesop from git "https://github.com/JLimperg/aesop" @ "master"
