@@ -309,7 +309,7 @@ extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg dictionary_path) {
     delete premise_dictionary;
   }
   
-  std::ifstream f("dictionary.json");
+  std::ifstream f(dict_path);
   premise_dictionary = new json(json::parse(f));
   
   return true;
@@ -364,6 +364,11 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
   lean_array_object * output = reinterpret_cast<lean_array_object *>(lean_alloc_array(k, k));
   int *topk_indices_ptr = topk_indices->data<int>();
   float *topk_values_ptr = topk_values->data<float>();
+
+  // // print the values in topk_indices_ptr
+  // for (int i = 0; i < k; i++) {
+  //   std::cout << *(topk_indices_ptr+i) << " ";
+  // }
 
   for (int i = 0; i < k; i++) {
     std::string this_premise = (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
