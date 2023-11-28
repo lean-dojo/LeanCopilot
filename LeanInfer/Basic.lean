@@ -192,15 +192,15 @@ def initPremiseDict : IO Bool := do
 def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   -- logInfo s!"{query}"
-  let topKPremises := FFI.ct2Retrieve query.data
-  let topKIndices := topKPremises.map (·.1)
+  let topKSamples := FFI.ct2Retrieve query.data
+  let topKPremises := topKSamples.map (·.1)
   -- For each index, look up the corresponding premise in the dictionary.
   -- let topKSuggestions ← topKIndices.mapM premiseLookup
-  logInfo s!"topKIndices: {topKIndices}"
+  -- logInfo s!"topKPremises: {topKPremises}"
   -- logInfo s!"topKSuggestions: {topKSuggestions}"
-  let topKScores := topKPremises.map (·.2)
-  logInfo s!"topKScores: {topKScores}"
-  return #[("NotImplemented", 0.5)]
+  let topKScores := topKSamples.map (·.2)
+  -- logInfo s!"topKScores: {topKScores}"
+  return topKPremises.zip topKScores
 
 end
 
