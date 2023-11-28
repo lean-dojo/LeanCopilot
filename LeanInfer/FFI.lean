@@ -22,7 +22,7 @@ opaque ct2Generate (inputTokens : @& Array String) (targetPrefixTokens : @& Arra
   : Array (Array String × Float)
 
 @[extern "init_ct2_encoder"]
-opaque initCt2Encoder (modelPath : @& String) : Bool
+opaque initCt2Encoder (modelPath : @& String) (device : @& String) : Bool
 
 @[extern "is_ct2_encoder_initialized"]
 opaque isCt2EncoderInitialized : Unit → Bool
@@ -31,7 +31,7 @@ opaque isCt2EncoderInitialized : Unit → Bool
 opaque ct2Encode (inputTokens : @& Array String) : FloatArray
 
 @[extern "init_premise_embeddings"]
-opaque initPremiseEmbeddings (matrixPath : @& String) : Bool
+opaque initPremiseEmbeddings (matrixPath : @& String) (device : @& String) : Bool
 
 @[extern "is_premise_embeddings_initialized"]
 opaque isPremiseEmbeddingsInitialized : Unit → Bool

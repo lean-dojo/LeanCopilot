@@ -104,7 +104,7 @@ def initEncoder : IO Bool := do
 
   match ← getBackend with
   | .native (.onnx _) => unreachable!
-  | .native (.ct2 _) => assert! FFI.initCt2Encoder dir.toString
+  | .native (.ct2 params) => assert! FFI.initCt2Encoder dir.toString params.device
   | .ipc .. => unreachable!
 
   return true
@@ -137,7 +137,7 @@ def initPremiseEmb : IO Bool := do
 
   match ← getBackend with
   | .native (.onnx _) => unreachable!
-  | .native (.ct2 _) => assert! FFI.initPremiseEmbeddings dir.toString
+  | .native (.ct2 params) => assert! FFI.initPremiseEmbeddings dir.toString params.device
   | .ipc .. => unreachable!
 
   return true

@@ -1,6 +1,5 @@
-/build
+.lake
 /lake-packages/*
 
 .vscode
 *.olean
-.lake
