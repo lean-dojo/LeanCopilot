@@ -18,26 +18,26 @@ def cfg : Config := {
 -/
 
 -- def testtest : IO FilePath := do
-def testEmbInit : IO Bool := do
---   -- LeanInfer.Cache.getRetrieverDir
-  let uuu : Bool <- LeanInfer.initPremiseEmb
-  println! uuu
-  return LeanInfer.FFI.isPremiseEmbeddingsInitialized ()
+-- def testEmbInit : IO Bool := do
+-- --   -- LeanInfer.Cache.getRetrieverDir
+--   let uuu : Bool <- LeanInfer.initPremiseEmb
+--   println! uuu
+--   return LeanInfer.FFI.isPremiseEmbeddingsInitialized ()
 
-#eval testEmbInit
+-- #eval testEmbInit
 
-def testDictInit : IO Bool := do
-  let vvv : Bool <- LeanInfer.initPremiseDict
-  println! vvv
-  return LeanInfer.FFI.isPremiseDictionaryInitialized ()
+-- def testDictInit : IO Bool := do
+--   let vvv : Bool <- LeanInfer.initPremiseDict
+--   println! vvv
+--   return LeanInfer.FFI.isPremiseDictionaryInitialized ()
 
-#eval testDictInit
+-- #eval testDictInit
 
--- /-
+
 example (n : Nat) : Nat.gcd n n = n := by
   select_premises
   sorry
--- -/
+
 
 example (a b c : Nat) : a + b + c = a + c + b := by
   select_premises

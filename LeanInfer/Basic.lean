@@ -190,6 +190,10 @@ def initPremiseDict : IO Bool := do
 
 
 def retrieve (input : String) : m (Array (String × Float)) := do
+  if ¬ (← isPremiseEmbInitialized) ∧ ¬ (← initPremiseEmb) then
+    return #[]
+  if ¬ (← isPremiseDictInitialized) ∧ ¬ (← initPremiseDict) then
+    return #[]
   let query ← encode input
   -- logInfo s!"{query}"
   let topKSamples := FFI.ct2Retrieve query.data
@@ -212,6 +216,10 @@ def setConfig (config : Config) : CoreM Unit := do
     assert! ← initGenerator
   if ← isEncoderInitialized then
     assert! ← initEncoder
+  if ← isPremiseEmbInitialized then
+    assert! ← initPremiseEmb
+  if ← isPremiseDictInitialized then
+    assert! ← initPremiseDict
 
 
 end LeanInfer
