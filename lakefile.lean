@@ -51,7 +51,17 @@ def isArm! : IO Bool := do
   return (← getArch!) == .arm64
 
 
-def isArm : Bool := run_io isArm!
+def hasCUDA : IO Bool := do
+  let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
+  return out.exitCode == 0
+
+
+def buildArchiveName : String :=
+  let arch := if run_io isArm! then "arm64" else "x86_64"
+  if run_io hasCUDA then
+    s!"{arch}-cuda"
+  else
+    arch
 
 
 structure SupportedPlatform where
@@ -67,9 +77,9 @@ def getPlatform! : IO SupportedPlatform := do
 
 package LeanInfer where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
-  buildArchive? := if isArm then "arm64" else "x86_64"
+  buildArchive? := buildArchiveName
   precompileModules := true
-  buildType := BuildType.debug  -- TODO: Change to release.
+  buildType := BuildType.release
   moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]
   weakLeanArgs := #["onnxruntime", "ctranslate2"].map fun name =>
     s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib name
@@ -110,11 +120,6 @@ def getOnnxPlatform! : IO String := do
   match os with
   | .linux => return if arch == .x86_64 then "linux-x64" else "linux-aarch64"
   | .macos => return "osx-universal2"
-
-
-def hasCUDA : IO Bool := do
-  let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
-  return out.exitCode == 0
 
 
 def ensureDirExists (dir : FilePath) : IO Unit := do
