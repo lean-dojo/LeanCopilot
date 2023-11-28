@@ -4,4 +4,5 @@ build
 onnx*
 tmp
 lake-packages
+.lake
 clang+llvm*
