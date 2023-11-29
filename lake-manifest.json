@@ -64,5 +64,5 @@
    "inputRev": "main",
    "inherited": false,
    "configFile": "lakefile.lean"}],
- "name": "LeanInfer",
+ "name": "LeanCopilot",
  "lakeDir": ".lake"}

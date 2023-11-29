@@ -1,23 +1,23 @@
 import Lean
-import LeanInfer.Basic
-import LeanInfer.Frontend
+import LeanCopilot.Basic
+import LeanCopilot.Frontend
 import Aesop.Util.Basic
 
 open Lean Elab Tactic
 
 set_option autoImplicit false
 
-namespace LeanInfer
+namespace LeanCopilot
 
 
-register_option LeanInfer.suggest_tactics.check : Bool := {
+register_option LeanCopilot.suggest_tactics.check : Bool := {
   defValue := true
   descr := "Check if the generated tactics are valid or if they can prove the goal."
 }
 
 
 def checkTactics : CoreM Bool := do
-  match LeanInfer.suggest_tactics.check.get? (← getOptions) with
+  match LeanCopilot.suggest_tactics.check.get? (← getOptions) with
   | some false => return false
   | _ => return true
 
@@ -81,4 +81,4 @@ elab_rules : tactic
     logInfo s!"{premises}"
 
 
-end LeanInfer
+end LeanCopilot

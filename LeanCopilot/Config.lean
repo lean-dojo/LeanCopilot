@@ -1,11 +1,11 @@
 import Lean
-import LeanInfer.Url
+import LeanCopilot.Url
 
 open Lean
 
 set_option autoImplicit false
 
-namespace LeanInfer
+namespace LeanCopilot
 
 -- https://opennmt.net/CTranslate2/python/ctranslate2.Translator.html#translator
 structure CTranslate2Params where
@@ -116,4 +116,4 @@ def getEncoderUrl : m HuggingFaceURL := do
 
 end
 
-end LeanInfer
+end LeanCopilot

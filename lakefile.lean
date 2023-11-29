@@ -79,7 +79,7 @@ def getPlatform! : IO SupportedPlatform := do
   return ⟨← getOS!, ← getArch!⟩
 
 
-package LeanInfer where
+package LeanCopilot where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   buildArchive? := buildArchiveName
   precompileModules := true
@@ -89,12 +89,12 @@ package LeanInfer where
 
 
 @[default_target]
-lean_lib LeanInfer {
+lean_lib LeanCopilot {
 }
 
 
-lean_lib LeanInferTests {
-  globs := #[.submodules "LeanInferTests"]
+lean_lib LeanCopilotTests {
+  globs := #[.submodules "LeanCopilotTests"]
 }
 
 

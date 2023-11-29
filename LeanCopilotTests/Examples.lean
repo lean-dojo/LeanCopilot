@@ -1,6 +1,6 @@
-import LeanInfer
+import LeanCopilot
 
-open LeanInfer
+open LeanCopilot
 
 /-
 #eval getConfig
@@ -22,8 +22,8 @@ example (n : Nat) : Nat.gcd n n = n := by
   sorry
 -/
 
--- set_option LeanInfer.verbose false
--- set_option LeanInfer.suggest_tactics.check true
+-- set_option LeanCopilot.verbose false
+-- set_option LeanCopilot.suggest_tactics.check true
 
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics

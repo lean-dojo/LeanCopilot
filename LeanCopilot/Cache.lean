@@ -1,9 +1,9 @@
 import Lean
-import LeanInfer.Config
+import LeanCopilot.Config
 
 open Lean System
 
-namespace LeanInfer.Cache
+namespace LeanCopilot.Cache
 
 
 private def getHomeDir : IO FilePath := do
@@ -60,4 +60,4 @@ def getPremiseDictDir : IO FilePath := do
   return dir.normalize
 
 
-end LeanInfer.Cache
+end LeanCopilot.Cache

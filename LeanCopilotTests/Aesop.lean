@@ -1,4 +1,4 @@
-import LeanInfer
+import LeanCopilot
 import Aesop
 
 -- The example below wouldn't work without it.

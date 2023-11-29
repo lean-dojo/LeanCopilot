@@ -1,4 +1,4 @@
-namespace LeanInfer
+namespace LeanCopilot
 
 #eval "\t".length
 
@@ -282,4 +282,4 @@ def detokenizeByt5 (tokens : Array String) : String :=
   String.fromUTF8Unchecked ⟨tokens.map tokenToByte!⟩
 
 
-end LeanInfer
+end LeanCopilot

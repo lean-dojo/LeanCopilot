@@ -1,15 +1,15 @@
 import Lean
-import LeanInfer.Cache
-import LeanInfer.FFI
-import LeanInfer.Config
-import LeanInfer.Tokenization
+import LeanCopilot.Cache
+import LeanCopilot.FFI
+import LeanCopilot.Config
+import LeanCopilot.Tokenization
 
 open Lean
 
 set_option autoImplicit false
 
 
-namespace LeanInfer
+namespace LeanCopilot
 
 section
 
@@ -18,14 +18,14 @@ variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m]
   [MonadOptions m] [MonadLiftT (ST IO.RealWorld) m] [MonadLiftT IO m] [MonadError m]
 
 
-register_option LeanInfer.verbose : Bool := {
+register_option LeanCopilot.verbose : Bool := {
   defValue := false
-  descr := "Log various debugging information when running LeanInfer."
+  descr := "Log various debugging information when running LeanCopilot."
 }
 
 
 def isVerbose : m Bool := do
-  match LeanInfer.verbose.get? (← getOptions) with
+  match LeanCopilot.verbose.get? (← getOptions) with
   | some true => return true
   | _ => return false
 
@@ -39,7 +39,7 @@ private def isGeneratorInitialized : m Bool := do
 def initGenerator : IO Bool := do
   let dir ← Cache.getGeneratorDir
   if ¬ (← dir.pathExists) then
-    throw $ IO.userError "Cannot find the generator model. Please run `lake script run LeanInfer/download`."
+    throw $ IO.userError "Cannot find the generator model. Please run `lake script run LeanCopilot/download`."
     return false
 
   match ← getBackend with
@@ -89,7 +89,7 @@ private def isEncoderInitialized : m Bool := do
 def initEncoder : IO Bool := do
   let dir ← Cache.getEncoderDir
   if ¬ (← dir.pathExists) then
-    throw $ IO.userError "Cannot find the encoder model. Please run `lake script run LeanInfer/download`."
+    throw $ IO.userError "Cannot find the encoder model. Please run `lake script run LeanCopilot/download`."
     return false
 
   match ← getBackend with
@@ -175,4 +175,4 @@ def setConfig (config : Config) : CoreM Unit := do
     assert! ← initPremiseDict
 
 
-end LeanInfer
+end LeanCopilot
