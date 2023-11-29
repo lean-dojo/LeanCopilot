@@ -8,7 +8,7 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 
 ## Requirements
 
-* Supported platforms: Linux and macOS (:warning: maybe also Windows WSL, but untested)
+* Supported platforms: Linux (including Windows WSL) and macOS
 * Git LFS
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
 

@@ -363,7 +363,7 @@ def initGitLFS : IO Unit := do
     args := #["lfs", "install"]
   }
   if proc.exitCode != 0 then
-    throw $ IO.userError "Failed to initialize Git LFS. Please install it from https://git-lfs.com."
+    throw $ IO.userError "Failed to initialize Git LFS. Please install it."
 
 
 def HF_BASE_URL := "https://huggingface.co"
