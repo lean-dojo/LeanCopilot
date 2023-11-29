@@ -43,8 +43,14 @@ You can combine the LLM-generated tactic suggestions with [aesop](https://github
 
 ### Selecting Premises
 
-Coming soon.
+Coming soon.*
 
+
+## Building LeanInfer
+
+You don't need to build LeanInfer directly if you use it in a downstream package. Nevertheless, if you really need to build LeanInfer, it can be done by `lake build`. However, make sure you have installed these dependencies:
+* CMake >= 3.7
+* A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 
 
 ## Questions and Bugs
