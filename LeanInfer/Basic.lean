@@ -32,7 +32,6 @@ def isVerbose : m Bool := do
 
 private def isGeneratorInitialized : m Bool := do
   match ← getBackend with
-  | .native (.onnx _) => return FFI.isOnnxGeneratorInitialized ()
   | .native (.ct2 _) => return FFI.isCt2GeneratorInitialized ()
   | .ipc .. => unreachable!
 
@@ -44,8 +43,6 @@ def initGenerator : IO Bool := do
     return false
 
   match ← getBackend with
-  | .native (.onnx _) =>
-    assert! FFI.initOnnxGenerator dir.toString
   | .native (.ct2 params) =>
     assert! FFI.initCt2Generator dir.toString params.device params.computeType params.deviceIndex params.intraThreads
   | .ipc .. => unreachable!
@@ -58,14 +55,7 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     return #[]
 
   let config ← getConfig
-  let tacticsWithScores := match config.backend  with
-  | .native (.onnx _) =>
-    let numReturnSequences := config.decoding.numReturnSequences
-    let maxLength := config.decoding.maxLength
-    let temperature := config.decoding.temperature
-    let beamSize := config.decoding.beamSize
-    let rawOutputs := FFI.onnxGenerate input numReturnSequences maxLength temperature beamSize
-    rawOutputs.filter fun (entry : String × Float) => entry.fst ≠ "aesop"
+  let tacticsWithScores := match config.backend with
   | .native (.ct2 _) =>
     let inputTokens := tokenizeByt5 input true |>.toArray
     let targetPrefixTokens := tokenizeByt5 targetPrefix false |>.toArray
@@ -77,10 +67,11 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
     let patience := config.decoding.patience
     let temperature := config.decoding.temperature
     let tokensWithScores := FFI.ct2Generate inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
-    tokensWithScores.filterMap fun (ts, s) => match detokenizeByt5 ts with
-    | "aesop" => none
-    | t => some (t, s)
-  | .ipc .. => unreachable!
+    tokensWithScores.filterMap fun ((ts, s) : Array String × Float) =>
+      match detokenizeByt5 ts with
+      | "aesop" => none
+      | t => some (t, s)
+  | _ => unreachable!
 
   let rankedTactics := tacticsWithScores.qsort (·.2 > ·.2)
   if ← isVerbose then
@@ -91,7 +82,6 @@ def generate (input : String) (targetPrefix : String) : m (Array (String × Floa
 
 private def isEncoderInitialized : m Bool := do
   match ← getBackend with
-  | .native (.onnx _) => return unreachable!
   | .native (.ct2 _) => return FFI.isCt2EncoderInitialized ()
   | .ipc .. => unreachable!
 
@@ -103,7 +93,6 @@ def initEncoder : IO Bool := do
     return false
 
   match ← getBackend with
-  | .native (.onnx _) => unreachable!
   | .native (.ct2 params) => assert! FFI.initCt2Encoder dir.toString params.device
   | .ipc .. => unreachable!
 
@@ -115,7 +104,6 @@ def encode (input : String) : m FloatArray := do
     return FloatArray.mk #[]
 
   match ← getBackend  with
-  | .native (.onnx _) => unreachable!
   | .native (.ct2 _) =>
     let inputTokens := tokenizeByt5 input true |>.toArray
     return FFI.ct2Encode inputTokens
@@ -124,7 +112,6 @@ def encode (input : String) : m FloatArray := do
 
 private def isPremiseEmbInitialized : m Bool := do
   match ← getBackend with
-  | .native (.onnx _) => return unreachable!
   | .native (.ct2 _) => return FFI.isPremiseEmbeddingsInitialized ()
   | .ipc .. => unreachable!
 
@@ -136,7 +123,6 @@ def initPremiseEmb : IO Bool := do
     return false
 
   match ← getBackend with
-  | .native (.onnx _) => unreachable!
   | .native (.ct2 params) => assert! FFI.initPremiseEmbeddings dir.toString params.device
   | .ipc .. => unreachable!
 
@@ -145,7 +131,6 @@ def initPremiseEmb : IO Bool := do
 
 private def isPremiseDictInitialized : m Bool := do
   match ← getBackend with
-  | .native (.onnx _) => return unreachable!
   | .native (.ct2 _) => return FFI.isPremiseDictionaryInitialized ()
   | .ipc .. => unreachable!
 
@@ -157,7 +142,6 @@ def initPremiseDict : IO Bool := do
     return false
 
   match ← getBackend with
-  | .native (.onnx _) => unreachable!
   | .native (.ct2 _) => assert! FFI.initPremiseDictionary dir.toString
   | .ipc .. => unreachable!
 

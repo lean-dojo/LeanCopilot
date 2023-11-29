@@ -84,9 +84,8 @@ package LeanInfer where
   buildArchive? := buildArchiveName
   precompileModules := true
   buildType := BuildType.release
-  moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]
-  weakLeanArgs := #["onnxruntime", "ctranslate2"].map fun name =>
-    s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib name
+  moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lctranslate2"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib "ctranslate2"]
 
 
 @[default_target]
@@ -119,68 +118,9 @@ def afterReleaseAsync (pkg : Package) (build : BuildM α) : IndexBuildM (Job α)
     Job.async build
 
 
-def getOnnxPlatform! : IO String := do
-  let ⟨os, arch⟩  ← getPlatform!
-  match os with
-  | .linux => return if arch == .x86_64 then "linux-x64" else "linux-aarch64"
-  | .macos => return "osx-universal2"
-
-
 def ensureDirExists (dir : FilePath) : IO Unit := do
   if !(← dir.pathExists)  then
     IO.FS.createDirAll dir
-
-
-/- Download and Copy ONNX's C++ header files to `build/include` and shared libraries to `build/lib` -/
-target libonnxruntime pkg : FilePath := do
-  afterReleaseAsync pkg do
-  let _ ← getPlatform!
-  let dst := pkg.nativeLibDir / (nameToSharedLib "onnxruntime")
-  createParentDirs dst
-
-  let onnxVersion := "1.15.1"
-  let onnxFileStem := s!"onnxruntime-{← getOnnxPlatform!}-{onnxVersion}"
-  let onnxFilename := onnxFileStem ++ ".tgz"
-  let onnxURL := "https://github.com/microsoft/onnxruntime/releases/download/v1.15.1/" ++ onnxFilename
-
-  try
-    let depTrace := Hash.ofString onnxURL
-    let onnxFile := pkg.buildDir / onnxFilename
-    let trace ← buildFileUnlessUpToDate dst depTrace do
-      logStep s!"Fetching the ONNX Runtime library"
-      download onnxFilename onnxURL onnxFile
-      untar onnxFilename onnxFile pkg.buildDir
-      let onnxStem := pkg.buildDir / onnxFileStem
-      let srcFile : FilePath := onnxStem / "lib" / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-      proc {
-        cmd := "cp"
-        args := #[srcFile.toString, dst.toString]
-      }
-      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "onnxruntime" onnxVersion)
-      proc {
-        cmd := "cp"
-        args := #[dst.toString, dst'.toString]
-      }
-      ensureDirExists $ pkg.buildDir / "include"
-      proc {
-        cmd := "cp"
-        args := #[(onnxStem / "include" / "onnxruntime_cxx_api.h").toString, (pkg.buildDir / "include").toString ++ "/"]
-      }
-      proc {
-        cmd := "cp"
-        args := #[(onnxStem / "include" / "onnxruntime_cxx_inline.h").toString, (pkg.buildDir / "include").toString ++ "/"]
-      }
-      proc {
-        cmd := "cp"
-        args := #[(onnxStem / "include" / "onnxruntime_c_api.h").toString, (pkg.buildDir / "include").toString ++ "/"]
-      }
-      proc {
-        cmd := "rm"
-        args := #["-rf", onnxStem.toString, onnxStem.toString ++ ".tgz"]
-      }
-    return (dst, trace)
-  else
-    return (dst, ← computeTrace dst)
 
 
 def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
@@ -211,6 +151,7 @@ target libopenblas pkg : FilePath := do
     let rootDir := pkg.buildDir / "OpenBLAS"
     ensureDirExists rootDir
     let dst := pkg.nativeLibDir / (nameToSharedLib "openblas")
+    createParentDirs dst
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
     try
@@ -329,12 +270,6 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : BuildJob FilePath) : Sched
     compileO path.toString oFile deps[0]! args "c++"
 
 
-target onnx.o pkg : FilePath := do
-  let onnx ← libonnxruntime.fetch
-  let build := buildCpp pkg "cpp/onnx.cpp" onnx
-  afterReleaseSync pkg build
-
-
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
   let build := buildCpp pkg "cpp/ct2.cpp" ct2
@@ -343,9 +278,8 @@ target ct2.o pkg : FilePath := do
 
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
-  let onnxO ← onnx.o.fetch
   let ct2O ← ct2.o.fetch
-  buildStaticLib (pkg.nativeLibDir / name) #[onnxO, ct2O]
+  buildStaticLib (pkg.nativeLibDir / name) #[ct2O]
 
 
 def checkAvailable (cmd : String) : IO Bool := do

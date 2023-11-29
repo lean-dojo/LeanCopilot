@@ -7,14 +7,6 @@ set_option autoImplicit false
 
 namespace LeanInfer
 
-structure OnnxParams where
-  generatorUrl : HuggingFaceURL
-  encoderUrl : HuggingFaceURL
-deriving Repr
-
-def OnnxParams.isValid (params : OnnxParams) : Bool :=
-  params.generatorUrl.isValid ∧ params.encoderUrl.isValid
-
 -- https://opennmt.net/CTranslate2/python/ctranslate2.Translator.html#translator
 structure CTranslate2Params where
   generatorUrl : HuggingFaceURL
@@ -36,12 +28,10 @@ def CTranslate2Params.isValid (params : CTranslate2Params) : Bool :=
   params.generatorUrl.isValid ∧ params.encoderUrl.isValid ∧ isValidDevice params.device ∧ isValidComputeType params.computeType
 
 inductive NativeBackend where
-  | onnx : OnnxParams → NativeBackend
   | ct2 : CTranslate2Params → NativeBackend
 deriving Repr
 
 def NativeBackend.isValid : NativeBackend → Bool
-  | .onnx params => params.isValid
   | .ct2 params => params.isValid
 
 inductive IpcBackend where
@@ -115,14 +105,12 @@ def getDecodingParams : m DecodingParams := do
 
 def getGeneratorUrl : m HuggingFaceURL := do
   match ← getBackend with
-  | .native (.onnx params) => return params.generatorUrl
   | .native (.ct2 params) => return params.generatorUrl
   | .ipc _ => return unreachable!
 
 
 def getEncoderUrl : m HuggingFaceURL := do
   match ← getBackend with
-  | .native (.onnx params) => return params.encoderUrl
   | .native (.ct2 params) => return params.encoderUrl
   | .ipc _ => return unreachable!
 
