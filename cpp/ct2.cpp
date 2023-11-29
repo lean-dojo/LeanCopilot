@@ -371,7 +371,7 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
            topk_indices_ptr[i] < premise_embeddings->dim(0));
     // [NOTE]: This is where the server crash occurs on CUDA.
     std::string this_premise =
-        (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
+        (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))]["full_name"];
 
     output->m_data[i] =
         lean_mk_pair(lean_mk_string(this_premise.c_str()),
