@@ -47,9 +47,9 @@ def elabPremise (premise : String) : MetaM String := do
     let info ← getConstInfo declName
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
-      | return s!"{premise} : {premise_type}"
-    return s!"{premise} : {premise_type}\n{doc_str}"
-  catch _ => return s!"{premise}"
+      | return s!"\n{premise}\n   type: {premise_type}\n"
+    return s!"\n{premise}\n   type: {premise_type}\n   doc string: {doc_str}\n"
+  catch _ => return s!"\n{premise}\n"
 
 
 def selectPremises : TacticM (Array (String × Float)) := do
@@ -90,7 +90,7 @@ elab_rules : tactic
     let premisesWithScores ← selectPremises
     let premises := premisesWithScores.map (·.1)
     let rich_premises ← Meta.liftMetaM $ (premises.mapM elabPremise)
-    logInfo s!"{rich_premises}"
+    logInfo s!"{rich_premises.foldl (init := "") (· ++ ·)}"
 
 
 end LeanInfer
