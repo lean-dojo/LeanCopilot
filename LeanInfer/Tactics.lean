@@ -41,6 +41,17 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   generate state targetPrefix
 
 
+def elabPremise (premise : String) : MetaM String := do
+  let declName := premise.toName
+  try
+    let info ← getConstInfo declName
+    let premise_type ← Meta.ppExpr info.type
+    let some doc_str ← findDocString? (← getEnv) declName
+      | return s!"{premise} : {premise_type}"
+    return s!"{premise} : {premise_type}\n{doc_str}"
+  catch _ => return s!"{premise}"
+
+
 def selectPremises : TacticM (Array (String × Float)) := do
   retrieve (← getPpTacticState)
 
@@ -78,7 +89,8 @@ elab_rules : tactic
   | `(tactic | select_premises) => do
     let premisesWithScores ← selectPremises
     let premises := premisesWithScores.map (·.1)
-    logInfo s!"{premises}"
+    let rich_premises ← Meta.liftMetaM $ (premises.mapM elabPremise)
+    logInfo s!"{rich_premises}"
 
 
 end LeanInfer
