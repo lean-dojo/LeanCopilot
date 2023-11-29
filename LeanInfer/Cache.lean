@@ -48,4 +48,16 @@ def getEncoderDir : IO FilePath := do
   getModelDir (← getEncoderUrl)
 
 
+def getPremiseEmbDir : IO FilePath := do
+  let cacheDir ← getCacheDir
+  let dir := cacheDir / "premise_selection" / "embeddings.npy"
+  return dir.normalize
+
+
+def getPremiseDictDir : IO FilePath := do
+  let cacheDir ← getCacheDir
+  let dir := cacheDir / "premise_selection" / "dictionary.json"
+  return dir.normalize
+
+
 end LeanInfer.Cache

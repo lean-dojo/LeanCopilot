@@ -104,7 +104,7 @@ def initEncoder : IO Bool := do
 
   match ← getBackend with
   | .native (.onnx _) => unreachable!
-  | .native (.ct2 _) => assert! FFI.initCt2Encoder dir.toString
+  | .native (.ct2 params) => assert! FFI.initCt2Encoder dir.toString params.device
   | .ipc .. => unreachable!
 
   return true
@@ -122,10 +122,58 @@ def encode (input : String) : m FloatArray := do
   | .ipc .. => unreachable!
 
 
+private def isPremiseEmbInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return unreachable!
+  | .native (.ct2 _) => return FFI.isPremiseEmbeddingsInitialized ()
+  | .ipc .. => unreachable!
+
+
+def initPremiseEmb : IO Bool := do
+  let dir ← Cache.getPremiseEmbDir
+  if ¬ (← dir.pathExists) then
+    throw $ IO.userError "Cannot find the premise embeddings for retrieval. Please run [TODO]."
+    return false
+
+  match ← getBackend with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 params) => assert! FFI.initPremiseEmbeddings dir.toString params.device
+  | .ipc .. => unreachable!
+
+  return true
+
+
+private def isPremiseDictInitialized : m Bool := do
+  match ← getBackend with
+  | .native (.onnx _) => return unreachable!
+  | .native (.ct2 _) => return FFI.isPremiseDictionaryInitialized ()
+  | .ipc .. => unreachable!
+
+
+def initPremiseDict : IO Bool := do
+  let dir ← Cache.getPremiseDictDir
+  if ¬ (← dir.pathExists) then
+    throw $ IO.userError "Cannot find the premise dictionary for retrieval. Please run [TODO]."
+    return false
+
+  match ← getBackend with
+  | .native (.onnx _) => unreachable!
+  | .native (.ct2 _) => assert! FFI.initPremiseDictionary dir.toString
+  | .ipc .. => unreachable!
+
+  return true
+
+
 def retrieve (input : String) : m (Array (String × Float)) := do
+  if ¬ (← isPremiseEmbInitialized) ∧ ¬ (← initPremiseEmb) then
+    return #[]
+  if ¬ (← isPremiseDictInitialized) ∧ ¬ (← initPremiseDict) then
+    return #[]
   let query ← encode input
-  logInfo s!"{query}"
-  return #[("NotImplemented", 0.5)]
+  let topKSamples := FFI.ct2Retrieve query.data
+  let topKPremises := topKSamples.map (·.1)
+  let topKScores := topKSamples.map (·.2)
+  return topKPremises.zip topKScores
 
 end
 
@@ -137,6 +185,10 @@ def setConfig (config : Config) : CoreM Unit := do
     assert! ← initGenerator
   if ← isEncoderInitialized then
     assert! ← initEncoder
+  if ← isPremiseEmbInitialized then
+    assert! ← initPremiseEmb
+  if ← isPremiseDictInitialized then
+    assert! ← initPremiseDict
 
 
 end LeanInfer
