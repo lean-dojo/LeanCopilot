@@ -41,7 +41,19 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   generate state targetPrefix
 
 
-def selectPremises : TacticM (Array (String × Float)) := do
+def elabPremise (premiseWithInfo : String × String × String) : MetaM String := do
+  let (premise, path, code) := premiseWithInfo
+  let declName := premise.toName
+  try
+    let info ← getConstInfo declName
+    let premise_type ← Meta.ppExpr info.type
+    let some doc_str ← findDocString? (← getEnv) declName
+      | return s!"\n{premise}\n   type: {premise_type}\n"
+    return s!"\n{premise}\n   type: {premise_type}\n   doc string:\n{doc_str}\n"
+  catch _ => return s!"\n{premise}\n   This premise is not available in the current environment.\n   You need to import {path} to use it.\n   The premise is defined as\n{code}\n"
+
+
+def selectPremises : TacticM (Array (Float × String × String × String)) := do
   retrieve (← getPpTacticState)
 
 
@@ -76,9 +88,11 @@ elab_rules : tactic
     addSuggestions tac pfx tactics.toList (← checkTactics)
 
   | `(tactic | select_premises) => do
-    let premisesWithScores ← selectPremises
-    let premises := premisesWithScores.map (·.1)
-    logInfo s!"{premises}"
+    let premisesWithInfoAndScores ← selectPremises
+    let premisesWithInfo := premisesWithInfoAndScores.map (·.2)
+    let rich_premises ← Meta.liftMetaM $ (premisesWithInfo.mapM elabPremise)
+    let rich_premises_expand := rich_premises.foldl (init := "") (· ++ · ++ "\n")
+    logInfo rich_premises_expand
 
 
 end LeanCopilot

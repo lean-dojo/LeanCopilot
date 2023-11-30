@@ -148,7 +148,7 @@ def initPremiseDict : IO Bool := do
   return true
 
 
-def retrieve (input : String) : m (Array (String × Float)) := do
+def retrieve (input : String) : m (Array (Float × String × String × String)) := do
   if ¬ (← isPremiseEmbInitialized) ∧ ¬ (← initPremiseEmb) then
     return #[]
   if ¬ (← isPremiseDictInitialized) ∧ ¬ (← initPremiseDict) then
@@ -156,8 +156,10 @@ def retrieve (input : String) : m (Array (String × Float)) := do
   let query ← encode input
   let topKSamples := FFI.ct2Retrieve query.data
   let topKPremises := topKSamples.map (·.1)
-  let topKScores := topKSamples.map (·.2)
-  return topKPremises.zip topKScores
+  let topKPaths := topKSamples.map (·.2.1)
+  let topKCodes := topKSamples.map (·.2.2.1)
+  let topKScores := topKSamples.map (·.2.2.2)
+  return topKScores.zip (topKPremises.zip (topKPaths.zip topKCodes))
 
 end
 
