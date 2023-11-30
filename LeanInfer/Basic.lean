@@ -172,11 +172,8 @@ def retrieve (input : String) : m (Array (Float × String × String × String)) 
   let query ← encode input
   let topKSamples := FFI.ct2Retrieve query.data
   let topKPremises := topKSamples.map (·.1)
-  -- println! "topKPremises: {topKPremises}"
   let topKPaths := topKSamples.map (·.2.1)
-  -- println!  "topKPaths: {topKPaths}"
   let topKCodes := topKSamples.map (·.2.2.1)
-  -- println!  "topKCodes: {topKCodes}"
   let topKScores := topKSamples.map (·.2.2.2)
   return topKScores.zip (topKPremises.zip (topKPaths.zip topKCodes))
 

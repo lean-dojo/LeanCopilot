@@ -91,7 +91,6 @@ elab_rules : tactic
     let premisesWithInfoAndScores ← selectPremises
     let premisesWithInfo := premisesWithInfoAndScores.map (·.2)
     let rich_premises ← Meta.liftMetaM $ (premisesWithInfo.mapM elabPremise)
-    -- Output each entry in rich_premises on a separate line
     let rich_premises_expand := rich_premises.foldl (init := "") (· ++ · ++ "\n")
     logInfo rich_premises_expand
 

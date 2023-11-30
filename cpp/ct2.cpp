@@ -387,6 +387,6 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
     
     
   }
-  // assert(false);
+  
   return reinterpret_cast<lean_obj_res>(output);
 }
