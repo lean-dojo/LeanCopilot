@@ -35,21 +35,11 @@ instance : Inhabited ComputeType where
   default := .auto
 
 
-structure Model where
-  isInitialized : Bool := false
-deriving Repr
-
-
-instance : Inhabited Model where
-  default := {}
-
-
-structure NativeModel extends Model where
+structure NativeModel where
   url : HuggingFaceURL
   device : Device := default
   deviceIndex : Array UInt64 := #[0]
   computeType : ComputeType := default
-  hasLocalCopy : Bool := false
 deriving Repr
 
 
@@ -72,7 +62,7 @@ def NativeEncoder.encode (enc : NativeEncoder) (input : String) : FloatArray :=
   FloatArray.empty
 
 
-structure ExternalModel extends Model where
+structure ExternalModel where
   name : String
 deriving Inhabited, Repr
 

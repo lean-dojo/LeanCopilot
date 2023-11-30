@@ -93,6 +93,16 @@ lean_lib LeanCopilot {
 }
 
 
+lean_lib ModelCheckpointManager {
+  globs := #[.submodules "ModelCheckpointManager"]
+}
+
+
+lean_exe download {
+  root := `ModelCheckpointManager.Main
+}
+
+
 lean_lib LeanCopilotTests {
   globs := #[.submodules "LeanCopilotTests"]
 }
@@ -281,7 +291,7 @@ extern_lib libleanffi pkg := do
   let ct2O ← ct2.o.fetch
   buildStaticLib (pkg.nativeLibDir / name) #[ct2O]
 
-
+/-
 def checkAvailable (cmd : String) : IO Bool := do
   let proc ← IO.Process.output {
     cmd := "which",
@@ -375,6 +385,7 @@ script download do
   downloadIfNecessary ⟨"kaiyuy", "ct2-leandojo-lean4-tacgen-byt5-small"⟩
   downloadIfNecessary ⟨"kaiyuy", "ct2-leandojo-lean4-retriever-byt5-small"⟩
   return 0
+-/
 
 
 require std from git "https://github.com/leanprover/std4" @ "main"

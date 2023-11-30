@@ -14,75 +14,101 @@
 
 #include "json.hpp"
 #include "npy.hpp"
-#include "utils.h"
 
 using json = nlohmann::json;
 
+std::map<std::string, std::unique_ptr<ctranslate2::Translator>> generators;
+std::map<std::string, std::unique_ptr<ctranslate2::Encoder>> encoders;
 
-std::map<std::string, ctranslate2::Translator> generators;
-std::map<std::string, ctranslate2::Encoder> encoders;
+ctranslate2::StorageView *p_premise_embeddings = nullptr;
+json *p_premise_dictionary = nullptr;
 
-ctranslate2::Translator *p_translator = nullptr;
-ctranslate2::Encoder *p_encoder = nullptr;
-ctranslate2::StorageView *premise_embeddings = nullptr;
-json *premise_dictionary = nullptr;
+inline bool exists(const std::string &path) {
+  std::ifstream f(path.c_str());
+  return f.good();
+}
 
+inline lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
+  lean_object *r = lean_alloc_ctor(0, 2, 0);
+  lean_ctor_set(r, 0, a);
+  lean_ctor_set(r, 1, b);
+  return r;
+}
 
-extern "C" uint8_t init_ct2_generator(
-    b_lean_obj_arg _model_path,    // String
-    b_lean_obj_arg _device,        // String
-    b_lean_obj_arg _compute_type,  // String
-    b_lean_obj_arg _device_index,  // Array UInt64
-    uint64_t intra_threads) {      // UInt64
-  const char *model_path = lean_string_cstr(_model_path);
-  if (!exists(model_path)) {
-    return false;
+inline bool is_initialized_aux(const std::string &name) {
+  return generators.find(name) != generators.end();
+}
+
+extern "C" uint8_t is_initialized(b_lean_obj_arg _name) {
+  std::string name = std::string(lean_string_cstr(_name));
+  return is_initialized_aux(name);
+}
+
+template <typename T>
+bool init_model(b_lean_obj_arg _name,          // String
+                b_lean_obj_arg _model_path,    // String
+                b_lean_obj_arg _device,        // String
+                b_lean_obj_arg _compute_type,  // String
+                b_lean_obj_arg _device_index,  // Array UInt64
+                std::map<std::string, std::unique_ptr<T>> &models) {
+  std::string name = std::string(lean_string_cstr(_name));
+  if (is_initialized_aux(name)) {
+    throw std::runtime_error(name + " already exists.");
   }
 
-  if (p_translator != nullptr) {
-    delete p_translator;
-    p_translator = nullptr;
+  std::string model_path = std::string(lean_string_cstr(_model_path));
+  if (!exists(model_path)) {  // Cannot find the model.
+    return false;
   }
 
   ctranslate2::Device device =
       ctranslate2::str_to_device(lean_string_cstr(_device));
   ctranslate2::ComputeType compute_type =
       ctranslate2::str_to_compute_type(lean_string_cstr(_compute_type));
+
   std::vector<int> device_indices;
   const lean_array_object *p_arr = lean_to_array(_device_index);
   for (int i = 0; i < p_arr->m_size; i++) {
     device_indices.push_back(lean_unbox_uint64(p_arr->m_data[i]));
   }
-  ctranslate2::ReplicaPoolConfig config;
-  config.num_threads_per_replica = intra_threads;
 
-  p_translator = new ctranslate2::Translator(model_path, device, compute_type,
-                                             device_indices, config);
+  auto p_model =
+      std::make_unique<T>(model_path, device, compute_type, device_indices);
+  models.emplace(name, std::move(p_model));
   return true;
 }
 
-inline bool is_ct2_generator_initialized_aux() {
-  return p_translator != nullptr;
+extern "C" uint8_t init_generator(
+    b_lean_obj_arg _name,            // String
+    b_lean_obj_arg _model_path,      // String
+    b_lean_obj_arg _device,          // String
+    b_lean_obj_arg _compute_type,    // String
+    b_lean_obj_arg _device_index) {  // Array UInt64
+  return init_model(_name, _model_path, _device, _compute_type, _device_index,
+                    generators);
 }
 
-extern "C" uint8_t is_ct2_generator_initialized(lean_object *) {
-  return is_ct2_generator_initialized_aux();
+extern "C" uint8_t init_encoder(b_lean_obj_arg _name,            // String
+                                b_lean_obj_arg _model_path,      // String
+                                b_lean_obj_arg _device,          // String
+                                b_lean_obj_arg _compute_type,    // String
+                                b_lean_obj_arg _device_index) {  // Array UInt64
+  return init_model(_name, _model_path, _device, _compute_type, _device_index,
+                    encoders);
 }
 
-std::vector<std::string> convert_tokens(b_lean_obj_arg _tokens) {
+inline std::vector<std::string> convert_tokens(b_lean_obj_arg _tokens) {
   std::vector<std::string> tokens;
   const lean_array_object *p_arr = lean_to_array(_tokens);
-
   for (int i = 0; i < p_arr->m_size; i++) {
-    std::string t = lean_string_cstr(p_arr->m_data[i]);
-    tokens.push_back(t);
+    tokens.emplace_back(lean_string_cstr(p_arr->m_data[i]));
   }
-
   return tokens;
 }
 
-extern "C" lean_obj_res ct2_generate(
-    b_lean_obj_arg _input_tokens,          //  Array String
+extern "C" lean_obj_res generate(
+    b_lean_obj_arg _name,                  // String
+    b_lean_obj_arg _input_tokens,          // Array String
     b_lean_obj_arg _target_prefix_tokens,  // Array String
     uint64_t num_return_sequences,         // UInt64
     uint64_t beam_size,                    // UInt64
@@ -92,8 +118,9 @@ extern "C" lean_obj_res ct2_generate(
     double patience,                       // Float
     double temperature) {                  // Float
   // Check the arguments.
-  if (!is_ct2_generator_initialized_aux()) {
-    throw std::runtime_error("CT2 generator is not initialized.");
+  std::string name = std::string(lean_string_cstr(_name));
+  if (!is_initialized_aux(name)) {
+    throw std::runtime_error(name + " hasn't been initialized.");
   }
   if (num_return_sequences <= 0) {
     throw std::invalid_argument("num_return_sequences must be positive.");
@@ -133,60 +160,53 @@ extern "C" lean_obj_res ct2_generate(
       convert_tokens(_target_prefix_tokens);
 
   // Generate tactics with beam search.
-  ctranslate2::TranslationResult results = p_translator->translate_batch(
+  ctranslate2::TranslationResult results = generators.at(name)->translate_batch(
       {input_tokens}, {target_prefix_tokens}, opts)[0];
   assert(results.hypotheses.size() == num_return_sequences &&
          results.scores.size() == num_return_sequences);
 
   // Return the output.
+  lean_object *output = lean_mk_empty_array();
+  /*
   lean_array_object *output = reinterpret_cast<lean_array_object *>(
       lean_alloc_array(num_return_sequences, num_return_sequences));
-
+  */
   for (int i = 0; i < num_return_sequences; i++) {
     int l = results.hypotheses[i].size();
+
+    lean_object *tokens = lean_mk_empty_array();
+    for (int j = 0; j < l; j++) {
+      tokens = lean_array_push(
+          tokens, lean_mk_string(results.hypotheses[i][j].c_str()));
+    }
+    /*
     lean_array_object *tokens =
         reinterpret_cast<lean_array_object *>(lean_alloc_array(l, l));
     for (int j = 0; j < l; j++) {
       tokens->m_data[j] = lean_mk_string(results.hypotheses[i][j].c_str());
     }
+    */
     double score = std::exp(results.scores[i]);
     assert(0.0 <= score && score <= 1.0);
-    output->m_data[i] = lean_mk_pair(reinterpret_cast<lean_obj_arg>(tokens),
-                                     lean_box_float(score));
+    output =
+        lean_array_push(output, lean_mk_pair(tokens, lean_box_float(score)));
+    // output->m_data[i] = lean_mk_pair(reinterpret_cast<lean_obj_arg>(tokens),
+    //                                 lean_box_float(score));
   }
 
-  return reinterpret_cast<lean_obj_res>(output);
+  return output;
 }
 
-extern "C" uint8_t init_ct2_encoder(b_lean_obj_arg model_path,
-                                    b_lean_obj_arg _device) {
-  const char *dir = lean_string_cstr(model_path);
-  if (!exists(dir)) {
-    return false;
-  }
-  if (p_encoder != nullptr) {
-    delete p_encoder;
+extern "C" lean_obj_res encode(b_lean_obj_arg _name,            // String
+                               b_lean_obj_arg _input_tokens) {  // Array String
+  std::string name = std::string(lean_string_cstr(_name));
+  if (!is_initialized_aux(name)) {
+    throw std::runtime_error(name + " hasn't been initialized.");
   }
 
-  ctranslate2::Device device =
-      ctranslate2::str_to_device(lean_string_cstr(_device));
-
-  p_encoder = new ctranslate2::Encoder(dir, device);
-
-  return true;
-}
-
-inline bool is_ct2_encoder_initialized_aux() { return p_encoder != nullptr; }
-
-extern "C" uint8_t is_ct2_encoder_initialized(lean_object *) {
-  return is_ct2_encoder_initialized_aux();
-}
-
-extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
   std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
-
   ctranslate2::EncoderForwardOutput results =
-      p_encoder->forward_batch_async({input_tokens}).get();
+      encoders.at(name)->forward_batch_async({input_tokens}).get();
   ctranslate2::StorageView hidden_state = results.last_hidden_state;
 
   assert(hidden_state.dim(0) == 1);
@@ -205,22 +225,23 @@ extern "C" lean_obj_res ct2_encode(b_lean_obj_arg _input_tokens) {
   return arr;
 }
 
-extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg embeddings_path,
-                                           b_lean_obj_arg _device) {
-  const char *emb_path = lean_string_cstr(embeddings_path);
-  if (!exists(emb_path)) {
+extern "C" uint8_t init_p_premise_embeddings(
+    b_lean_obj_arg _path,      // String
+    b_lean_obj_arg _device) {  // String
+  std::string path = std::string(lean_string_cstr(_path));
+  if (!exists(path)) {
     return false;
   }
-  if (premise_embeddings != nullptr) {
-    delete premise_embeddings;
+  if (p_premise_embeddings != nullptr) {
+    delete p_premise_embeddings;
   }
 
-  ctranslate2::Device device =
-      ctranslate2::str_to_device(lean_string_cstr(_device));
-  device = ctranslate2::Device::CPU;  // [TODO]: We should remove this line when
-                                      // everything can work well on CUDA.
+  // ctranslate2::Device device =
+  // ctranslate2::str_to_device(lean_string_cstr(_device));
+  // TODO: We should remove this line when everything can work well on CUDA.
+  ctranslate2::Device device = ctranslate2::Device::CPU;
 
-  auto d = npy::read_npy<double>(emb_path);
+  const auto &d = npy::read_npy<double>(path);
   std::vector<double> data = d.data;
   std::vector<unsigned long> shape = d.shape;
   bool fortran_order = d.fortran_order;
@@ -235,95 +256,91 @@ extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg embeddings_path,
   std::transform(shape.begin(), shape.end(), shape_i64.begin(),
                  [](unsigned long ul) { return static_cast<int64_t>(ul); });
 
-  premise_embeddings = new ctranslate2::StorageView(shape_i64, data_f, device);
+  p_premise_embeddings =
+      new ctranslate2::StorageView(shape_i64, data_f, device);
   return true;
 }
 
-inline bool is_premise_embeddings_initialized_aux() {
-  return premise_embeddings != nullptr;
+inline bool is_p_premise_embeddings_initialized_aux() {
+  return p_premise_embeddings != nullptr;
 }
 
-extern "C" uint8_t is_premise_embeddings_initialized(lean_object *) {
-  return is_premise_embeddings_initialized_aux();
+extern "C" uint8_t is_p_premise_embeddings_initialized(lean_object *) {
+  return is_p_premise_embeddings_initialized_aux();
 }
 
-extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg dictionary_path) {
-  const char *dict_path = lean_string_cstr(dictionary_path);
-  if (!exists(dict_path)) {
+extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg _path) {
+  std::string path = std::string(lean_string_cstr(_path));
+  if (!exists(path)) {
     return false;
   }
-  if (premise_dictionary != nullptr) {
-    delete premise_dictionary;
+  if (p_premise_dictionary != nullptr) {
+    delete p_premise_dictionary;
   }
 
-  std::ifstream f(dict_path);
-  premise_dictionary = new json(json::parse(f));
+  std::ifstream f(path);
+  p_premise_dictionary = new json(json::parse(f));
 
   return true;
 }
 
 inline bool is_premise_dictionary_initialized_aux() {
-  return premise_dictionary != nullptr;
+  return p_premise_dictionary != nullptr;
 }
 
 extern "C" uint8_t is_premise_dictionary_initialized(lean_object *) {
   return is_premise_dictionary_initialized_aux();
 }
 
-extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
-  const lean_array_object *p_arr = lean_to_array(_encoded_state);
+extern "C" lean_obj_res retrieve(b_lean_obj_arg _query_emb,
+                                 uint64_t _k) {  // FloatArray
+  // lean_object *arr
+  // assert(p_premise_embeddings && static_cast<int64_t>(p_arr->m_size) ==
+  // p_premise_embeddings->dim(1));
 
-  assert(static_cast<int64_t>(p_arr->m_size) == premise_embeddings->dim(1));
-  assert(premise_embeddings != nullptr);
-
-  std::vector<float> state_embedding_data;
-  for (int i = 0; i < p_arr->m_size; i++) {
-    state_embedding_data.push_back(
-        static_cast<float>(lean_unbox_float(p_arr->m_data[i])));
+  int64_t d = lean_unbox(lean_float_array_size(_query_emb));
+  std::vector<float> query_emb_data;
+  for (int i = 0; i < d; i++) {
+    query_emb_data.push_back(lean_float_array_uget(_query_emb, i));
   }
 
-  std::vector<int64_t> state_embedding_shape{
-      static_cast<int64_t>(p_arr->m_size), 1};
+  ctranslate2::Device device = p_premise_embeddings->device();
+  ctranslate2::StorageView query_emb =
+      ctranslate2::StorageView({d, 1}, query_emb_data, device);
 
-  ctranslate2::StorageView *state_embedding =
-      new ctranslate2::StorageView(state_embedding_shape, state_embedding_data,
-                                   premise_embeddings->device());
-
-  int k = 10;
+  // TODO:
   ctranslate2::ops::MatMul matmul(false, false, 1.0);
+  long int k = static_cast<long int>(_k);
   ctranslate2::ops::TopK topk(k, -1);
 
-  std::vector<int64_t> probs_shape{premise_embeddings->dim(0), 1};
+  int num_premises = p_premise_embeddings->dim(0);
+  std::vector<int64_t> probs_shape{num_premises, 1};
 
-  ctranslate2::StorageView *probs =
-      new ctranslate2::StorageView(probs_shape, ctranslate2::DataType::FLOAT32,
-                                   premise_embeddings->device());
+  ctranslate2::StorageView probs = ctranslate2::StorageView(
+      probs_shape, ctranslate2::DataType::FLOAT32, device);
+  matmul(*p_premise_embeddings, query_emb, probs);
+  probs.resize({num_premises});
 
-  matmul(*premise_embeddings, *state_embedding, *probs);
-  probs->resize({premise_embeddings->dim(0)});
+  ctranslate2::StorageView topk_values =
+      ctranslate2::StorageView({k}, ctranslate2::DataType::FLOAT32, device);
+  ctranslate2::StorageView topk_indices =
+      ctranslate2::StorageView({k}, ctranslate2::DataType::INT32, device);
+  topk(probs, topk_values, topk_indices);
 
-  ctranslate2::StorageView *topk_values = new ctranslate2::StorageView(
-      {k}, ctranslate2::DataType::FLOAT32, premise_embeddings->device());
-  ctranslate2::StorageView *topk_indices = new ctranslate2::StorageView(
-      {k}, ctranslate2::DataType::INT32, premise_embeddings->device());
-  topk(*probs, *topk_values, *topk_indices);
-
-  lean_array_object *output =
-      reinterpret_cast<lean_array_object *>(lean_alloc_array(k, k));
-  int *topk_indices_ptr = topk_indices->data<int>();
-  float *topk_values_ptr = topk_values->data<float>();
+  lean_object *output = lean_mk_empty_array();
+  const int *p_topk_indices = topk_indices.data<int>();
+  const float *p_topk_values = topk_values.data<float>();
 
   for (int i = 0; i < k; i++) {
-    assert(topk_indices_ptr[i] >= 0 &&
-           topk_indices_ptr[i] < premise_embeddings->dim(0));
+    int idx = p_topk_indices[i];
+    assert(0 < idx && idx < num_premises);
     // [NOTE]: This is where the server crash occurs on CUDA.
-    std::string this_premise =
-        (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))];
-
-    output->m_data[i] =
-        lean_mk_pair(lean_mk_string(this_premise.c_str()),
-                     lean_box_float(static_cast<double>(topk_values_ptr[i])));
+    const std::string this_premise =
+        (*p_premise_dictionary)[std::to_string(idx)];
+    output = lean_array_push(output,
+                             lean_mk_pair(lean_mk_string(this_premise.c_str()),
+                                          lean_box_float(p_topk_values[i])));
   }
 
-  return reinterpret_cast<lean_obj_res>(output);
+  return output;
 }
