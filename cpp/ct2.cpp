@@ -335,11 +335,15 @@ extern "C" lean_obj_res retrieve(b_lean_obj_arg _query_emb,
     int idx = p_topk_indices[i];
     assert(0 < idx && idx < num_premises);
     // [NOTE]: This is where the server crash occurs on CUDA.
-    const std::string this_premise =
-        (*p_premise_dictionary)[std::to_string(idx)];
-    output = lean_array_push(output,
-                             lean_mk_pair(lean_mk_string(this_premise.c_str()),
-                                          lean_box_float(p_topk_values[i])));
+    const std::string this_premise = (*p_premise_dictionary)[std::to_string(idx)]["full_name"];
+    const std::string this_path = (*p_premise_dictionary)[std::to_string(idx)]["path"];
+    const std::string this_code = (*p_premise_dictionary)[std::to_string(idx)]["code"];
+
+    output = lean_array_push(output, lean_mk_pair(
+        lean_mk_string(this_premise.c_str()),
+        lean_mk_pair(lean_mk_string(this_path.c_str()),
+                     lean_mk_pair(lean_mk_string(this_code.c_str()),
+                                  lean_box_float(p_topk_values[i])))));
   }
 
   return output;
