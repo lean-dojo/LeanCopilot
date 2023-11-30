@@ -372,11 +372,21 @@ extern "C" lean_obj_res ct2_retrieve(b_lean_obj_arg _encoded_state) {
     // [NOTE]: This is where the server crash occurs on CUDA.
     std::string this_premise =
         (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))]["full_name"];
+    std::string this_path =
+        (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))]["path"];
+    std::string this_code =
+        (*premise_dictionary)[std::to_string(*(topk_indices_ptr + i))]["code"];
 
     output->m_data[i] =
         lean_mk_pair(lean_mk_string(this_premise.c_str()),
-                     lean_box_float(static_cast<double>(topk_values_ptr[i])));
+                     lean_mk_pair(
+                         lean_mk_string(this_path.c_str()),
+                         lean_mk_pair(
+                         lean_mk_string(this_code.c_str()),
+                         lean_box_float(static_cast<double>(topk_values_ptr[i])))));
+    
+    
   }
-
+  // assert(false);
   return reinterpret_cast<lean_obj_res>(output);
 }
