@@ -23,9 +23,11 @@ def encode(s: str) -> torch.Tensor:
     tokenized_s = tokenizer(s, return_tensors="pt", padding=True)
     hidden_state = model(tokenized_s.input_ids).last_hidden_state
     lens = tokenized_s.attention_mask.sum(dim=1)
-    features = (hidden_state * tokenized_s.attention_mask.unsqueeze(2)).sum(dim=1) / lens.unsqueeze(1)
+    features = (hidden_state * tokenized_s.attention_mask.unsqueeze(2)).sum(
+        dim=1
+    ) / lens.unsqueeze(1)
     if should_squeeze:
-      features = features.squeeze()
+        features = features.squeeze()
     return features
 
 
