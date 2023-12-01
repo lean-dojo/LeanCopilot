@@ -14,7 +14,15 @@ np.save("embeddings.npy", embeddings_array_64)
 print("Embeddings saved to embeddings.npy")
 
 all_premises = indexed_corpus.corpus.all_premises
-premise_dict = {index: premise.full_name for index, premise in enumerate(all_premises)}
+
+premise_dict = {
+    index: {
+        "full_name": premise.full_name,
+        "path": premise.path,
+        "code": premise.code
+    }
+    for index, premise in enumerate(all_premises)
+}
 
 file_name = "dictionary.json"
 json.dump(premise_dict, open(file_name, "wt"), indent=4)
