@@ -23,7 +23,7 @@ jobs:
           #   source $HOME/.elan/env
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain leanprover/lean4:4.0.0
       - name: Build project
-        run: lake build
+        run: ~/.elan/bin/lake -Kenv=dev build
       - name: Download model
         run: lake script run LeanInfer/download
       - name: Build tests
