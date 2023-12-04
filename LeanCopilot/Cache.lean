@@ -1,3 +1,4 @@
+/-
 import Lean
 import LeanCopilot.Config
 
@@ -61,3 +62,4 @@ def getPremiseDictDir : IO FilePath := do
 
 
 end LeanCopilot.Cache
+-/

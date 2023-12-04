@@ -1,5 +1,5 @@
 import Lean
-import LeanCopilot.Basic
+import LeanCopilot.Options
 import LeanCopilot.Frontend
 import Aesop.Util.Basic
 
@@ -10,18 +10,9 @@ set_option autoImplicit false
 namespace LeanCopilot
 
 
-register_option LeanCopilot.suggest_tactics.check : Bool := {
-  defValue := true
-  descr := "Check if the generated tactics are valid or if they can prove the goal."
-}
-
-
-def checkTactics : CoreM Bool := do
-  match LeanCopilot.suggest_tactics.check.get? (← getOptions) with
-  | some false => return false
-  | _ => return true
-
-
+/--
+Pretty-print a list of goals.
+-/
 def ppTacticState : List MVarId → MetaM String
   | [] => return "no goals"
   | [g] => return (← Meta.ppGoal g).pretty
@@ -29,11 +20,17 @@ def ppTacticState : List MVarId → MetaM String
       return (← goals.foldlM (init := "") (fun a b => do return s!"{a}\n\n{(← Meta.ppGoal b).pretty}")).trim
 
 
+/--
+Pretty-print the current tactic state.
+-/
 def getPpTacticState : TacticM String := do
   let goals ← getUnsolvedGoals
   ppTacticState goals
 
 
+/--
+Generate a list of tactic suggestions.
+-/
 def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) := do
   let state ← getPpTacticState
   if ← isVerbose then

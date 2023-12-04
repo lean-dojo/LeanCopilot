@@ -1,4 +1,4 @@
-import LeanCopilot.Url
+import ModelCheckpointManager.Url
 import LeanCopilot.Models.Interface
 
 set_option autoImplicit false
@@ -36,7 +36,7 @@ instance : Inhabited ComputeType where
 
 
 structure NativeModel where
-  url : HuggingFaceURL
+  url : Url
   device : Device := default
   deviceIndex : Array UInt64 := #[0]
   computeType : ComputeType := default
