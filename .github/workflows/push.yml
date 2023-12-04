@@ -19,8 +19,9 @@ jobs:
           fetch-depth: 0
       - name: Set up elan
         run: |
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | bash -s -- -y
-          source $HOME/.elan/env
+          #   curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | bash -s -- -y
+          #   source $HOME/.elan/env
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain leanprover/lean4:4.0.0
       - name: Build project
         run: lake build
       - name: Download model
