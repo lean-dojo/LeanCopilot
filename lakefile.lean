@@ -219,7 +219,7 @@ target libopenblas pkg : FilePath := do
         logStep s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
 
-        let numThreads := min 32 (← nproc)
+        let numThreads := max 4 $ min 32 (← nproc)
         let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
         logStep s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
         proc (quiet := true) {
@@ -279,7 +279,7 @@ target libctranslate2 pkg : FilePath := do
         let flags ← getCt2CmakeFlags
         logStep s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
         runCmake ct2Dir flags
-        let numThreads := min 32 (← nproc)
+        let numThreads := max 4 $ min 32 (← nproc)
         logStep s!"Building CTranslate2 with `make -j{numThreads}`"
         proc {
           cmd := "make"
