@@ -25,6 +25,6 @@ jobs:
       - name: Build project
         run: ~/.elan/bin/lake -Kenv=dev build
       - name: Download model
-        run: lake script run LeanInfer/download
+        run: ~/.elan/bin/lake -Kenv=dev script run LeanInfer/download
       - name: Build tests
-        run: lake build LeanInferTests
+        run: ~/.elan/bin/lake -Kenv=dev build LeanInferTests
