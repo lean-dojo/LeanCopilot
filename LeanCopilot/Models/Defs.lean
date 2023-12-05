@@ -107,6 +107,16 @@ deriving Repr
 def ExternalGenerator.generate (model : ExternalGenerator) (input : String) (targetPrefix : String) : IO $ Array (String × Float) := do
   return #[("hi", 0.5)]
 
+/-
+curl -X 'POST' \
+  'http://127.0.0.1:23336/generate' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "EleutherAI/llemma_7b",
+  "input": "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
+}'
+-/
 
 instance : TextToText ExternalGenerator := ⟨ExternalGenerator.generate⟩
 

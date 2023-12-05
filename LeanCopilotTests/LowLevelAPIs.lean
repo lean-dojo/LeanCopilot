@@ -132,12 +132,12 @@ def model₃ : NativeGenerator := {
   }
 }
 
-#eval generate model₃ "n : ℕ\n⊢ gcd n n = n"
+#eval generate model₃ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
 
 
 def model₃' : NativeGenerator := {model₃ with params := {numReturnSequences := 2}}
 
-#eval generate model₃' "n : ℕ\n⊢ gcd n n = n"
+#eval generate model₃' "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
 
 
 structure DummyGenerator where
