@@ -19,7 +19,7 @@ LeanInfer provides tactic suggestions by running LLMs through Lean's foreign fun
 
 1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanInfer/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]` to lakefile.lean. Also add LeanInfer as a dependency:
 ```lean
-require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "v0.0.9"
+require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "v0.1.0"
 ```
 2. Run `lake update LeanInfer`
 3. Run `lake script run LeanInfer/download` to download the models from Hugging Face to `~/.cache/lean_infer/`
