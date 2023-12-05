@@ -60,7 +60,7 @@ def model₁'' : NativeGenerator := {
   }
 }
 
-#eval generate model₁'' "n : ℕ\n⊢ gcd n n = n"
+#eval generate model₁'' "Hello, world!"
 
 
 /-

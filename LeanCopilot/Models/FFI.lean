@@ -47,19 +47,15 @@ end FFI
 namespace NativeGenerator
 
 
-def init (model : NativeGenerator) : IO Bool := do
-  if FFI.isGeneratorInitialized model.name then
-    return true
-  let path := (← model.path).toString
-  let device := toString model.device
-  let computeType := toString model.computeType
-  return FFI.initGenerator model.name path computeType device model.deviceIndex
-
-
 def generate (model : NativeGenerator) (input : String) (targetPrefix : String) : IO $ Array (String × Float) := do
-  if ¬ (← init model) then
-    -- TODO: Return empty and show an error.
-    throw $ IO.userError "Failed to initialize generator"
+  if ¬ FFI.isGeneratorInitialized model.name then
+    let path ← model.path
+    if ¬ (← path.pathExists) then
+      throw $ IO.userError s!"Cannot find the model {model.name}. Please run `lake exe download {model.url}`."
+    let device := toString model.device
+    let computeType := toString model.computeType
+    if ¬ (FFI.initGenerator model.name path.toString computeType device model.deviceIndex) then
+      throw $ IO.userError s!"Failed to initialize model {model.name}"
 
   let tokenizer := model.tokenizer
   let inputTokens := tokenizer.tokenize input |>.push tokenizer.eosToken
@@ -90,18 +86,16 @@ end NativeGenerator
 namespace NativeEncoder
 
 
-def init (model : NativeEncoder) : IO Bool := do
-  if FFI.isEncoderInitialized model.name then
-    return true
-  let path := (← model.path).toString
-  let device := toString model.device
-  let computeType := toString model.computeType
-  return FFI.initEncoder model.name path computeType device model.deviceIndex
-
-
 def encode (model : NativeEncoder) (input : String) : IO FloatArray := do
-  if ¬ (← init model) then
-    return FloatArray.mk #[]
+  if ¬ FFI.isEncoderInitialized model.name then
+    let path ← model.path
+    if ¬ (← path.pathExists) then
+      throw $ IO.userError s!"Cannot find the model {model.name}. Please run `lake exe download {model.url}`."
+    let device := toString model.device
+    let computeType := toString model.computeType
+    if ¬ (FFI.initEncoder model.name path.toString computeType device model.deviceIndex) then
+      throw $ IO.userError s!"Failed to initialize model {model.name}"
+
   let tokenizer := model.tokenizer
   let inputTokens := tokenizer.tokenize input |>.push tokenizer.eosToken
   return FFI.encode model.name inputTokens

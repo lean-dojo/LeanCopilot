@@ -44,6 +44,12 @@ def isUpToDate (url : Url) : IO Bool := do
   if ¬ (← dir.pathExists) then
     return false
 
+  let _ ← IO.Process.run {
+    cmd := "git"
+    args := #["fetch", "--quiet", "--all"]
+    cwd := dir
+  }
+
   let branch := (← IO.Process.run {
     cmd := "git"
     args := #["symbolic-ref", "refs/remotes/origin/HEAD","--short"]
