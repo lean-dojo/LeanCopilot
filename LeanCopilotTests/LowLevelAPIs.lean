@@ -1,6 +1,10 @@
 import LeanCopilot
 
+set_option autoImplicit false
+
 open LeanCopilot
+
+#eval cudaAvailable
 
 /-
 ```python
@@ -136,6 +140,36 @@ def model₃' : NativeGenerator := {model₃ with params := {numReturnSequences 
 #eval generate model₃' "n : ℕ\n⊢ gcd n n = n"
 
 
-/-
-TODO: A dummy model in lean.
--/
+structure DummyGenerator where
+  outputs : Array (String × Float)
+
+
+instance : TextToText DummyGenerator where
+  generate model _ _ := return model.outputs
+
+
+def model₄ : DummyGenerator := ⟨#[⟨"Hello, world!", 0.5⟩, ("Hi!", 0.3)]⟩
+
+#eval generate model₄ "n : ℕ\n⊢ gcd n n = n"
+
+
+structure DummyEncoder where
+  output : FloatArray
+
+
+instance : TextToVec DummyEncoder where
+  encode model _ := return model.output
+
+
+def model₅ : DummyEncoder := ⟨FloatArray.mk #[1, 2, 3]⟩
+
+#eval encode model₅ "Hi!"
+
+
+def model₆ : ExternalGenerator := {
+  name := "EleutherAI/llemma_7b"
+  host := "localhost"
+  port := 23333
+}
+
+#eval generate model₆ "n : ℕ\n⊢ gcd n n = n"

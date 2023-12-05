@@ -35,6 +35,10 @@ inline lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
   return r;
 }
 
+extern "C" uint8_t cuda_available(b_lean_obj_arg) {
+  return ctranslate2::str_to_device("auto") == ctranslate2::Device::CUDA;
+}
+
 template<typename T>
 bool is_initialized_aux(const std::string &name);
 
@@ -61,8 +65,8 @@ extern "C" uint8_t is_encoder_initialized(b_lean_obj_arg _name) {
 template <typename T>
 bool init_model(b_lean_obj_arg _name,          // String
                 b_lean_obj_arg _model_path,    // String
-                b_lean_obj_arg _device,        // String
                 b_lean_obj_arg _compute_type,  // String
+                b_lean_obj_arg _device,        // String
                 b_lean_obj_arg _device_index,  // Array UInt64
                 std::map<std::string, std::unique_ptr<T>> &models) {
   std::string name = std::string(lean_string_cstr(_name));
@@ -98,7 +102,7 @@ extern "C" uint8_t init_generator(
      b_lean_obj_arg _compute_type,    // String
     b_lean_obj_arg _device,          // String
     b_lean_obj_arg _device_index) {  // Array UInt64
-  return init_model(_name, _model_path, _device, _compute_type, _device_index,
+  return init_model(_name, _model_path, _compute_type, _device, _device_index,
                     generators);
 }
 
@@ -107,7 +111,7 @@ extern "C" uint8_t init_encoder(b_lean_obj_arg _name,            // String
                                 b_lean_obj_arg _compute_type,    // String
                                 b_lean_obj_arg _device,          // String
                                 b_lean_obj_arg _device_index) {  // Array UInt64
-  return init_model(_name, _model_path, _device, _compute_type, _device_index,
+  return init_model(_name, _model_path, _compute_type, _device, _device_index,
                     encoders);
 }
 

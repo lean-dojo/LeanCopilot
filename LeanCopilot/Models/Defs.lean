@@ -37,11 +37,7 @@ inductive ComputeType where
   | float16
   | bfloat16
   | float32
-deriving Inhabited, Repr
-
-
-instance : Inhabited ComputeType where
-  default := .auto
+deriving Repr
 
 
 instance : ToString ComputeType where
@@ -66,9 +62,9 @@ structure Tokenizer where
 
 structure NativeModel where
   url : Url
-  device : Device := default
+  device : Device := .auto
   deviceIndex : Array UInt64 := #[0]
-  computeType : ComputeType := default
+  computeType : ComputeType := .default
   tokenizer : Tokenizer
 
 
@@ -99,6 +95,8 @@ structure NativeEncoder extends NativeModel
 
 structure ExternalModel where
   name : String
+  host : String := "localhost"
+  port : UInt16 := 23333
 deriving Inhabited, Repr
 
 
@@ -106,8 +104,22 @@ structure ExternalGenerator extends ExternalModel
 deriving Repr
 
 
+def ExternalGenerator.generate (model : ExternalGenerator) (input : String) (targetPrefix : String) : IO $ Array (String × Float) := do
+  return #[("hi", 0.5)]
+
+
+instance : TextToText ExternalGenerator := ⟨ExternalGenerator.generate⟩
+
+
 structure ExternalEncoder extends ExternalModel
 deriving Repr
+
+
+def ExternalEncoder.encode (model : ExternalGenerator) (input : String) : IO FloatArray := do
+  return sorry
+
+
+instance : TextToVec ExternalGenerator := ⟨ExternalEncoder.encode⟩
 
 
 end LeanCopilot

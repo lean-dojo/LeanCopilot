@@ -41,7 +41,13 @@ opaque isPremiseDictionaryInitialized : Unit → Bool
 @[extern "retrieve"]
 opaque retrieve (queryEmb : @& FloatArray) (k : UInt64) : Array (String × Float)
 
+@[extern "cuda_available"]
+opaque cudaAvailable : Unit → Bool
+
 end FFI
+
+
+def cudaAvailable : Bool := FFI.cudaAvailable ()
 
 
 namespace NativeGenerator
