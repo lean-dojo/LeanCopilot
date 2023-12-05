@@ -4,18 +4,18 @@ namespace LeanCopilot
 
 
 class TextToText (τ : Type) where
-  generate : τ → String → String
+  generate (model : τ) (input : String) (targetPrefix : String) : IO $ Array (String × Float)
 
 
 class TextToVec (τ : Type) where
-  encode : τ → String → FloatArray
+  encode : τ → String → IO FloatArray
 
 
-def generate {τ : Type} [TextToText τ] (model : τ) (input : String) : String :=
-  TextToText.generate model input
+def generate {τ : Type} [TextToText τ] (model : τ) (input : String) (targetPrefix : String := "") : IO $ Array (String × Float) :=
+  TextToText.generate model input targetPrefix
 
 
-def encode {τ : Type} [TextToVec τ] (model : τ) (input : String) : FloatArray :=
+def encode {τ : Type} [TextToVec τ] (model : τ) (input : String) : IO FloatArray :=
   TextToVec.encode model input
 
 
@@ -24,7 +24,7 @@ structure DummyGenerator where
 
 
 instance : TextToText DummyGenerator where
-  generate model _ := model.output
+  generate model _ _ := return #[(model.output, 1.0)]
 
 
 structure DummyEncoder where
@@ -32,20 +32,20 @@ structure DummyEncoder where
 
 
 instance : TextToVec DummyEncoder where
-  encode model _ := model.output
+  encode model _ := return model.output
 
 
 private def gen : DummyGenerator := ⟨"Hello, world!"⟩
 
 
-example : generate gen "Hi!" = "Hello, world!" := by
+example : generate gen "Hi!" = pure #[("Hello, world!", 1.0)] := by
   rfl
 
 
 private def enc : DummyEncoder := ⟨FloatArray.mk #[1, 2, 3]⟩
 
 
-example : encode enc "Hi!" = FloatArray.mk #[1, 2, 3] := by
+example : encode enc "Hi!" = pure (FloatArray.mk #[1, 2, 3]) := by
   rfl
 
 

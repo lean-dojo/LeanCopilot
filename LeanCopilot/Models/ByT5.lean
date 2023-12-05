@@ -1,8 +1,9 @@
-namespace LeanCopilot
+import LeanCopilot.Models.Defs
 
-#eval "\t".length
+namespace LeanCopilot.ByT5
 
-def byt5Tokens : Array String := #[
+
+def vocab : Array String := #[
   "\u0000",
   "\u0001",
   "\u0002",
@@ -263,23 +264,29 @@ def byt5Tokens : Array String := #[
 
 
 def byteToToken (b : UInt8) : String :=
-  byt5Tokens.get! b.toNat
+  vocab.get! b.toNat
 
 
 def tokenToByte! (t : String) : UInt8 :=
-  byt5Tokens.findIdx? (· = t) |>.get! |>.toUInt8
+  vocab.findIdx? (· = t) |>.get! |>.toUInt8
 
 
-def tokenizeByt5 (text : String) (addEOS : Bool) : List String :=
-  let tokens := byteToToken <$> text.toUTF8.toList
-  if addEOS then
-    tokens ++ ["</s>"]
-  else
-    tokens
+def tokenize (text : String) : Array String :=
+  (byteToToken <$> text.toUTF8.toList).toArray
 
 
-def detokenizeByt5 (tokens : Array String) : String :=
+def detokenize (tokens : Array String) : String :=
   String.fromUTF8Unchecked ⟨tokens.map tokenToByte!⟩
 
 
-end LeanCopilot
+def eosToken := "</s>"
+
+
+def tokenizer : Tokenizer := {
+  tokenize := tokenize,
+  detokenize := detokenize,
+  eosToken := eosToken
+}
+
+
+end LeanCopilot.ByT5

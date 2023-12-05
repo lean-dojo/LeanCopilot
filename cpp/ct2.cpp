@@ -35,13 +35,27 @@ inline lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {
   return r;
 }
 
-inline bool is_initialized_aux(const std::string &name) {
+template<typename T>
+bool is_initialized_aux(const std::string &name);
+
+template<>
+bool is_initialized_aux<ctranslate2::Translator>(const std::string &name) {
   return generators.find(name) != generators.end();
 }
 
-extern "C" uint8_t is_initialized(b_lean_obj_arg _name) {
+template<>
+bool is_initialized_aux<ctranslate2::Encoder>(const std::string &name) {
+  return encoders.find(name) != encoders.end();
+}
+
+extern "C" uint8_t is_generator_initialized(b_lean_obj_arg _name) {
   std::string name = std::string(lean_string_cstr(_name));
-  return is_initialized_aux(name);
+  return is_initialized_aux<ctranslate2::Translator>(name);
+}
+
+extern "C" uint8_t is_encoder_initialized(b_lean_obj_arg _name) {
+  std::string name = std::string(lean_string_cstr(_name));
+  return is_initialized_aux<ctranslate2::Encoder>(name);
 }
 
 template <typename T>
@@ -52,7 +66,7 @@ bool init_model(b_lean_obj_arg _name,          // String
                 b_lean_obj_arg _device_index,  // Array UInt64
                 std::map<std::string, std::unique_ptr<T>> &models) {
   std::string name = std::string(lean_string_cstr(_name));
-  if (is_initialized_aux(name)) {
+  if (is_initialized_aux<T>(name)) {
     throw std::runtime_error(name + " already exists.");
   }
 
@@ -81,8 +95,8 @@ bool init_model(b_lean_obj_arg _name,          // String
 extern "C" uint8_t init_generator(
     b_lean_obj_arg _name,            // String
     b_lean_obj_arg _model_path,      // String
+     b_lean_obj_arg _compute_type,    // String
     b_lean_obj_arg _device,          // String
-    b_lean_obj_arg _compute_type,    // String
     b_lean_obj_arg _device_index) {  // Array UInt64
   return init_model(_name, _model_path, _device, _compute_type, _device_index,
                     generators);
@@ -90,8 +104,8 @@ extern "C" uint8_t init_generator(
 
 extern "C" uint8_t init_encoder(b_lean_obj_arg _name,            // String
                                 b_lean_obj_arg _model_path,      // String
-                                b_lean_obj_arg _device,          // String
                                 b_lean_obj_arg _compute_type,    // String
+                                b_lean_obj_arg _device,          // String
                                 b_lean_obj_arg _device_index) {  // Array UInt64
   return init_model(_name, _model_path, _device, _compute_type, _device_index,
                     encoders);
@@ -119,7 +133,7 @@ extern "C" lean_obj_res generate(
     double temperature) {                  // Float
   // Check the arguments.
   std::string name = std::string(lean_string_cstr(_name));
-  if (!is_initialized_aux(name)) {
+  if (!is_initialized_aux<ctranslate2::Translator>(name)) {
     throw std::runtime_error(name + " hasn't been initialized.");
   }
   if (num_return_sequences <= 0) {
@@ -167,10 +181,7 @@ extern "C" lean_obj_res generate(
 
   // Return the output.
   lean_object *output = lean_mk_empty_array();
-  /*
-  lean_array_object *output = reinterpret_cast<lean_array_object *>(
-      lean_alloc_array(num_return_sequences, num_return_sequences));
-  */
+
   for (int i = 0; i < num_return_sequences; i++) {
     int l = results.hypotheses[i].size();
 
@@ -179,19 +190,10 @@ extern "C" lean_obj_res generate(
       tokens = lean_array_push(
           tokens, lean_mk_string(results.hypotheses[i][j].c_str()));
     }
-    /*
-    lean_array_object *tokens =
-        reinterpret_cast<lean_array_object *>(lean_alloc_array(l, l));
-    for (int j = 0; j < l; j++) {
-      tokens->m_data[j] = lean_mk_string(results.hypotheses[i][j].c_str());
-    }
-    */
     double score = std::exp(results.scores[i]);
     assert(0.0 <= score && score <= 1.0);
     output =
         lean_array_push(output, lean_mk_pair(tokens, lean_box_float(score)));
-    // output->m_data[i] = lean_mk_pair(reinterpret_cast<lean_obj_arg>(tokens),
-    //                                 lean_box_float(score));
   }
 
   return output;
@@ -200,7 +202,7 @@ extern "C" lean_obj_res generate(
 extern "C" lean_obj_res encode(b_lean_obj_arg _name,            // String
                                b_lean_obj_arg _input_tokens) {  // Array String
   std::string name = std::string(lean_string_cstr(_name));
-  if (!is_initialized_aux(name)) {
+  if (!is_initialized_aux<ctranslate2::Encoder>(name)) {
     throw std::runtime_error(name + " hasn't been initialized.");
   }
 

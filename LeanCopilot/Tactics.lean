@@ -27,7 +27,7 @@ def getPpTacticState : TacticM String := do
   let goals ← getUnsolvedGoals
   ppTacticState goals
 
-
+/-
 /--
 Generate a list of tactic suggestions.
 -/
@@ -91,5 +91,5 @@ elab_rules : tactic
     let rich_premises_expand := rich_premises.foldl (init := "") (· ++ · ++ "\n")
     logInfo rich_premises_expand
 
-
+-/
 end LeanCopilot

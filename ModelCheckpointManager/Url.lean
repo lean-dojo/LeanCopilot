@@ -16,9 +16,8 @@ deriving Inhabited, Repr
 
 namespace Url
 
-
 def isValid (url : Url) : Bool :=
-  ¬ url.protocol.isEmpty ∧ ¬ url.hostname.isEmpty ∧ ¬ url.path.toString.isEmpty ∧ url.path.isRelative
+  ¬ url.protocol.isEmpty ∧ ¬ url.hostname.isEmpty ∧ ¬ url.path.toString.isEmpty ∧ url.path.isRelative ∧ url.path.fileName.isSome
 
 
 def toString (url : Url) : String :=
@@ -61,9 +60,18 @@ def parse! (s : String) : Url :=
   | none => panic! "Invalid url: {s}"
 
 
-#eval parse! "https://huggingface.co/kaiyuy/ct2-leandojo-lean4-tacgen-byt5-small"
-#eval parse! "https://huggingface.co/bert-base-uncased"
+def name! (url : Url) : String :=
+  url.path.fileName.get!
 
+
+private def url₁ := parse! "https://huggingface.co/kaiyuy/ct2-leandojo-lean4-tacgen-byt5-small"
+private def url₂ := parse! "https://huggingface.co/bert-base-uncased"
+
+#eval url₁
+#eval url₂
+
+#eval url₁.name!
+#eval url₂.name!
 
 end Url
 

@@ -4,29 +4,6 @@ set_option autoImplicit false
 
 open Lean
 
-namespace LeanCopilot
-
-section
-
-
-variable {m : Type → Type} [Monad m] [MonadLog m] [AddMessageContext m]
-  [MonadOptions m] [MonadLiftT (ST IO.RealWorld) m] [MonadLiftT IO m] [MonadError m]
-
-register_option LeanCopilot.verbose : Bool := {
-  defValue := false
-  descr := "Log various debugging information when running LeanCopilot."
-}
-
-
-def isVerbose : m Bool := do
-  match LeanCopilot.verbose.get? (← getOptions) with
-  | some true => return true
-  | _ => return false
-
-end
-
-end LeanCopilot
-
 /-
 import Lean
 import LeanCopilot.Cache

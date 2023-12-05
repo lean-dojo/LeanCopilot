@@ -36,10 +36,12 @@ def checkTactics : CoreM Bool := do
   | _ => return true
 
 
+/-
 register_option LeanCopilot.suggest_tactics.generate : String → String := {
   defValue := true
   descr := "Check if the generated tactics are valid or if they can prove the goal."
 }
+-/
 
 
 end

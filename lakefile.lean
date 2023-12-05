@@ -94,7 +94,6 @@ lean_lib LeanCopilot {
 
 
 lean_lib ModelCheckpointManager {
-  globs := #[.submodules "ModelCheckpointManager"]
 }
 
 
