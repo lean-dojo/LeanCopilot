@@ -40,55 +40,38 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   let state ← getPpTacticState
   if ← isVerbose then
     logInfo s!"State:\n{state}"
-  let modelName ← getGeneratorName
-  let modelNameStx := Syntax.mkNameLit modelName.toString
-  let stateStx := Syntax.mkStrLit state
-  let targetPrefixStx := Syntax.mkStrLit targetPrefix
-  let stx ← `(generate $modelNameStx $stateStx $targetPrefixStx)
-  println! stx
-  return #[]
-  /-
-  let ty ← mkAppM ``Array #[← mkAppM ``Prod #[mkConst ``String, mkConst ``String]]
-  let e ← Tactic.elabTermEnsuringType stx ty
-  evalExpr (Array (String × Float)) ty e
-  -/
-
-  /-
-  match Parser.runParserCategory (← getEnv) `term "" "<stdin>" with
-  | .error err => throwError err
-  | .ok stx =>
-  -/
-  /-
-  let lctx ← getLCtx
-  for decl in lctx do
-    println! decl.userName
-  return #[]
-  -/
-  /-
-  let stateExpr := lctx.findFromUserName? `state |>.get! |>.toExpr
-  let targetPrefixExpr := lctx.findFromUserName? `targetPrefix |>.get! |>.toExpr
-  let args :=  #[mkConst modelName, stateExpr, targetPrefixExpr]
-  let e ← mkAppM ``generate args
-
-  evalExpr (Array (String × Float)) t e
-  -/
+  let nm ← getGeneratorName
+  let model ← getGenerator nm
+  generate model state targetPrefix
 
 
-def elabPremise (premiseWithInfo : String × String × String) : MetaM String := do
-  let (premise, path, code) := premiseWithInfo
+def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do
+  let (premise, path, code, _) := premisesWithInfoAndScores
   let declName := premise.toName
   try
     let info ← getConstInfo declName
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
-      | return s!"\n{premise}\n   type: {premise_type}\n"
-    return s!"\n{premise}\n   type: {premise_type}\n   doc string:\n{doc_str}\n"
-  catch _ => return s!"\n{premise}\n   This premise is not available in the current environment.\n   You need to import {path} to use it.\n   The premise is defined as\n{code}\n"
+      | return s!"\n{premise} : {premise_type}\n"
+    return s!"\n{premise} : {premise_type}\n\n{doc_str}\n"
+  catch _ => return s!"\n{premise} needs to be imported from {path}.\n\n```\n{code}\n```\n"
 
 
-def selectPremises : TacticM (Array (Float × String × String × String)) := do
-  return #[]
-  -- retrieve (← getPpTacticState)
+def retrieve (input : String) : TacticM (Array (String × String × String × Float)) := do
+  if ¬ (← premiseEmbeddingsInitialized) ∧ ¬ (← initPremiseEmbeddings .auto) then
+    throwError "Cannot initialize premise embeddings"
+
+  if ¬ (← premiseDictionaryInitialized) ∧ ¬ (← initPremiseDictionary) then
+    throwError "Cannot initialize premise dictionary"
+
+  let k ← SelectPremises.getNumPremises
+  let query ← encode Builtin.encoder input
+
+  return FFI.retrieve query k.toUInt64
+
+
+def selectPremises : TacticM (Array (String × String × String × Float)) := do
+  retrieve (← getPpTacticState)
 
 
 syntax "pp_state" : tactic
@@ -115,10 +98,9 @@ elab_rules : tactic
 
   | `(tactic | select_premises) => do
     let premisesWithInfoAndScores ← selectPremises
-    let premisesWithInfo := premisesWithInfoAndScores.map (·.2)
-    let rich_premises ← Meta.liftMetaM $ (premisesWithInfo.mapM elabPremise)
-    let rich_premises_expand := rich_premises.foldl (init := "") (· ++ · ++ "\n")
-    logInfo rich_premises_expand
+    let richPremises ← Meta.liftMetaM $ (premisesWithInfoAndScores.mapM annotatePremise)
+    let richPremisesExpand := richPremises.foldl (init := "") (· ++ · ++ "\n")
+    logInfo richPremisesExpand
 
 
 end LeanCopilot

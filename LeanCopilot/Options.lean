@@ -1,5 +1,5 @@
 import Lean
-import LeanCopilot.Models.Builtin
+import LeanCopilot.Models
 
 set_option autoImplicit false
 
@@ -39,25 +39,35 @@ def checkTactics : CoreM Bool := do
   | _ => return true
 
 
-register_option LeanCopilot.suggest_tactics.model : Name := {
-  defValue := ``Builtin.generator
+register_option LeanCopilot.suggest_tactics.model : String := {
+  defValue := Builtin.generator.name
 }
 
 
-register_option LeanCopilot.select_premises.model : Name := {
-  defValue := ``Builtin.generator
-}
-
-
-def getGeneratorName : m Name := do
-  let name := match LeanCopilot.suggest_tactics.model.get? (← getOptions) with
-  | some n => n
-  | _ => ``Builtin.generator
-  let env ← getEnv
-  return env.find? name |>.get! |>.name
+def getGeneratorName : m String := do
+  match LeanCopilot.suggest_tactics.model.get? (← getOptions) with
+  | some n => return n
+  | _ => return Builtin.generator.name
 
 
 end SuggestTactics
+
+
+namespace SelectPremises
+
+
+register_option LeanCopilot.select_premises.k : Nat := {
+  defValue := 16
+}
+
+
+def getNumPremises : m Nat := do
+  match LeanCopilot.select_premises.k.get? (← getOptions) with
+  | some k => return k
+  | _ => return 16
+
+
+end SelectPremises
 
 end
 

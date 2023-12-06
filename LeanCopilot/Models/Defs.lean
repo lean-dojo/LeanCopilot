@@ -21,11 +21,12 @@ instance : Inhabited Device where
   default := .auto
 
 
-instance : ToString Device where
-  toString
-    | Device.cpu => "cpu"
-    | Device.cuda => "cuda"
-    | Device.auto => "auto"
+def Device.toString : Device → String
+  | Device.cpu => "cpu"
+  | Device.cuda => "cuda"
+  | Device.auto => "auto"
+
+instance : ToString Device := ⟨Device.toString⟩
 
 
 inductive ComputeType where
@@ -42,18 +43,20 @@ inductive ComputeType where
 deriving Repr
 
 
-instance : ToString ComputeType where
-  toString
-    | ComputeType.default => "default"
-    | ComputeType.auto => "auto"
-    | ComputeType.int8 => "int8"
-    | ComputeType.int8_float32 => "int8_float32"
-    | ComputeType.int8_float16 => "int8_float16"
-    | ComputeType.int8_bfloat16 => "int8_bfloat16"
-    | ComputeType.int16 => "int16"
-    | ComputeType.float16 => "float16"
-    | ComputeType.bfloat16 => "bfloat16"
-    | ComputeType.float32 => "float32"
+def ComputeType.toString : ComputeType → String
+  | ComputeType.default => "default"
+  | ComputeType.auto => "auto"
+  | ComputeType.int8 => "int8"
+  | ComputeType.int8_float32 => "int8_float32"
+  | ComputeType.int8_float16 => "int8_float16"
+  | ComputeType.int8_bfloat16 => "int8_bfloat16"
+  | ComputeType.int16 => "int16"
+  | ComputeType.float16 => "float16"
+  | ComputeType.bfloat16 => "bfloat16"
+  | ComputeType.float32 => "float32"
+
+
+instance : ToString ComputeType := ⟨ComputeType.toString⟩
 
 
 structure Tokenizer where
@@ -143,11 +146,25 @@ structure ExternalEncoder extends ExternalModel
 deriving Repr
 
 
-def ExternalEncoder.encode (model : ExternalGenerator) (input : String) : IO FloatArray := do
-  return sorry
+def ExternalEncoder.encode (model : ExternalEncoder) (input : String) : IO FloatArray := do
+  return FloatArray.mk #[0.0]
 
 
-instance : TextToVec ExternalGenerator := ⟨ExternalEncoder.encode⟩
+instance : TextToVec ExternalEncoder := ⟨ExternalEncoder.encode⟩
+
+
+structure GenericGenerator where
+  generate : String → String → IO (Array (String × Float))
+
+
+instance : TextToText GenericGenerator := ⟨GenericGenerator.generate⟩
+
+
+structure GenericEncoder where
+  encode : String → IO FloatArray
+
+
+instance : TextToVec GenericEncoder := ⟨GenericEncoder.encode⟩
 
 
 end LeanCopilot

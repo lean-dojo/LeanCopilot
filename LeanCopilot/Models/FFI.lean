@@ -1,4 +1,5 @@
 import LeanCopilot.Models.Defs
+import LeanCopilot.Models.Builtin
 
 namespace LeanCopilot
 
@@ -29,17 +30,17 @@ opaque encode (name : @& String) (inputTokens : @& Array String) : FloatArray
 @[extern "init_premise_embeddings"]
 opaque initPremiseEmbeddings (path : @& String) (device : @& String) : Bool
 
-@[extern "is_premise_embeddings_initialized"]
-opaque isPremiseEmbeddingsInitialized : Unit → Bool
+@[extern "premise_embeddings_initialized"]
+opaque premiseEmbeddingsInitialized : Unit → Bool
 
 @[extern "init_premise_dictionary"]
 opaque initPremiseDictionary (path : @& String) : Bool
 
-@[extern "is_premise_dictionary_initialized"]
-opaque isPremiseDictionaryInitialized : Unit → Bool
+@[extern "premise_dictionary_initialized"]
+opaque premiseDictionaryInitialized : Unit → Bool
 
 @[extern "retrieve"]
-opaque retrieve (queryEmb : @& FloatArray) (k : UInt64) : Array (String × Float)
+opaque retrieve (queryEmb : @& FloatArray) (k : UInt64) : Array (String × String × String × Float)
 
 @[extern "cuda_available"]
 opaque cudaAvailable : Unit → Bool
@@ -58,8 +59,8 @@ def generate (model : NativeGenerator) (input : String) (targetPrefix : String) 
     let path ← model.path
     if ¬ (← path.pathExists) then
       throw $ IO.userError s!"Cannot find the model {model.name}. Please run `lake exe download {model.url}`."
-    let device := toString model.device
-    let computeType := toString model.computeType
+    let device := model.device.toString
+    let computeType := model.computeType.toString
     if ¬ (FFI.initGenerator model.name path.toString computeType device model.deviceIndex) then
       throw $ IO.userError s!"Failed to initialize model {model.name}"
 
@@ -97,8 +98,8 @@ def encode (model : NativeEncoder) (input : String) : IO FloatArray := do
     let path ← model.path
     if ¬ (← path.pathExists) then
       throw $ IO.userError s!"Cannot find the model {model.name}. Please run `lake exe download {model.url}`."
-    let device := toString model.device
-    let computeType := toString model.computeType
+    let device := model.device.toString
+    let computeType := model.computeType.toString
     if ¬ (FFI.initEncoder model.name path.toString computeType device model.deviceIndex) then
       throw $ IO.userError s!"Failed to initialize model {model.name}"
 
@@ -112,6 +113,30 @@ instance : TextToVec NativeEncoder where
 
 
 end NativeEncoder
+
+
+def premiseEmbeddingsInitialized : IO Bool := do
+  return FFI.premiseEmbeddingsInitialized ()
+
+
+def initPremiseEmbeddings (device : Device) : IO Bool := do
+  let path := (← getModelDir Builtin.premiseEmbeddingsUrl) / "embeddings.npy"
+  if ¬ (← path.pathExists) then
+    throw $ IO.userError "Cannot find the premise embeddings. Please run `lake exe download {Builtin.premiseEmbeddingsUrl}`."
+    return false
+  return FFI.initPremiseEmbeddings path.toString device.toString
+
+
+def premiseDictionaryInitialized : IO Bool := do
+  return FFI.premiseDictionaryInitialized ()
+
+
+def initPremiseDictionary : IO Bool := do
+  let path := (← getModelDir Builtin.premiseEmbeddingsUrl) / "dictionary.json"
+  if ¬ (← path.pathExists) then
+    throw $ IO.userError "Cannot find the premise dictionary. Please run `lake exe download {Builtin.premiseEmbeddingsUrl}`."
+    return false
+  return FFI.initPremiseDictionary path.toString
 
 
 end LeanCopilot

@@ -21,4 +21,7 @@ def encoder : NativeEncoder := {
 }
 
 
+def premiseEmbeddingsUrl := Url.parse! "https://huggingface.co/kaiyuy/premise-embeddings-leandojo-lean4-retriever-byt5-small"
+
+
 end LeanCopilot.Builtin

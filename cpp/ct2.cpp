@@ -231,7 +231,7 @@ extern "C" lean_obj_res encode(b_lean_obj_arg _name,            // String
   return arr;
 }
 
-extern "C" uint8_t init_p_premise_embeddings(
+extern "C" uint8_t init_premise_embeddings(
     b_lean_obj_arg _path,      // String
     b_lean_obj_arg _device) {  // String
   std::string path = std::string(lean_string_cstr(_path));
@@ -242,8 +242,7 @@ extern "C" uint8_t init_p_premise_embeddings(
     delete p_premise_embeddings;
   }
 
-  // ctranslate2::Device device =
-  // ctranslate2::str_to_device(lean_string_cstr(_device));
+  // ctranslate2::Device device = ctranslate2::str_to_device(lean_string_cstr(_device));
   // TODO: We should remove this line when everything can work well on CUDA.
   ctranslate2::Device device = ctranslate2::Device::CPU;
 
@@ -267,12 +266,12 @@ extern "C" uint8_t init_p_premise_embeddings(
   return true;
 }
 
-inline bool is_p_premise_embeddings_initialized_aux() {
+inline bool premise_embeddings_initialized_aux() {
   return p_premise_embeddings != nullptr;
 }
 
-extern "C" uint8_t is_p_premise_embeddings_initialized(lean_object *) {
-  return is_p_premise_embeddings_initialized_aux();
+extern "C" uint8_t premise_embeddings_initialized(lean_object *) {
+  return premise_embeddings_initialized_aux();
 }
 
 extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg _path) {
@@ -290,12 +289,12 @@ extern "C" uint8_t init_premise_dictionary(b_lean_obj_arg _path) {
   return true;
 }
 
-inline bool is_premise_dictionary_initialized_aux() {
+inline bool premise_dictionary_initialized_aux() {
   return p_premise_dictionary != nullptr;
 }
 
-extern "C" uint8_t is_premise_dictionary_initialized(lean_object *) {
-  return is_premise_dictionary_initialized_aux();
+extern "C" uint8_t premise_dictionary_initialized(lean_object *) {
+  return premise_dictionary_initialized_aux();
 }
 
 extern "C" lean_obj_res retrieve(b_lean_obj_arg _query_emb,
