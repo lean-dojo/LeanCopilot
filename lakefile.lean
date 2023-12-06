@@ -83,7 +83,7 @@ package LeanCopilot where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   buildArchive? := buildArchiveName
   precompileModules := true
-  buildType := BuildType.release
+  buildType := BuildType.debug  -- TODO: Release
   moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lctranslate2"]
   weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib "ctranslate2"]
 
