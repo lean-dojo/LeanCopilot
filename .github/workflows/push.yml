@@ -18,13 +18,13 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up elan
-        run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain leanprover/lean4:4.0.0
+        run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Build project
-        run: ~/.elan/bin/lake -Kenv=dev build
+        run: ~/.elan/bin/lake build
       - name: Download model
-        run: ~/.elan/bin/lake -Kenv=dev script run LeanInfer/download
+        run: ~/.elan/bin/lake script run LeanInfer/download
       - name: Build tests
-        run: ~/.elan/bin/lake -Kenv=dev build LeanInferTests
+        run: ~/.elan/bin/lake build LeanInferTests
   test_external:
     needs: build
     runs-on: ${{ matrix.os }}
@@ -34,7 +34,7 @@ jobs:
     name: Test external
     steps:
       - name: Set up elan
-        run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain leanprover/lean4:4.0.0
+        run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Get lean4-example
         run: |
           git clone https://github.com/yangky11/lean4-example
@@ -43,5 +43,5 @@ jobs:
       - name: Build lean4-example
         run: |
           cd lean4-example
-          ~/.elan/bin/lake -Kenv=dev script run LeanInfer/download
-          ~/.elan/bin/lake -Kenv=dev build
+          ~/.elan/bin/lake script run LeanInfer/download
+          ~/.elan/bin/lake build
