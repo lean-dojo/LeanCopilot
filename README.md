@@ -38,7 +38,7 @@ You may provide a prefix to constrain the generated tactics. For example, `sugge
 
 ### Searching for Proofs
 
-You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#init_llm_aesop` before using aesop (see [this example](LeanCopilotTests/Aesop.lean)). 
+You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#configure_llm_aesop` before using aesop (see [this example](LeanCopilotTests/Aesop.lean)). 
 
 
 ### Selecting Premises
