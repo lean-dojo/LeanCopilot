@@ -19,7 +19,7 @@ LeanCopilot provides tactic suggestions by running LLMs through Lean's foreign f
 
 1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]` to lakefile.lean. Also add LeanCopilot as a dependency:
 ```lean
-require LeanInfer from git "https://github.com/lean-dojo/LeanInfer.git" @ "v0.1.0"
+require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v0.1.0"
 ```
 2. Run `lake update LeanCopilot`
 3. Run `lake script run LeanCopilot/download` to download the models from Hugging Face to `~/.cache/lean_copilot/`
