@@ -28,7 +28,7 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v
 [Here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo) is an example of a Lean package depending on Lean Copilot. If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
 
-### Using LeanCopilot
+### Getting Started with Lean Copilot
 
 #### Tactic Suggestions
 
