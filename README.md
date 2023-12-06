@@ -1,9 +1,9 @@
-LeanCopilot: Native Neural Network Inference in Lean 4
-=============================================
+Lean Copilot: Language Models as Copilots for Theorem Proving in Lean
+=====================================================================
 
 <img width="1087" alt="LeanCopilot" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/f87ec407-29a5-4468-b2fb-a2f6e9105ae9">
 
-LeanCopilot provides tactic suggestions by running LLMs through Lean's foreign function interface (FFI). It is in an early stage of development. In the long term, we aim to integrate Lean and machine learning by providing a general and efficient way to run the inference of neural networks in Lean. 
+Lean Copilot allows language models to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. It runs efficiently on either CPUs or GPUs. With Lean Copilot, you can access our built-in models from [LeanDojo](https://leandojo.org/) or bring your models that run either locally or on the cloud (such as GPT-4).
 
 
 ## Requirements
@@ -38,7 +38,7 @@ You may provide a prefix to constrain the generated tactics. For example, `sugge
 
 ### Searching for Proofs
 
-You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#init_llm_aesop` before using aesop (see [this example](LeanCopilotTests/Aesop.lean)). 
+You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#configure_llm_aesop` before using aesop (see [this example](LeanCopilotTests/Aesop.lean)). 
 
 
 ### Selecting Premises
