@@ -1,8 +1,10 @@
+import Lean
 import ModelCheckpointManager
 import LeanCopilot.Models.Interface
 
 set_option autoImplicit false
 
+open Lean
 open System (FilePath)
 
 namespace LeanCopilot
@@ -104,19 +106,35 @@ structure ExternalGenerator extends ExternalModel
 deriving Repr
 
 
-def ExternalGenerator.generate (model : ExternalGenerator) (input : String) (targetPrefix : String) : IO $ Array (String × Float) := do
-  return #[("hi", 0.5)]
+structure ExternalRequest where
+  name : String
+  input : String
+  «prefix» : String
+deriving ToJson
 
-/-
-curl -X 'POST' \
-  'http://127.0.0.1:23336/generate' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "name": "EleutherAI/llemma_7b",
-  "input": "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
-}'
--/
+
+structure ExternalResponse where
+  outputs : Array (String × Float)
+deriving FromJson
+
+
+def ExternalGenerator.generate (model : ExternalGenerator) (input : String) (targetPrefix : String) : IO $ Array (String × Float) := do
+  let url := s!"http://{model.host}:{model.port}/generate"
+  let req : ExternalRequest := {
+    name := model.name,
+    input := input,
+    «prefix» := targetPrefix
+  }
+  let reqStr := (toJson req).pretty 99999999999999999
+  let out ← IO.Process.run {
+    cmd := "curl"
+    args := #["-X", "POST", url, "-H", "accept: application/json", "-H", "Content-Type: application/json", "-d", reqStr]
+  }
+
+  let some json := Json.parse out |>.toOption | throw $ IO.userError "Failed to parse response"
+  let some res := (fromJson? json : Except String ExternalResponse) |>.toOption | throw $ IO.userError "Failed to parse response"
+  return res.outputs
+
 
 instance : TextToText ExternalGenerator := ⟨ExternalGenerator.generate⟩
 

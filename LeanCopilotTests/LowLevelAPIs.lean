@@ -172,4 +172,4 @@ def model₆ : ExternalGenerator := {
   port := 23333
 }
 
-#eval generate model₆ "n : ℕ\n⊢ gcd n n = n"
+#eval generate model₆ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"

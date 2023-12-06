@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
+
 from models import *
 
 app = FastAPI()
@@ -26,7 +27,7 @@ models = {
 class InferenceRequest(BaseModel):
     name: str
     input: str
-    target_prefix: Optional[str]
+    prefix: Optional[str]
 
 
 @app.get("/")
@@ -37,12 +38,14 @@ async def read_root():
 @app.post("/generate")
 async def generate(req: InferenceRequest):
     model = models[req.name]
-    outputs = model.generate(req.input, req.target_prefix)
+    target_prefix = req.prefix if req.prefix is not None else ""
+    outputs = model.generate(req.input, target_prefix)
     return {"outputs": outputs}
 
 
 @app.post("/encode")
 async def encode(req: InferenceRequest):
+    assert req.prefix is None, "target_prefix is not supported by encoder"
     model = models[req.name]
     feature = model.encode(req.input)
     return {"outputs": feature.tolist()}

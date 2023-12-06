@@ -53,7 +53,7 @@ class DecoderOnlyTransformer(Generator, Transformer):
 
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
         tokenized_input = self.tokenzier(input + target_prefix, return_tensors="pt")
-        output = self.model.generat.e(
+        output = self.model.generate(
             tokenized_input.input_ids.to(self.device),
             max_length=self.max_length,
             num_beams=self.num_return_sequences,
