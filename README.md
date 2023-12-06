@@ -1,49 +1,59 @@
-Lean Copilot: Language Models as Copilots for Theorem Proving in Lean
-=====================================================================
+Lean Copilot: LLMs as Copilots for Theorem Proving in Lean
+==========================================================
 
 <img width="1087" alt="LeanCopilot" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/f87ec407-29a5-4468-b2fb-a2f6e9105ae9">
 
-Lean Copilot allows language models to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. It runs efficiently on either CPUs or GPUs. With Lean Copilot, you can access our built-in models from [LeanDojo](https://leandojo.org/) or bring your models that run either locally or on the cloud (such as GPT-4).
+Lean Copilot allows large language models (LLMs) to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. Users can use our built-in models from [LeanDojo](https://leandojo.org/) or bring their own models that run either locally (w/ or w/o GPUs) or on the cloud (such as GPT-4).
 
 
 ## Requirements
 
-* Supported platforms: Linux (including Windows WSL) and macOS
-* Git LFS
+* Supported platforms: Linux, macOS and Windows WSL
+* [Git LFS](https://git-lfs.com/)
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
 
 
-## Adding LeanCopilot as a Dependency to Your Project
+## Using Lean Copilot in Your Project
 
-:warning: Your package must use a Lean version of at least `lean4:v4.3.0-rc2`.
+:warning: Your project must use a Lean version of at least `lean4:v4.3.0-rc2`.
 
-1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lonnxruntime", "-lctranslate2"]` to lakefile.lean. Also add LeanCopilot as a dependency:
+### Adding Lean Copilot as a Dependency
+
+1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]` to lakefile.lean. Also add the following line:
 ```lean
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v0.1.0"
 ```
-2. Run `lake update LeanCopilot`
-3. Run `lake script run LeanCopilot/download` to download the models from Hugging Face to `~/.cache/lean_copilot/`
-4. Run `lake build`
+3. Run `lake update LeanCopilot`
+4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`
+5. Run `lake build`
 
-You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
+[Here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo) is an example of a Lean package depending on Lean Copilot. If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
 
-## Using LeanCopilot
+### Using LeanCopilot
 
-### Generating Tactic Suggestions
+#### Tactic Suggestions
 
-After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate tactic suggestions (see the image above and [this example](LeanCopilotTests/Examples.lean)). You can click on any of the suggested tactics to use it in the proof.
+After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate tactic suggestions. You can click on any of the suggested tactics to use it in the proof.
+<img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e6ca8280-1b8d-4431-9f2b-8ec3bc4d6706">
 
-You may provide a prefix to constrain the generated tactics. For example, `suggest_tactics "rw"` would only generate tactics starting with `rw`.
+You can provide a prefix to constrain the generated tactics. The example below only generates tactics starting with `simp`.
 
-### Searching for Proofs
+<img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e55a21d4-8191-4c18-8902-7590d5f17053">
+
+#### Proof Search
 
 You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#configure_llm_aesop` before using aesop (see [this example](LeanCopilotTests/Aesop.lean)). 
 
 
-### Selecting Premises
+#### Premise Selection
 
 Coming soon.*
+
+
+
+#### Running LLMs
+
 
 
 ## Building LeanCopilot
