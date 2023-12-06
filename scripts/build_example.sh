@@ -15,5 +15,5 @@ cd lean4-example
 git checkout LeanCopilot-demo
 
 # Build lean4-example.
-lake script run LeanCopilot/download
+lake exe LeanCopilot/download
 lake build
