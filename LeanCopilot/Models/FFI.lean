@@ -120,9 +120,9 @@ def premiseEmbeddingsInitialized : IO Bool := do
 
 
 def initPremiseEmbeddings (device : Device) : IO Bool := do
-  let path := (← getModelDir Builtin.premiseEmbeddingsUrl) / "embeddings.npy"
+  let path := (← getModelDir Builtin.premisesUrl) / "embeddings.npy"
   if ¬ (← path.pathExists) then
-    throw $ IO.userError "Cannot find the premise embeddings. Please run `lake exe download {Builtin.premiseEmbeddingsUrl}`."
+    throw $ IO.userError "Please run `lake exe download {Builtin.premisesUrl}` to download premise embeddings."
     return false
   return FFI.initPremiseEmbeddings path.toString device.toString
 
@@ -132,9 +132,9 @@ def premiseDictionaryInitialized : IO Bool := do
 
 
 def initPremiseDictionary : IO Bool := do
-  let path := (← getModelDir Builtin.premiseEmbeddingsUrl) / "dictionary.json"
+  let path := (← getModelDir Builtin.premisesUrl) / "dictionary.json"
   if ¬ (← path.pathExists) then
-    throw $ IO.userError "Cannot find the premise dictionary. Please run `lake exe download {Builtin.premiseEmbeddingsUrl}`."
+    throw $ IO.userError "Please run `lake exe download {Builtin.premisesUrl}` to download the premise dictionary."
     return false
   return FFI.initPremiseDictionary path.toString
 
