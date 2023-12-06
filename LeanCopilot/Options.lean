@@ -1,4 +1,5 @@
 import Lean
+import LeanCopilot.Models.Builtin
 
 set_option autoImplicit false
 
@@ -9,7 +10,7 @@ namespace LeanCopilot
 section
 
 
-variable {m : Type → Type} [Monad m] [MonadOptions m]
+variable {m : Type → Type} [Monad m] [MonadOptions m] [MonadEnv m] [MonadLift IO m]
 
 
 register_option LeanCopilot.verbose : Bool := {
@@ -24,11 +25,13 @@ def isVerbose : m Bool := do
   | _ => return false
 
 
+namespace SuggestTactics
+
+
 register_option LeanCopilot.suggest_tactics.check : Bool := {
   defValue := true
   descr := "Check if the generated tactics are valid or if they can prove the goal."
 }
-
 
 def checkTactics : CoreM Bool := do
   match LeanCopilot.suggest_tactics.check.get? (← getOptions) with
@@ -36,13 +39,25 @@ def checkTactics : CoreM Bool := do
   | _ => return true
 
 
-/-
-register_option LeanCopilot.suggest_tactics.generate : String → String := {
-  defValue := true
-  descr := "Check if the generated tactics are valid or if they can prove the goal."
+register_option LeanCopilot.suggest_tactics.model : Name := {
+  defValue := ``Builtin.generator
 }
--/
 
+
+register_option LeanCopilot.select_premises.model : Name := {
+  defValue := ``Builtin.generator
+}
+
+
+def getGeneratorName : m Name := do
+  let name := match LeanCopilot.suggest_tactics.model.get? (← getOptions) with
+  | some n => n
+  | _ => ``Builtin.generator
+  let env ← getEnv
+  return env.find? name |>.get! |>.name
+
+
+end SuggestTactics
 
 end
 
