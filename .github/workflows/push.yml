@@ -22,9 +22,9 @@ jobs:
       - name: Build project
         run: ~/.elan/bin/lake build
       - name: Download model
-        run: ~/.elan/bin/lake script run LeanInfer/download
+        run: ~/.elan/bin/lake script run LeanCopilot/download
       - name: Build tests
-        run: ~/.elan/bin/lake build LeanInferTests
+        run: ~/.elan/bin/lake build LeanCopilotTests
   test_external:
     needs: build
     runs-on: ${{ matrix.os }}
@@ -43,5 +43,5 @@ jobs:
       - name: Build lean4-example
         run: |
           cd lean4-example
-          ~/.elan/bin/lake script run LeanInfer/download
+          ~/.elan/bin/lake script run LeanCopilot/download
           ~/.elan/bin/lake build
