@@ -22,7 +22,7 @@ jobs:
       - name: Build project
         run: ~/.elan/bin/lake build
       - name: Download model
-        run: ~/.elan/bin/lake script run LeanCopilot/download
+        run: ~/.elan/bin/lake exe LeanCopilot/download
       - name: Build tests
         run: ~/.elan/bin/lake build LeanCopilotTests
   test_external:
@@ -43,5 +43,5 @@ jobs:
       - name: Build lean4-example
         run: |
           cd lean4-example
-          ~/.elan/bin/lake script run LeanCopilot/download
+          ~/.elan/bin/lake exe LeanCopilot/download
           ~/.elan/bin/lake build
