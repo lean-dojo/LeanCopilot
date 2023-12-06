@@ -14,5 +14,5 @@ RUN curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -
 
 # Build the Lean project.
 RUN lake build
-RUN lake script run LeanCopilot/download
+RUN lake exe LeanCopilot/download
 RUN lake build LeanCopilotTests
