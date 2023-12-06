@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 
-WORKDIR /LeanInfer
+WORKDIR /LeanCopilot
 COPY . .
 
 # Install dependencies.
@@ -14,5 +14,5 @@ RUN curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -
 
 # Build the Lean project.
 RUN lake build
-RUN lake script run LeanInfer/download
-RUN lake build LeanInferTests
+RUN lake script run LeanCopilot/download
+RUN lake build LeanCopilotTests

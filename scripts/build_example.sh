@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# This script demonstrates how to build a repo that depends on LeanInfer in GitHub Codespace. 
-# 1. Launch a codespace for LeanInfer.
+# This script demonstrates how to build a repo that depends on LeanCopilot in GitHub Codespace. 
+# 1. Launch a codespace for LeanCopilot.
 # 2. Run `source scripts/build_example.sh`.
 
 # Set up elan.
@@ -12,8 +12,8 @@ source $HOME/.elan/env
 cd /workspaces
 git clone https://github.com/yangky11/lean4-example
 cd lean4-example
-git checkout LeanInfer-demo
+git checkout LeanCopilot-demo
 
 # Build lean4-example.
-lake script run LeanInfer/download
+lake script run LeanCopilot/download
 lake build

@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# This script demonstrates how to build LeanInfer in GitHub Codespace. 
-# 1. Launch a codespace for LeanInfer.
+# This script demonstrates how to build LeanCopilot in GitHub Codespace. 
+# 1. Launch a codespace for LeanCopilot.
 # 2. Run `source scripts/build.sh`.
 
 # Set up elan.
@@ -10,5 +10,5 @@ source $HOME/.elan/env
 
 # Build the project.
 lake build
-lake script run LeanInfer/download
-lake build LeanInferTests
+lake script run LeanCopilot/download
+lake build LeanCopilotTests
