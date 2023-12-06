@@ -22,7 +22,7 @@ LeanCopilot provides tactic suggestions by running LLMs through Lean's foreign f
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v0.0.9"
 ```
 2. Run `lake update LeanCopilot`
-3. Run `lake script run LeanCopilot/download` to download the models from Hugging Face to `~/.cache/lean_infer/`
+3. Run `lake script run LeanCopilot/download` to download the models from Hugging Face to `~/.cache/lean_copilot/`
 4. Run `lake build`
 
 You may also see the [example here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo). If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
