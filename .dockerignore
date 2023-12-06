@@ -3,4 +3,5 @@
 build
 tmp
 lake-packages
+.lake
 clang+llvm*
