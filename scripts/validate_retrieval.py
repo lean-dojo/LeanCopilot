@@ -12,7 +12,8 @@ model = T5EncoderModel.from_pretrained("kaiyuy/leandojo-lean4-retriever-byt5-sma
 premise_embeddings_np = np.load("embeddings.npy")
 premise_embeddings = torch.from_numpy(premise_embeddings_np).float()
 
-state = "n: Nat\n⊢ Nat.gcd n n = n"
+# state = "n: Nat\n⊢ Nat.gcd n n = n"
+state = "a b c : Nat\n⊢ a + b + c = a + c + b"
 
 
 @torch.no_grad()
@@ -31,14 +32,15 @@ def encode(s: str) -> torch.Tensor:
     return features
 
 
+k=16
 state_embedding = encode(state)
 probs = torch.matmul(premise_embeddings, state_embedding)
-top10 = torch.topk(probs, k=10).indices.tolist()
-print(top10)
+topK = torch.topk(probs, k).indices.tolist()
+print(topK)
 
 
 with open("dictionary.json", "r") as f:
     dictionary = json.load(f)
 
-for i in top10:
+for i in topK:
     print(dictionary[str(i)])

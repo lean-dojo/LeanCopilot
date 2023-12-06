@@ -98,7 +98,8 @@ elab_rules : tactic
 
   | `(tactic | select_premises) => do
     let premisesWithInfoAndScores ← selectPremises
-    let richPremises ← Meta.liftMetaM $ (premisesWithInfoAndScores.mapM annotatePremise)
+    let rankedPremisesWithInfoAndScores := premisesWithInfoAndScores.qsort (·.2.2.2 > ·.2.2.2)
+    let richPremises ← Meta.liftMetaM $ (rankedPremisesWithInfoAndScores.mapM annotatePremise)
     let richPremisesExpand := richPremises.foldl (init := "") (· ++ · ++ "\n")
     logInfo richPremisesExpand
 
