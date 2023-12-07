@@ -53,8 +53,8 @@ def annotatePremise (premisesWithInfoAndScores : String × String × String × F
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
       | return s!"\n{premise} : {premise_type}\n"
-    return s!"\n{premise} : {premise_type}\n\n{doc_str}\n"
-  catch _ => return s!"\n{premise} needs to be imported from {path}.\n\n```\n{code}\n```\n"
+    return s!"\n{premise} : {premise_type}\n\n```doc{doc_str}```"
+  catch _ => return s!"\n{premise} needs to be imported from {path}.\n\n```code\n{code}\n```"
 
 
 def retrieve (input : String) : TacticM (Array (String × String × String × Float)) := do
