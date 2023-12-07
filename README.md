@@ -79,7 +79,7 @@ At any point in the proof, you can use the `select_premises` tactic to retrieve 
 
 #### Running LLMs
 
-Lean Copilot also allows you to run the inference of LLMs in Lean, which can be used to build customized proof automation tools or a wide range of LLM-based applications not limited to theorem proving. 
+You can also run the inference of any LLMs in Lean, which can be used to build customized proof automation or other LLM-based applications (not limited to theorem proving). It's possible to run arbitrary models either locally or remotely (see [Bring Your Own Model](#bring-your-own-model)). 
 
 <img width="1123" alt="run_llms" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/a4e5b84b-a797-4216-a416-2958448aeb07">
 
@@ -90,7 +90,6 @@ Lean Copilot also allows you to run the inference of LLMs in Lean, which can be 
 ### Model APIs
 
 ### Bring Your Own Model
-
 
 ### Tactic APIs
 
@@ -115,7 +114,7 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
 
 * [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
-* We thank Jannis Limperg for integrating our LLM-generated tactics into aesop (https://github.com/leanprover-community/aesop/pull/70).
+* We thank Jannis Limperg for integrating our LLM-generated tactics into Aesop (https://github.com/leanprover-community/aesop/pull/70).
 
 
 
