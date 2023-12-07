@@ -54,7 +54,7 @@ Coming soon.*
 
 
 
-## Building LeanCopilot
+## Building Lean Copilot
 
 You don't need to build Lean Copilot directly if you use it only in downstream packages. However, you may need to do that in some cases, e.g., if you want to contribute to Lean Copilot. You can run `lake build`, but make sure you have installed these dependencies:
 * CMake >= 3.7
@@ -77,7 +77,7 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
 ## Acknowledgements
 
 * [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
-* We thank Scott Morrison for suggestions on simplifying LeanCopilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
+* We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 * We thank Jannis Limperg for integrating our LLM-generated tactics into aesop (https://github.com/leanprover-community/aesop/pull/70).
 
 
