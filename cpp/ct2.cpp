@@ -39,15 +39,15 @@ extern "C" uint8_t cuda_available(b_lean_obj_arg) {
   return ctranslate2::str_to_device("auto") == ctranslate2::Device::CUDA;
 }
 
-template<typename T>
+template <typename T>
 bool is_initialized_aux(const std::string &name);
 
-template<>
+template <>
 bool is_initialized_aux<ctranslate2::Translator>(const std::string &name) {
   return generators.find(name) != generators.end();
 }
 
-template<>
+template <>
 bool is_initialized_aux<ctranslate2::Encoder>(const std::string &name) {
   return encoders.find(name) != encoders.end();
 }
@@ -99,7 +99,7 @@ bool init_model(b_lean_obj_arg _name,          // String
 extern "C" uint8_t init_generator(
     b_lean_obj_arg _name,            // String
     b_lean_obj_arg _model_path,      // String
-     b_lean_obj_arg _compute_type,    // String
+    b_lean_obj_arg _compute_type,    // String
     b_lean_obj_arg _device,          // String
     b_lean_obj_arg _device_index) {  // Array UInt64
   return init_model(_name, _model_path, _compute_type, _device, _device_index,
@@ -231,9 +231,8 @@ extern "C" lean_obj_res encode(b_lean_obj_arg _name,            // String
   return arr;
 }
 
-extern "C" uint8_t init_premise_embeddings(
-    b_lean_obj_arg _path,      // String
-    b_lean_obj_arg _device) {  // String
+extern "C" uint8_t init_premise_embeddings(b_lean_obj_arg _path,      // String
+                                           b_lean_obj_arg _device) {  // String
   std::string path = std::string(lean_string_cstr(_path));
   if (!exists(path)) {
     return false;
@@ -242,7 +241,8 @@ extern "C" uint8_t init_premise_embeddings(
     delete p_premise_embeddings;
   }
 
-  // ctranslate2::Device device = ctranslate2::str_to_device(lean_string_cstr(_device));
+  // ctranslate2::Device device =
+  // ctranslate2::str_to_device(lean_string_cstr(_device));
   // TODO: We should remove this line when everything can work well on CUDA.
   ctranslate2::Device device = ctranslate2::Device::CPU;
 
@@ -339,15 +339,20 @@ extern "C" lean_obj_res retrieve(b_lean_obj_arg _query_emb,
     int idx = p_topk_indices[i];
     assert(0 < idx && idx < num_premises);
     // [NOTE]: This is where the server crash occurs on CUDA.
-    const std::string this_premise = (*p_premise_dictionary)[std::to_string(idx)]["full_name"];
-    const std::string this_path = (*p_premise_dictionary)[std::to_string(idx)]["path"];
-    const std::string this_code = (*p_premise_dictionary)[std::to_string(idx)]["code"];
+    const std::string this_premise =
+        (*p_premise_dictionary)[std::to_string(idx)]["full_name"];
+    const std::string this_path =
+        (*p_premise_dictionary)[std::to_string(idx)]["path"];
+    const std::string this_code =
+        (*p_premise_dictionary)[std::to_string(idx)]["code"];
 
-    output = lean_array_push(output, lean_mk_pair(
-        lean_mk_string(this_premise.c_str()),
-        lean_mk_pair(lean_mk_string(this_path.c_str()),
-                     lean_mk_pair(lean_mk_string(this_code.c_str()),
-                                  lean_box_float(p_topk_values[i])))));
+    output = lean_array_push(
+        output,
+        lean_mk_pair(
+            lean_mk_string(this_premise.c_str()),
+            lean_mk_pair(lean_mk_string(this_path.c_str()),
+                         lean_mk_pair(lean_mk_string(this_code.c_str()),
+                                      lean_box_float(p_topk_values[i])))));
   }
 
   return output;
