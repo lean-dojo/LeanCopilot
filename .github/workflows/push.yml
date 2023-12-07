@@ -17,6 +17,10 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: Install Git LFS
+        run: |
+          git lfs install
+          git lfs pull
       - name: Set up elan
         run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Build project
