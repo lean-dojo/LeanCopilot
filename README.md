@@ -18,7 +18,6 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
 6. [Questions and Bugs](#questions-and-bugs)
 7. [Acknowledgements](#acknowledgements)
 8. [Citation](#citation)
-9. [Related Links](#related-links)
 
 
 ## Requirements
@@ -75,6 +74,20 @@ At any point in the proof, you can use the `select_premises` tactic to retrieve 
 
 #### Running LLMs
 
+Coming soon.
+
+
+## Advanced Usage
+
+### Low-level APIs
+
+
+### High-level APIs
+
+
+### Bring Your Own Model
+
+Coming soon.
 
 
 ## Building Lean Copilot
@@ -88,13 +101,6 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanCopilot/discussions).  
 * To report a potential bug, please open an issue. In the issue, please include your OS information and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
-
-
-## Related Links
-
-* [LeanDojo Website](https://leandojo.org/)
-* [LeanDojo](https://github.com/lean-dojo/LeanDojo) 
-* [ReProver](https://github.com/lean-dojo/ReProver)
 
 
 ## Acknowledgements
