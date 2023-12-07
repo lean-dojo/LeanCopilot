@@ -42,7 +42,7 @@ You can provide a prefix to constrain the generated tactics. The example below o
 
 #### Proof Search
 
-You can combine LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs, by simply adding `#configure_llm_aesop` before using `aesop`, `aesop?`, or `search_proof` (an alias of `aesop?`). When a proof is found, you can click on it to insert it into the editor. Note that the theorem below cannot be proved with the original aesop (without `#configure_llm_aesop`).
+You can combine LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs, by simply adding `#configure_llm_aesop` before using `aesop`, `aesop?`, or `search_proof` (just an alias of `aesop?`). When a proof is found, you can click on it to insert it into the editor. Note that the theorem below cannot be proved with the original aesop (without `#configure_llm_aesop`).
 
 <img width="824" alt="search_proof" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/0748b9b1-8eb0-4437-bcbf-12e4ea939943">
 
@@ -50,7 +50,9 @@ You can combine LLM-generated tactics with [aesop](https://github.com/leanprover
 
 #### Premise Selection
 
-Coming soon.*
+At any point in the proof, you can use the `select_premises` tactic to retrieve a list of potentially useful premises. Currently, we use the retriever in [LeanDojo](https://leandojo.org/) to select premises from a fixed snapshot of Lean and [mathlib4](https://github.com/leanprover-community/mathlib4/tree/3ce43c18f614b76e161f911b75a3e1ef641620ff), so it cannot select new lemmas in your project. 
+
+![select_premises](https://github.com/lean-dojo/LeanCopilot/assets/5431913/1ab1cc9b-39ac-4f40-b2c9-40d57e235d3e)
 
 
 
