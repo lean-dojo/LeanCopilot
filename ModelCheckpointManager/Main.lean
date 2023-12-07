@@ -3,6 +3,7 @@ import ModelCheckpointManager.Download
 
 open LeanCopilot
 
+
 def builtinModelUrls : List String := [
   "https://huggingface.co/kaiyuy/ct2-leandojo-lean4-tacgen-byt5-small",
   "https://huggingface.co/kaiyuy/ct2-leandojo-lean4-retriever-byt5-small",

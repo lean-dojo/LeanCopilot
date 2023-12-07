@@ -1,5 +1,3 @@
-import Lean
-
 open System (FilePath)
 
 set_option autoImplicit false
@@ -72,6 +70,7 @@ private def url₂ := parse! "https://huggingface.co/bert-base-uncased"
 
 #eval url₁.name!
 #eval url₂.name!
+
 
 end Url
 

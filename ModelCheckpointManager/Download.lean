@@ -6,12 +6,12 @@ open System (FilePath)
 
 namespace LeanCopilot
 
+
 def ensureDirExists (dir : FilePath) : IO Unit := do
   if ¬ (← dir.pathExists)  then
     IO.FS.createDirAll dir
 
 
--- TODO: Not sure if this works for Windows.
 def getHomeDir : IO FilePath := do
   let some dir ← IO.getEnv "HOME" | throw $ IO.userError "Cannot find the $HOME environment variable."
   return dir
@@ -28,11 +28,6 @@ def getCacheDir : IO FilePath := do
   | none => defaultCacheDir
   ensureDirExists dir
   return dir.normalize
-
-
-inductive ModelPath where
-  | «local» : FilePath → ModelPath
-  | remote : Url → ModelPath
 
 
 def getModelDir (url : Url) : IO FilePath := do
