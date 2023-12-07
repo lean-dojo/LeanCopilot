@@ -4,3 +4,4 @@ tmp
 lake-packages
 .lake
 clang+llvm*
+python/__pycache__

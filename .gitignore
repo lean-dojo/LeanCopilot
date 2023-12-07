@@ -3,3 +3,4 @@
 
 .vscode
 *.olean
+python/__pycache__
