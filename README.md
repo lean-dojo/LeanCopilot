@@ -14,10 +14,14 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
       1. [Tactic Suggestion](#tactic-suggestion)
       2. [Proof Search](#proof-search)
       3. [Premise Selection](#premise-selection)
-5. [Building Lean Copilot](#building-lean-copilot)
-6. [Questions and Bugs](#questions-and-bugs)
-7. [Acknowledgements](#acknowledgements)
-8. [Citation](#citation)
+5. [Advanced Usage](#advanced-usage)
+   1. [Model APIs](#model-apis)
+   2. [Bring Your Own Model](#bring-your-own-model)
+   3. [Tactic APIs](#tactic-apis)
+7. [Building Lean Copilot](#building-lean-copilot)
+8. [Questions and Bugs](#questions-and-bugs)
+9. [Acknowledgements](#acknowledgements)
+10. [Citation](#citation)
 
 
 ## Requirements
@@ -79,13 +83,13 @@ Coming soon.
 
 ## Advanced Usage
 
-### Low-level APIs
-
-
-### High-level APIs
-
+### Model APIs
 
 ### Bring Your Own Model
+
+
+### Tactic APIs
+
 
 Coming soon.
 
