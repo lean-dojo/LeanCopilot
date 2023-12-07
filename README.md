@@ -79,6 +79,8 @@ At any point in the proof, you can use the `select_premises` tactic to retrieve 
 
 #### Running LLMs
 
+Lean Copilot also allows you to run the inference of LLMs in Lean, which can be used to build customized proof automation tools or a wide range of LLM-based applications not limited to theorem proving. 
+
 <img width="1123" alt="run_llms" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/a4e5b84b-a797-4216-a416-2958448aeb07">
 
 
