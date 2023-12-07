@@ -50,6 +50,7 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v
 
 ### Getting Started with Lean Copilot
 
+
 #### Tactic Suggestion
 
 After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate tactic suggestions. You can click on any of the suggested tactics to use it in the proof.
