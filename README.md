@@ -78,7 +78,8 @@ At any point in the proof, you can use the `select_premises` tactic to retrieve 
 
 #### Running LLMs
 
-Coming soon.
+<img width="1123" alt="run_llms" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/a4e5b84b-a797-4216-a416-2958448aeb07">
+
 
 
 ## Advanced Usage
