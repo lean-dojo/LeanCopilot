@@ -39,9 +39,13 @@ You can provide a prefix to constrain the generated tactics. The example below o
 
 <img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e55a21d4-8191-4c18-8902-7590d5f17053">
 
+
 #### Proof Search
 
-You can combine the LLM-generated tactic suggestions with [aesop](https://github.com/leanprover-community/aesop) to search for complete proofs. To do this, simply add `#configure_llm_aesop` before using aesop (see [this example](LeanCopilotTests/Aesop.lean)). 
+You can combine LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs, by simply adding `#configure_llm_aesop` before using `aesop`, `aesop?`, or `search_proof` (an alias of `aesop?`). When a proof is found, you can click on it to insert it into the editor. Note that the theorem below cannot be proved with the original aesop (without `#configure_llm_aesop`).
+
+<img width="824" alt="search_proof" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/0748b9b1-8eb0-4437-bcbf-12e4ea939943">
+
 
 
 #### Premise Selection
@@ -54,9 +58,9 @@ Coming soon.*
 
 
 
-## Building LeanCopilot
+## Building Lean Copilot
 
-You don't need to build LeanCopilot directly if you use it in a downstream package. Nevertheless, if you really need to build LeanCopilot, it can be done by `lake build`. However, make sure you have installed these dependencies:
+You don't need to build Lean Copilot directly if you use it only in downstream packages. However, you may need to do that in some cases, e.g., if you want to contribute to Lean Copilot. You can run `lake build`, but make sure you have installed these dependencies:
 * CMake >= 3.7
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 
@@ -77,14 +81,14 @@ You don't need to build LeanCopilot directly if you use it in a downstream packa
 ## Acknowledgements
 
 * [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
-* We thank Scott Morrison for suggestions on simplifying LeanCopilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
+* We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 * We thank Jannis Limperg for integrating our LLM-generated tactics into aesop (https://github.com/leanprover-community/aesop/pull/70).
 
 
 
 ## Citation
 
-```bibtex
+```BibTeX
 @inproceedings{song2023towards,
   title={Towards Large Language Models as Copilots for Theorem Proving in {Lean}},
   author={Song, Peiyang and Yang, Kaiyu and Anandkumar, Anima},
