@@ -56,7 +56,7 @@ Coming soon.*
 
 ## Building LeanCopilot
 
-You don't need to build LeanCopilot directly if you use it in a downstream package. Nevertheless, if you really need to build LeanCopilot, it can be done by `lake build`. However, make sure you have installed these dependencies:
+You don't need to build Lean Copilot directly if you use it only in downstream packages. However, you may need to do that in some cases, e.g., if you want to contribute to Lean Copilot. You can run `lake build`, but make sure you have installed these dependencies:
 * CMake >= 3.7
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 
