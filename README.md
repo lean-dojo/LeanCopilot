@@ -4,6 +4,23 @@ Lean Copilot: LLMs as Copilots for Theorem Proving in Lean
 Lean Copilot allows large language models (LLMs) to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. Users can use our built-in models from [LeanDojo](https://leandojo.org/) or bring their own models that run either locally (w/ or w/o GPUs) or on the cloud (such as GPT-4).
 
 
+
+## Table of Contents
+
+1. [Requirements](#requirements)  
+2. [Using Lean Copilot in Your Project](#using-lean-copilot-in-your-project)
+   1. [Adding Lean Copilot as a Dependency](#adding-lean-copilot-as-a-dependency)
+   3. [Getting Started with Lean Copilot](#getting-started-with-lean-copilot)
+      1. [Tactic Suggestion](#tactic-suggestion)
+      2. [Proof Search](#proof-search)
+      3. [Premise Selection](#premise-selection)
+5. [Building Lean Copilot](#building-lean-copilot)
+6. [Questions and Bugs](#questions-and-bugs)
+7. [Acknowledgements](#acknowledgements)
+8. [Citation](#citation)
+9. [Related Links](#related-links)
+
+
 ## Requirements
 
 * Supported platforms: Linux, macOS and Windows WSL
@@ -30,7 +47,7 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v
 
 ### Getting Started with Lean Copilot
 
-#### Tactic Suggestions
+#### Tactic Suggestion
 
 After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate tactic suggestions. You can click on any of the suggested tactics to use it in the proof.
 <img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e6ca8280-1b8d-4431-9f2b-8ec3bc4d6706">
@@ -98,12 +115,4 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
   booktitle={The 3rd Workshop on Mathematical Reasoning and AI at NeurIPS'23},
   year={2023}
 }
-```
-
-
-## Code Formatting
-
-The C++ code in this project is formatted using [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html). To format the code, run
-```bash
-clang-format --style Google -i cpp/*.cpp
 ```
