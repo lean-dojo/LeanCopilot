@@ -313,7 +313,6 @@ extern "C" lean_obj_res retrieve(b_lean_obj_arg _query_emb,
   ctranslate2::StorageView query_emb =
       ctranslate2::StorageView({d, 1}, query_emb_data, device);
 
-  // TODO:
   ctranslate2::ops::MatMul matmul(false, false, 1.0);
   long int k = static_cast<long int>(_k);
   ctranslate2::ops::TopK topk(k, -1);
