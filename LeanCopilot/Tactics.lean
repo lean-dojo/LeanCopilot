@@ -28,10 +28,6 @@ def getPpTacticState : TacticM String := do
   ppTacticState goals
 
 
-@[implemented_by Meta.evalExpr]
-opaque evalExpr (α) (expectedType : Expr) (value : Expr) (safety := DefinitionSafety.safe) : MetaM α
-
-
 open SuggestTactics in
 /--
 Generate a list of tactic suggestions.
@@ -45,7 +41,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   generate model state targetPrefix
 
 
-def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do
+private def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do
   let (premise, path, code, _) := premisesWithInfoAndScores
   let declName := premise.toName
   try
@@ -57,6 +53,9 @@ def annotatePremise (premisesWithInfoAndScores : String × String × String × F
   catch _ => return s!"\n{premise} needs to be imported from {path}.\n```code\n{code}\n```"
 
 
+/--
+Retrieve a list of premises given a query.
+-/
 def retrieve (input : String) : TacticM (Array (String × String × String × Float)) := do
   if ¬ (← premiseEmbeddingsInitialized) ∧ ¬ (← initPremiseEmbeddings .auto) then
     throwError "Cannot initialize premise embeddings"
@@ -70,6 +69,9 @@ def retrieve (input : String) : TacticM (Array (String × String × String × Fl
   return FFI.retrieve query k.toUInt64
 
 
+/--
+Retrieve a list of premises using the current pretty-printed tactic state as the query.
+-/
 def selectPremises : TacticM (Array (String × String × String × Float)) := do
   retrieve (← getPpTacticState)
 

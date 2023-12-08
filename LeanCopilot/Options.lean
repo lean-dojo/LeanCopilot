@@ -15,7 +15,7 @@ variable {m : Type → Type} [Monad m] [MonadOptions m] [MonadEnv m] [MonadLift 
 
 register_option LeanCopilot.verbose : Bool := {
   defValue := false
-  descr := "Log various debugging information when running LeanCopilot."
+  descr := "Whether to log various debugging information."
 }
 
 
@@ -30,7 +30,7 @@ namespace SuggestTactics
 
 register_option LeanCopilot.suggest_tactics.check : Bool := {
   defValue := true
-  descr := "Check if the generated tactics are valid or if they can prove the goal."
+  descr := "Whether to run the generated tactics."
 }
 
 def checkTactics : CoreM Bool := do

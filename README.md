@@ -94,7 +94,6 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ### Tactic APIs
 
-
 Coming soon.
 
 
