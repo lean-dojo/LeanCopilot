@@ -94,6 +94,13 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ### Tactic APIs
 
+mul_left_comm needs to be imported from Mathlib/Algebra/Group/Basic.lean.
+
+```
+@[to_additive]
+theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
+```
+
 Coming soon.
 
 
