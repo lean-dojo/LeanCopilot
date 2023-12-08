@@ -16,11 +16,7 @@ print("Embeddings saved to embeddings.npy")
 all_premises = indexed_corpus.corpus.all_premises
 
 premise_dict = {
-    index: {
-        "full_name": premise.full_name,
-        "path": premise.path,
-        "code": premise.code
-    }
+    index: {"full_name": premise.full_name, "path": premise.path, "code": premise.code}
     for index, premise in enumerate(all_premises)
 }
 

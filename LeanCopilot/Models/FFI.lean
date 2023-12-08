@@ -1,4 +1,5 @@
-import LeanCopilot.Models.Defs
+import LeanCopilot.Models.Interface
+import LeanCopilot.Models.Native
 import LeanCopilot.Models.Builtin
 
 namespace LeanCopilot
@@ -6,6 +7,7 @@ namespace LeanCopilot
 set_option autoImplicit false
 
 namespace FFI
+
 
 @[extern "is_generator_initialized"]
 opaque isGeneratorInitialized : (name : @& String) → Bool
@@ -44,6 +46,7 @@ opaque retrieve (queryEmb : @& FloatArray) (k : UInt64) : Array (String × Strin
 
 @[extern "cuda_available"]
 opaque cudaAvailable : Unit → Bool
+
 
 end FFI
 

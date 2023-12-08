@@ -1,8 +1,7 @@
-import torch
-from typing import Union, List
-from transformers import AutoTokenizer, T5EncoderModel
-import numpy as np
 import json
+import torch
+import numpy as np
+from transformers import AutoTokenizer, T5EncoderModel
 
 
 tokenizer = AutoTokenizer.from_pretrained("kaiyuy/leandojo-lean4-retriever-byt5-small")
@@ -32,7 +31,7 @@ def encode(s: str) -> torch.Tensor:
     return features
 
 
-k=16
+k = 16
 state_embedding = encode(state)
 probs = torch.matmul(premise_embeddings, state_embedding)
 topK = torch.topk(probs, k).indices.tolist()

@@ -1,4 +1,6 @@
-import LeanCopilot.Models.Defs
+import LeanCopilot.Models.Native
+import LeanCopilot.Models.External
+import LeanCopilot.Models.Generic
 import LeanCopilot.Models.Builtin
 import LeanCopilot.Models.FFI
 import Std.Data.HashMap

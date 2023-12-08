@@ -19,7 +19,7 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
    2. [Bring Your Own Model](#bring-your-own-model)
    3. [Tactic APIs](#tactic-apis)
 7. [Building Lean Copilot](#building-lean-copilot)
-8. [Questions and Bugs](#questions-and-bugs)
+8. [Getting in Touch](#getting-in-touch)
 9. [Acknowledgements](#acknowledgements)
 10. [Citation](#citation)
 
@@ -105,10 +105,11 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
 * A C++17 compatible compiler, e.g., recent versions of GCC or Clang
 
 
-## Questions and Bugs
+### Getting in Touch
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanCopilot/discussions).  
 * To report a potential bug, please open an issue. In the issue, please include your OS information and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
+* Feature requests and other suggestions are extremely welcome. Please feel free to start a discussion!
 
 
 ## Acknowledgements

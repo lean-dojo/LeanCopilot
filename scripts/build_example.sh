@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script demonstrates how to build a repo that depends on LeanCopilot in GitHub Codespace. 
+# This script demonstrates how to build a repo that depends on Lean Copilot in GitHub Codespace. 
 # 1. Launch a codespace for LeanCopilot.
 # 2. Run `source scripts/build_example.sh`.
 

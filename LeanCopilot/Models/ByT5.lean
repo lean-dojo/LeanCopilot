@@ -1,4 +1,9 @@
-import LeanCopilot.Models.Defs
+/-
+ByT5 tokenization implemented in Lean.
+-/
+import LeanCopilot.Models.Native
+
+set_option autoImplicit false
 
 namespace LeanCopilot.ByT5
 
@@ -263,11 +268,11 @@ def vocab : Array String := #[
 ]
 
 
-def byteToToken (b : UInt8) : String :=
+private def byteToToken (b : UInt8) : String :=
   vocab.get! b.toNat
 
 
-def tokenToByte! (t : String) : UInt8 :=
+private def tokenToByte! (t : String) : UInt8 :=
   vocab.findIdx? (· = t) |>.get! |>.toUInt8
 
 

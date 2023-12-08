@@ -2,7 +2,9 @@ import LeanCopilot.Tactics
 import LeanCopilot.Options
 import Aesop
 
-open Lean Lean.Elab.Command
+set_option autoImplicit false
+
+open Lean
 
 namespace LeanCopilot
 
