@@ -44,7 +44,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   let model ← getGenerator nm
   let suggestions ← generate model state targetPrefix
   let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
-    if t == theoremName then none else some (t, s)
+    if (t == theoremName) ∨ (t == "aesop") then none else some (t, s)
   return filteredSuggestions
 
 
