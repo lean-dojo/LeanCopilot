@@ -3,7 +3,7 @@ import LeanCopilot.Options
 import LeanCopilot.Frontend
 import Aesop.Util.Basic
 
-open Lean Meta Elab Tactic
+open Lean Meta Elab Term Tactic
 
 set_option autoImplicit false
 
@@ -34,11 +34,18 @@ Generate a list of tactic suggestions.
 -/
 def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) := do
   let state ← getPpTacticState
+  let theoremName := match ((← getDeclName?).get!).toString with
+    | "_example" => ""
+    | n => n
   if ← isVerbose then
     logInfo s!"State:\n{state}"
+    logInfo s!"Theorem name:¬{theoremName}"
   let nm ← getGeneratorName
   let model ← getGenerator nm
-  generate model state targetPrefix
+  let suggestions ← generate model state targetPrefix
+  let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
+    if (t == theoremName) ∨ (t == "aesop") then none else some (t, s)
+  return filteredSuggestions
 
 
 private def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do
