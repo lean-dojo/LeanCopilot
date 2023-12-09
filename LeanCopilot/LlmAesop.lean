@@ -12,15 +12,19 @@ namespace LeanCopilot
 
 def tacGen : Aesop.TacGen := fun (mvarId : MVarId) => do
   let state ← ppTacticState [mvarId]
-  let theoremName := match ((← liftM (m := MetaM) <| Term.TermElabM.run getDeclName?).1.get!).toString with
-    | "_example" => ""
-    | n => n
-  let theoremNameMatcher := String.Matcher.ofString theoremName
   let nm ← SuggestTactics.getGeneratorName
   let model ← getGenerator nm
   let suggestions ← generate model state ""
+  -- A temporary workaround to prevent the tactic from using the current theorem.
+  -- TODO: Use a more pincipled way, e.g., see Lean4Repl.lean in LeanDojo.
+  let theoremName := match (← liftM (m := MetaM) <| Term.TermElabM.run getDeclName?).1.get! |>.toString with
+    | "_example" => ""
+    | n => n
+  let theoremNameMatcher := String.Matcher.ofString theoremName
   let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
-    if (¬ (theoremName == "") ∧ (Option.isSome <| theoremNameMatcher.find? t)) ∨ (t == "aesop") then none else some (t, s)
+    let isAesop := t == "aesop"
+    let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
+    if isSelfReference ∨ isAesop then none else some (t, s)
   return filteredSuggestions
 
 
