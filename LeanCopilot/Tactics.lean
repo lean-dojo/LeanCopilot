@@ -2,6 +2,7 @@ import Lean
 import LeanCopilot.Options
 import LeanCopilot.Frontend
 import Aesop.Util.Basic
+import Std.Data.String.Basic
 
 open Lean Meta Elab Term Tactic
 
@@ -37,6 +38,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   let theoremName := match ((← getDeclName?).get!).toString with
     | "_example" => ""
     | n => n
+  let theoremNameMatcher := String.Matcher.ofString theoremName
   if ← isVerbose then
     logInfo s!"State:\n{state}"
     logInfo s!"Theorem name:¬{theoremName}"
@@ -44,7 +46,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   let model ← getGenerator nm
   let suggestions ← generate model state targetPrefix
   let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
-    if (t == theoremName) ∨ (t == "aesop") then none else some (t, s)
+    if (¬ (theoremName == "") ∧ (Option.isSome <| theoremNameMatcher.find? t)) ∨ (t == "aesop") then none else some (t, s)
   return filteredSuggestions
 
 
