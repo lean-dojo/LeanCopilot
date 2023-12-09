@@ -79,11 +79,7 @@ def generate (model : NativeGenerator) (input : String) (targetPrefix : String) 
   let temperature := model.params.temperature
   let tokensWithScores := FFI.generate model.name inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
 
-  return tokensWithScores.filterMap fun ((ts, s) : Array String × Float) =>
-    match tokenizer.detokenize ts with
-    | "aesop" => none
-    | t => some (t, s)
-
+  return tokensWithScores.filterMap fun ((ts, s) : Array String × Float) => (tokenizer.detokenize ts, s)
 
 
 instance : TextToText NativeGenerator where
