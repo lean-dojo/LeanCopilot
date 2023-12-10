@@ -119,7 +119,7 @@ Similar to generators, we have `NativeEncoder`, `ExternalEncoder`, and `GenericE
 
 ### Bring Your Own Model
 
-In principle, it is possible to run any model using Lean Copilot through `ExternalGenerator` or `ExternalEncoder` (examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean)). To use a model, you need to wrap it properly to expose the APIs in [external_model_api.yaml](./external_model_api.yaml). As an example, we provide a Python API server and use it to run a few models, including [llmstep-mathlib4-pythia2.8b](https://huggingface.co/wellecks/llmstep-mathlib4-pythia2.8b).
+In principle, it is possible to run any model using Lean Copilot through `ExternalGenerator` or `ExternalEncoder` (examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean)). To use a model, you need to wrap it properly to expose the APIs in [external_model_api.yaml](./external_model_api.yaml). As an example, we provide a [Python API server](./python) and use it to run a few models, including [llmstep-mathlib4-pythia2.8b](https://huggingface.co/wellecks/llmstep-mathlib4-pythia2.8b).
 
 
 
