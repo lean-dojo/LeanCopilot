@@ -1,7 +1,7 @@
 Lean Copilot: LLMs as Copilots for Theorem Proving in Lean
 ==========================================================
 
-Lean Copilot allows large language models (LLMs) to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. Users can use our built-in models from [LeanDojo](https://leandojo.org/) or bring their own models that run either locally (w/ or w/o GPUs) or on the cloud.
+Lean Copilot allows large language models (LLMs) to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. You can use our built-in models from [LeanDojo](https://leandojo.org/) or bring your own models that run either locally (w/ or w/o GPUs) or on the cloud.
 
 
 
@@ -18,7 +18,6 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
    1. [Model APIs](#model-apis)
    2. [Bring Your Own Model](#bring-your-own-model)
    3. [Tactic APIs](#tactic-apis)
-7. [Building Lean Copilot](#building-lean-copilot)
 8. [Getting in Touch](#getting-in-touch)
 9. [Acknowledgements](#acknowledgements)
 10. [Citation](#citation)
@@ -29,7 +28,7 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
 * Supported platforms: Linux, macOS and Windows WSL
 * [Git LFS](https://git-lfs.com/)
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
-
+* Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler
 
 ## Using Lean Copilot in Your Project
 
@@ -57,14 +56,14 @@ After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate
 
 <img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e6ca8280-1b8d-4431-9f2b-8ec3bc4d6706">
 
-You can provide a prefix to constrain the generated tactics. The example below only generates tactics starting with `simp`.
+You can provide a prefix (e.g., `simp`) to constrain the generated tactics:
 
 <img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e55a21d4-8191-4c18-8902-7590d5f17053">
 
 
 #### Proof Search
 
-You can combine LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs, by simply adding `#configure_llm_aesop` before using `aesop`, `aesop?`, or `search_proof` (just an alias of `aesop?`). When a proof is found, you can click on it to insert it into the editor. Note that the theorem below cannot be proved with the original aesop (without `#configure_llm_aesop`).
+The tactic `search_proof` combines LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs. When a proof is found, you can click on it to insert it into the editor. 
 
 <img width="824" alt="search_proof" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/0748b9b1-8eb0-4437-bcbf-12e4ea939943">
 
@@ -72,7 +71,7 @@ You can combine LLM-generated tactics with [aesop](https://github.com/leanprover
 
 #### Premise Selection
 
-At any point in the proof, you can use the `select_premises` tactic to retrieve a list of potentially useful premises. Currently, we use the retriever in [LeanDojo](https://leandojo.org/) to select premises from a fixed snapshot of Lean and [mathlib4](https://github.com/leanprover-community/mathlib4/tree/3ce43c18f614b76e161f911b75a3e1ef641620ff), so it cannot select new lemmas in your project. 
+The `select_premises` tactic retrieves a list of potentially useful premises. Currently, it uses the retriever in [LeanDojo](https://leandojo.org/) to select premises from a fixed snapshot of Lean and [mathlib4](https://github.com/leanprover-community/mathlib4/tree/3ce43c18f614b76e161f911b75a3e1ef641620ff).
 
 ![select_premises](https://github.com/lean-dojo/LeanCopilot/assets/5431913/1ab1cc9b-39ac-4f40-b2c9-40d57e235d3e)
 
@@ -104,12 +103,6 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 Coming soon.
 
 
-## Building Lean Copilot
-
-You don't need to build Lean Copilot directly if you use it only in downstream packages. However, you may need to do that in some cases, e.g., if you want to contribute to Lean Copilot. You can run `lake build`, but make sure you have installed these dependencies:
-* CMake >= 3.7
-* A C++17 compatible compiler, e.g., recent versions of GCC or Clang
-
 
 ### Getting in Touch
 
@@ -120,10 +113,9 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
 
 ## Acknowledgements
 
-* [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
+* We use the frontend of llmstep](https://github.com/wellecks/llmstep) for displaying tactics.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 * We thank Jannis Limperg for integrating our LLM-generated tactics into Aesop (https://github.com/leanprover-community/aesop/pull/70).
-
 
 
 ## Citation
