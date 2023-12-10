@@ -15,9 +15,9 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
       2. [Proof Search](#proof-search)
       3. [Premise Selection](#premise-selection)
 5. [Advanced Usage](#advanced-usage)
-   1. [Model APIs](#model-apis)
-   2. [Bring Your Own Model](#bring-your-own-model)
-   3. [Tactic APIs](#tactic-apis)
+   1. [Tactic APIs](#tactic-apis)
+   2. [Model APIs](#model-apis)
+   3. [Bring Your Own Model](#bring-your-own-model)
 8. [Getting in Touch](#getting-in-touch)
 9. [Acknowledgements](#acknowledgements)
 10. [Citation](#citation)
@@ -87,6 +87,16 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ## Advanced Usage
 
+
+### Tactic APIs
+
+* Examples in [TacticSuggestions.lean](LeanCopilotTests/TacticSuggestions.lean) showcase how to configure `suggest_tactics`, e.g., to use different models or generate different numbers of tactics.
+* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to configure the proof search using options provided by [aesop](https://github.com/leanprover-community/aesop).
+* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to set the number of retrieved premises for `select_premises`.
+
+
+
+
 ### Model APIs
 
 **Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (temperature, beam size, etc.).** 
@@ -121,13 +131,6 @@ Similar to generators, we have `NativeEncoder`, `ExternalEncoder`, and `GenericE
 
 In principle, it is possible to run any model using Lean Copilot through `ExternalGenerator` or `ExternalEncoder` (examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean)). To use a model, you need to wrap it properly to expose the APIs in [external_model_api.yaml](./external_model_api.yaml). As an example, we provide a [Python API server](./python) and use it to run a few models, including [llmstep-mathlib4-pythia2.8b](https://huggingface.co/wellecks/llmstep-mathlib4-pythia2.8b).
 
-
-
-### Tactic APIs
-
-* Examples in [TacticSuggestions.lean](LeanCopilotTests/TacticSuggestions.lean) showcase how to configure `suggest_tactics`, e.g., to use different models or generate different numbers of tactics.
-* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to configure the proof search using options provided by [aesop](https://github.com/leanprover-community/aesop).
-* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to set the number of retrieved premises for `select_premises`.
 
 
 ### Caveats
