@@ -33,8 +33,8 @@ Author: Sean Welleck
 -/
 
 /-
-This file is adapted from the frontend of the `llmstep` tactic
-for LLM-based next-step suggestions in Lean4, built by Sean Welleck.
+This file is adapted from the frontend of the `llmstep` tactic for
+LLM-based next-step suggestions in Lean4, originally built by Sean Welleck.
 -/
 import Lean.Widget.UserWidget
 import Std.Lean.Position
