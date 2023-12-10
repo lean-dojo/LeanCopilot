@@ -89,6 +89,23 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ### Model APIs
 
+Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (precision, temperature, beam size, etc.)
+
+Lean Copilot supports two kinds of models: generator and encoder. Generators must implement the `TextToText` interface:
+```lean
+class TextToText (τ : Type) where
+  generate (model : τ) (input : String) (targetPrefix : String) : IO $ Array (String × Float)
+```
+* `input` is the input string
+* `targetPrefix` is used to constrain the generator's output. `""` means no constraint.
+* `generate` should return an array of `String × Float`. Each `String` is an output from the model, and `Float` is the corresponding score.
+
+We provide three types of Generators:
+* [`NativeGenerator`](LeanCopilot/Models/Native.lean) runs locally powered by [CTranslate2](https://github.com/OpenNMT/CTranslate2) and is linked to Lean using Foreign Function Interface (FFI).
+* [`ExternalGenerator`](LeanCopilot/Models/External.lean) is hosted either locally or remotely. See [Bring Your Own Model](#bring-your-own-model) for details.
+* [`GenericGenerator`](LeanCopilot/Models/Generic.lean) can be anything that implements the `generate` interface.
+
+
 ### Bring Your Own Model
 
 #### Generic Models
@@ -98,7 +115,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 #### External Models
 
 ```bash
-conda create --name lean-copilot python=3.10 ipython numpy
+conda create --name lean-copilot python=3.10 python numpy
 conda activate lean-copilot
 pip install torch --index-url https://download.pytorch.org/whl/cu121  # Depending on whether you have CUDA and the CUDA version; see https://pytorch.org/.
 pip install fastapi uvicorn loguru transformers openai
@@ -195,14 +212,19 @@ components:
 
 ### Tactic APIs
 
+* Examples in [TacticSuggestions.lean](LeanCopilotTests/TacticSuggestions.lean) showcase how to configure `suggest_tactics`, e.g., to use different models or generate different numbers of tactics.
+* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to configure the proof search using options provided by [aesop](https://github.com/leanprover-community/aesop).
+* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to set the number of retrieved premises for `select_premises`.
+
+
+### Caveats
+
 mul_left_comm needs to be imported from Mathlib/Algebra/Group/Basic.lean.
 
 ```
 @[to_additive]
 theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 ```
-
-Coming soon.
 
 
 
