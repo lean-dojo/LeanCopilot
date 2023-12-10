@@ -57,14 +57,14 @@ After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate
 
 <img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e6ca8280-1b8d-4431-9f2b-8ec3bc4d6706">
 
-You can provide a prefix to constrain the generated tactics. The example below only generates tactics starting with `simp`.
+You can provide a prefix (e.g., `simp`) to constrain the generated tactics:
 
 <img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e55a21d4-8191-4c18-8902-7590d5f17053">
 
 
 #### Proof Search
 
-You can combine LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs, by simply adding `#configure_llm_aesop` before using `aesop`, `aesop?`, or `search_proof` (just an alias of `aesop?`). When a proof is found, you can click on it to insert it into the editor. Note that the theorem below cannot be proved with the original aesop (without `#configure_llm_aesop`).
+The tactic `search_proof` combines LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs. When a proof is found, you can click on it to insert it into the editor. 
 
 <img width="824" alt="search_proof" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/0748b9b1-8eb0-4437-bcbf-12e4ea939943">
 
@@ -72,7 +72,7 @@ You can combine LLM-generated tactics with [aesop](https://github.com/leanprover
 
 #### Premise Selection
 
-At any point in the proof, you can use the `select_premises` tactic to retrieve a list of potentially useful premises. Currently, we use the retriever in [LeanDojo](https://leandojo.org/) to select premises from a fixed snapshot of Lean and [mathlib4](https://github.com/leanprover-community/mathlib4/tree/3ce43c18f614b76e161f911b75a3e1ef641620ff), so it cannot select new lemmas in your project. 
+The `select_premises` tactic retrieves a list of potentially useful premises. Currently, it uses the retriever in [LeanDojo](https://leandojo.org/) to select premises from a fixed snapshot of Lean and [mathlib4](https://github.com/leanprover-community/mathlib4/tree/3ce43c18f614b76e161f911b75a3e1ef641620ff).
 
 ![select_premises](https://github.com/lean-dojo/LeanCopilot/assets/5431913/1ab1cc9b-39ac-4f40-b2c9-40d57e235d3e)
 
