@@ -88,7 +88,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ## Advanced Usage
 
-**This section is only for advanced users who want to change the default behavior of `suggest_tactics`, `search_proof`, or `select_premises`, e.g., to use different models or hyperparameters.**
+**This section is only for advanced users who would like to change the default behavior of `suggest_tactics`, `search_proof`, or `select_premises`, e.g., to use different models or hyperparameters.**
 
 ### Tactic APIs
 
@@ -103,7 +103,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 **Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (temperature, beam size, etc.).** 
 
-Lean Copilot supports two kinds of models: generator and encoder. Generators must implement the `TextToText` interface:
+Lean Copilot supports two kinds of models: generators and encoders. Generators must implement the `TextToText` interface:
 ```lean
 class TextToText (τ : Type) where
   generate (model : τ) (input : String) (targetPrefix : String) : IO $ Array (String × Float)
