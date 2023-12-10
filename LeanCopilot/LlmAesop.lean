@@ -20,7 +20,7 @@ def tacGen : Aesop.TacGen := fun (mvarId : MVarId) => do
   if let some declName := (← liftM (m := MetaM) <| Term.TermElabM.run getDeclName?).1 then
     let theoremName := match declName.toString with
       | "_example" => ""
-      | n => n
+      | n => n.splitOn "." |>.getLast!
     let theoremNameMatcher := String.Matcher.ofString theoremName
     let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
       let isAesop := t == "aesop"

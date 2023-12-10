@@ -43,7 +43,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   if let some declName ← getDeclName? then
     let theoremName := match declName.toString with
       | "_example" => ""
-      | n => n
+      | n => n.splitOn "." |>.getLast!
     let theoremNameMatcher := String.Matcher.ofString theoremName
     if ← isVerbose then
       logInfo s!"State:\n{state}"
