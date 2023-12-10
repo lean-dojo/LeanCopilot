@@ -89,7 +89,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ### Model APIs
 
-Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (precision, temperature, beam size, etc.). 
+**Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (temperature, beam size, etc.).** 
 
 Lean Copilot supports two kinds of models: generator and encoder. Generators must implement the `TextToText` interface:
 ```lean
