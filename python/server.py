@@ -22,7 +22,7 @@ models = {
         max_length=1024,
     ),
     "kaiyuy/leandojo-lean4-retriever-byt5-small": EncoderOnlyTransformer(
-        "kaiyuy/leandojo-lean4-tacgen-byt5-small"
+        "kaiyuy/leandojo-lean4-retriever-byt5-small"
     ),
 }
 
@@ -56,7 +56,9 @@ async def generate(req: GeneratorRequest) -> GeneratorResponse:
     model = models[req.name]
     target_prefix = req.prefix if req.prefix is not None else ""
     outputs = model.generate(req.input, target_prefix)
-    return GeneratorResponse(outputs=[Generation(output=out[0], score=out[1]) for out in outputs])
+    return GeneratorResponse(
+        outputs=[Generation(output=out[0], score=out[1]) for out in outputs]
+    )
 
 
 @app.post("/encode")

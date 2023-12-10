@@ -97,4 +97,10 @@ def getEncoder (name : String) : IO Encoder := do
   | none => throw $ IO.userError s!"unknown encoder: {name}"
 
 
+def registerGenerator (name : String) (model : Generator) := do
+  let mr ← getModelRegistry
+  modelRegistryRef.modify fun _ =>
+    {mr with generators := mr.generators.insert name model}
+
+
 end LeanCopilot
