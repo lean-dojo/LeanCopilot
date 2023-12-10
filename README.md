@@ -18,7 +18,6 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
    1. [Model APIs](#model-apis)
    2. [Bring Your Own Model](#bring-your-own-model)
    3. [Tactic APIs](#tactic-apis)
-7. [Building Lean Copilot](#building-lean-copilot)
 8. [Getting in Touch](#getting-in-touch)
 9. [Acknowledgements](#acknowledgements)
 10. [Citation](#citation)
@@ -29,7 +28,7 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
 * Supported platforms: Linux, macOS and Windows WSL
 * [Git LFS](https://git-lfs.com/)
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
-
+* Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler
 
 ## Using Lean Copilot in Your Project
 
@@ -104,12 +103,6 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 Coming soon.
 
 
-## Building Lean Copilot
-
-You don't need to build Lean Copilot directly if you use it only in downstream packages. However, you may need to do that in some cases, e.g., if you want to contribute to Lean Copilot. You can run `lake build`, but make sure you have installed these dependencies:
-* CMake >= 3.7
-* A C++17 compatible compiler, e.g., recent versions of GCC or Clang
-
 
 ### Getting in Touch
 
@@ -120,10 +113,9 @@ You don't need to build Lean Copilot directly if you use it only in downstream p
 
 ## Acknowledgements
 
-* [llmstep](https://github.com/wellecks/llmstep) is another tool providing tactic suggestions using LLMs. We use their frontend for displaying tactics but a different mechanism for running the model.
+* We use the frontend of llmstep](https://github.com/wellecks/llmstep) for displaying tactics.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 * We thank Jannis Limperg for integrating our LLM-generated tactics into Aesop (https://github.com/leanprover-community/aesop/pull/70).
-
 
 
 ## Citation
