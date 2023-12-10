@@ -39,7 +39,7 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
 
 1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]` to lakefile.lean. Also add the following line:
 ```lean
-require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v0.1.0"
+require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v1.0.0"
 ```
 3. Run `lake update LeanCopilot`
 4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`
