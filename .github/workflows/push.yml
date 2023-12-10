@@ -43,7 +43,7 @@ jobs:
         run: |
           git clone https://github.com/yangky11/lean4-example
           cd lean4-example
-          git checkout LeanInfer-demo
+          git checkout LeanCopilot-demo
       - name: Build lean4-example
         run: |
           cd lean4-example
