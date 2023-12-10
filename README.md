@@ -18,9 +18,10 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
    1. [Tactic APIs](#tactic-apis)
    2. [Model APIs](#model-apis)
    3. [Bring Your Own Model](#bring-your-own-model)
-8. [Getting in Touch](#getting-in-touch)
-9. [Acknowledgements](#acknowledgements)
-10. [Citation](#citation)
+8. [Caveats](#caveats)
+9. [Getting in Touch](#getting-in-touch)
+10. [Acknowledgements](#acknowledgements)
+11. [Citation](#citation)
 
 
 ## Requirements
@@ -133,7 +134,7 @@ In principle, it is possible to run any model using Lean Copilot through `Extern
 
 
 
-### Caveats
+## Caveats
 
 * Lean may occasionally crash when restarting or editing a file. Restarting the file again should fix the problem
 * `select_premises` always retrieves the original form of a premise. For example, `Nat.add_left_comm` is a result of the theorem below. In this case, `select_premises` retrieves `Nat.mul_left_comm` instead of `Nat.add_left_comm`.
@@ -145,7 +146,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 
 
-### Getting in Touch
+## Getting in Touch
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanCopilot/discussions).  
 * To report a potential bug, please open an issue. In the issue, please include your OS information and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you. 
