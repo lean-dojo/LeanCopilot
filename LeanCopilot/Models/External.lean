@@ -50,11 +50,13 @@ deriving FromJson
 
 def send {α β : Type} [ToJson α] [FromJson β] (req : α) (url : String) : IO β := do
   let reqStr := (toJson req).pretty 99999999999999999
-  let out ← IO.Process.run {
+  let out ← IO.Process.output {
     cmd := "curl"
     args := #["-X", "POST", url, "-H", "accept: application/json", "-H", "Content-Type: application/json", "-d", reqStr]
   }
-  let some json := Json.parse out |>.toOption
+  if out.exitCode != 0 then
+     throw $ IO.userError s!"Request failed. Please check if the server is up at `{url}`."
+  let some json := Json.parse out.stdout |>.toOption
     | throw $ IO.userError "Failed to parse response"
   let some res := (fromJson? json : Except String β) |>.toOption
     | throw $ IO.userError "Failed to parse response"

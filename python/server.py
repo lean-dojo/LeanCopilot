@@ -7,9 +7,9 @@ from models import *
 app = FastAPI()
 
 models = {
-    "EleutherAI/llemma_7b": DecoderOnlyTransformer(
-        "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64, device="auto"
-    ),
+    # "EleutherAI/llemma_7b": DecoderOnlyTransformer(
+    #    "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64, device="auto"
+    #),
     "wellecks/llmstep-mathlib4-pythia2.8b": PythiaTacticGenerator(
         num_return_sequences=32, max_length=1024, device="auto"
     ),
