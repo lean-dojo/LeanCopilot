@@ -88,6 +88,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ## Advanced Usage
 
+**This section is only for advanced users who want to change the default behavior of `suggest_tactics`, `search_proof`, or `select_premises`, e.g., to use different models or hyperparameters.**
 
 ### Tactic APIs
 
