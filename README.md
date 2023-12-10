@@ -136,7 +136,7 @@ In principle, it is possible to run any model using Lean Copilot through `Extern
 
 ## Caveats
 
-* Lean may occasionally crash when restarting or editing a file. Restarting the file again should fix the problem
+* Lean may occasionally crash when restarting or editing a file. Restarting the file again should fix the problem.
 * `select_premises` always retrieves the original form of a premise. For example, `Nat.add_left_comm` is a result of the theorem below. In this case, `select_premises` retrieves `Nat.mul_left_comm` instead of `Nat.add_left_comm`.
 ```lean
 @[to_additive]
