@@ -1,30 +1,37 @@
 import Lean
 import LeanCopilot
 
-open Lean Meta
-open LeanCopilot
-
-#eval (SuggestTactics.getGeneratorName : CoreM _)
-
--- set_option LeanCopilot.verbose false
-
-#eval getModelRegistry
+open Lean Meta LeanCopilot
 
 
--- set_option LeanCopilot.suggest_tactics.check false
-
--- set_option LeanCopilot.suggest_tactics.model "ct2-leandojo-lean4-retriever-byt5-small"
-
-
-
-
+/-
+## Basic Usage
+-/
 
 example (a b c : Nat) : a + b + c = c + b + a := by
   search_proof
 
 
--- The example below wouldn't work without it.
+/-
+## Advanced Usage
+-/
+
+
+example (a b c : Nat) : a + b + c = c + b + a := by
+  try aesop?
+  sorry
+
+
 #configure_llm_aesop
+
 
 example (a b c : Nat) : a + b + c = c + b + a := by
   aesop?
+
+
+set_option trace.aesop true
+
+
+example (a b c : Nat) : a + b + c = c + b + a := by
+  aesop? (options := { maxRuleApplications := 2 })
+  try sorry
