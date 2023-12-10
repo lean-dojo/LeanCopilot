@@ -3,7 +3,7 @@ import LeanCopilot
 open LeanCopilot
 
 #eval cudaAvailable
-
+#check Nat.add_left_comm
 
 /--
 ReProver's tactic generator in CT2 format.
