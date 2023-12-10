@@ -39,7 +39,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   let model ← getGenerator nm
   let suggestions ← generate model state targetPrefix
   -- A temporary workaround to prevent the tactic from using the current theorem.
-  -- TODO: Use a more pincipled way, e.g., see Lean4Repl.lean in LeanDojo.
+  -- TODO: Use a more principled way, e.g., see `Lean4Repl.lean` in `LeanDojo`.
   if let some declName ← getDeclName? then
     let theoremName := match declName.toString with
       | "_example" => ""
