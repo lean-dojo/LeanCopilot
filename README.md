@@ -1,7 +1,7 @@
 Lean Copilot: LLMs as Copilots for Theorem Proving in Lean
 ==========================================================
 
-Lean Copilot allows large language models (LLMs) to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. Users can use our built-in models from [LeanDojo](https://leandojo.org/) or bring their own models that run either locally (w/ or w/o GPUs) or on the cloud (such as GPT-4).
+Lean Copilot allows large language models (LLMs) to be used in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. Users can use our built-in models from [LeanDojo](https://leandojo.org/) or bring their own models that run either locally (w/ or w/o GPUs) or on the cloud.
 
 
 
