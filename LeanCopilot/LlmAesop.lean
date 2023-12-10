@@ -19,7 +19,7 @@ def tacGen : Aesop.TacGen := fun (mvarId : MVarId) => do
   -- TODO: Use a more pincipled way, e.g., see Lean4Repl.lean in LeanDojo.
   let theoremName := match (← liftM (m := MetaM) <| Term.TermElabM.run getDeclName?).1.get! |>.toString with
     | "_example" => ""
-    | n => n
+    | n => (n.splitOn ".").getLast!
   let theoremNameMatcher := String.Matcher.ofString theoremName
   let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
     let isAesop := t == "aesop"

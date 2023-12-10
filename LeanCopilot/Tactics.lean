@@ -42,7 +42,7 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   -- TODO: Use a more pincipled way, e.g., see Lean4Repl.lean in LeanDojo.
   let theoremName := match (← getDeclName?).get! |>.toString with
     | "_example" => ""
-    | n => n
+    | n => (n.splitOn ".").getLast!
   let theoremNameMatcher := String.Matcher.ofString theoremName
   if ← isVerbose then
     logInfo s!"State:\n{state}"
