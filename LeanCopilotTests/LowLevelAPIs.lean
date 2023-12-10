@@ -91,55 +91,6 @@ def model₂ : NativeEncoder := {
 #eval encode model₂ "n : ℕ\n⊢ gcd n n = n"
 
 
-/-
-```python
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
-tokenizer = AutoTokenizer.from_pretrained("EleutherAI/llemma_7b")
-model = AutoModelForCausalLM.from_pretrained("EleutherAI/llemma_7b")
-
-state = "n : ℕ\n⊢ gcd n n = n"
-tokenized_state = tokenizer(state, return_tensors="pt")
-
-# Generate a single tactic.
-tactic_ids = model.generate(tokenized_state.input_ids, max_length=32)
-tactic = tokenizer.decode(tactic_ids[0], skip_special_tokens=True)
-print(tactic, end="\n\n")
-
-# Generate multiple tactics via beam search.
-tactic_candidates_ids = model.generate(
-    tokenized_state.input_ids,
-    max_length=32,
-    num_beams=2,
-    length_penalty=0.0,
-    do_sample=False,
-    num_return_sequences=2,
-    early_stopping=False,
-)
-tactic_candidates = tokenizer.batch_decode(
-    tactic_candidates_ids, skip_special_tokens=True
-)
-for tac in tactic_candidates:
-    print(tac)
-```
--/
-
-def model₃ : NativeGenerator := {
-  url := Url.parse! "https://huggingface.co/EleutherAI/llemma_7b"
-  tokenizer := sorry
-  params := {
-    numReturnSequences := 1
-  }
-}
-
-#eval generate model₃ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
-
-
-def model₃' : NativeGenerator := {model₃ with params := {numReturnSequences := 2}}
-
-#eval generate model₃' "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
-
-
 structure DummyGenerator where
   outputs : Array (String × Float)
 
@@ -166,21 +117,21 @@ def model₅ : DummyEncoder := ⟨FloatArray.mk #[1, 2, 3]⟩
 #eval encode model₅ "Hi!"
 
 
-def model₆ : ExternalGenerator := {
-  name := "EleutherAI/llemma_7b"
-  host := "localhost"
-  port := 23333
-}
-
--- Go to ./python and run `uvicorn server:app --port 23333`
-#eval generate model₆ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n" "apply"
-
-
 def model₇ : ExternalGenerator := {
   name := "wellecks/llmstep-mathlib4-pythia2.8b"
   host := "localhost"
-  port := 23333
+  port := 23337
 }
 
--- Go to ./python and run `uvicorn server:app --port 23333`
-#eval generate model₆ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
+-- Go to ./python and run `uvicorn server:app --port 23337`
+#eval generate model₇ "n : ℕ\n⊢ gcd n n = n"
+
+
+def model₈ : ExternalEncoder := {
+  name := "kaiyuy/leandojo-lean4-retriever-byt5-small"
+  host := "localhost"
+  port := 23337
+}
+
+-- Go to ./python and run `uvicorn server:app --port 23337`
+#eval encode model₈ "n : ℕ\n⊢ gcd n n = n"

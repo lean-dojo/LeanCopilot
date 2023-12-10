@@ -91,6 +91,108 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ### Bring Your Own Model
 
+#### Generic Models
+
+#### Native Models
+
+#### External Models
+
+```bash
+conda create --name lean-copilot python=3.10 ipython numpy
+conda activate lean-copilot
+pip install torch --index-url https://download.pytorch.org/whl/cu121  # Depending on whether you have CUDA and the CUDA version; see https://pytorch.org/.
+pip install fastapi uvicorn loguru transformers openai
+```
+
+```
+paths:
+   /generate:
+      post:
+      requestBody:
+         required: true
+         content:
+            application/json:
+            schema:
+               $ref: '#/components/schemas/GeneratorRequest'
+      responses:
+         "200":
+            description: OK
+            content:
+               application/json:
+                  schema:
+                     $ref: '#/components/schemas/GeneratorResponse'
+
+   /encode:
+      post:
+      requestBody:
+         required: true
+         content:
+            application/json:
+            schema:
+               $ref: '#/components/schemas/EncoderRequest'
+      responses:
+         "200":
+            description: OK
+            content:
+               application/json:
+                  schema:
+                     $ref: '#/components/schemas/EncoderResponse'
+
+components:
+  schemas:
+    GeneratorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Model name
+        input:
+          type: string
+          description: Input to the generator
+        prefix: string
+          type: string
+          description: Prefix for constraining the output (only supported by some models)
+
+    Generation:
+      type: object
+      properties:
+        output:
+          type: string
+          description: Generator's output
+        score:
+           type: number
+           description: Generator's output score
+
+    GeneratorResponse:
+      type: object
+      properties:
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Generation'
+          description: Multiple outputs from the generator, each with a score
+
+    EncoderRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Model name
+        input:
+          type: string
+          description: Input to the encoder
+
+    EncoderResponse:
+      type: object
+      properties:
+        outputs:
+          type: array
+          items:
+            type: number
+          description: Vector embedding produced by the encoder
+```
+
+
 ### Tactic APIs
 
 mul_left_comm needs to be imported from Mathlib/Algebra/Group/Basic.lean.

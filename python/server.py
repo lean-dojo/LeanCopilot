@@ -1,4 +1,3 @@
-import torch
 from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -9,10 +8,10 @@ app = FastAPI()
 
 models = {
     "EleutherAI/llemma_7b": DecoderOnlyTransformer(
-        "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64
+        "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64, device="auto"
     ),
-    "wellecks/llmstep-mathlib4-pythia2.8b": DecoderOnlyTransformer(
-        "wellecks/llmstep-mathlib4-pythia2.8b", num_return_sequences=32, max_length=64
+    "wellecks/llmstep-mathlib4-pythia2.8b": PythiaTacticGenerator(
+        num_return_sequences=32, max_length=1024, device="auto"
     ),
     "t5-small": EncoderDecoderTransformer(
         "t5-small", num_return_sequences=3, max_length=1024
@@ -27,32 +26,41 @@ models = {
     ),
 }
 
-if torch.cuda.is_available():
-    models = {k: v.cuda() for k, v in models.items(0)}
 
-
-class InferenceRequest(BaseModel):
+class GeneratorRequest(BaseModel):
     name: str
     input: str
     prefix: Optional[str]
 
 
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
+class Generation(BaseModel):
+    output: str
+    score: float
+
+
+class GeneratorResponse(BaseModel):
+    outputs: List[Generation]
+
+
+class EncoderRequest(BaseModel):
+    name: str
+    input: str
+
+
+class EncoderResponse(BaseModel):
+    outputs: List[float]
 
 
 @app.post("/generate")
-async def generate(req: InferenceRequest):
+async def generate(req: GeneratorRequest) -> GeneratorResponse:
     model = models[req.name]
     target_prefix = req.prefix if req.prefix is not None else ""
     outputs = model.generate(req.input, target_prefix)
-    return {"outputs": outputs}
+    return GeneratorResponse(outputs=[Generation(output=out[0], score=out[1]) for out in outputs])
 
 
 @app.post("/encode")
-async def encode(req: InferenceRequest):
-    assert req.prefix is None, "target_prefix is not supported by encoder"
+async def encode(req: EncoderRequest) -> EncoderResponse:
     model = models[req.name]
     feature = model.encode(req.input)
-    return {"outputs": feature.tolist()}
+    return EncoderResponse(outputs=feature.tolist())

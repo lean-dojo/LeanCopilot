@@ -35,6 +35,10 @@ class Transformer:
         return self.model.device
 
 
+def get_cuda_if_available():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 class DecoderOnlyTransformer(Generator, Transformer):
     def __init__(
         self,
@@ -42,10 +46,15 @@ class DecoderOnlyTransformer(Generator, Transformer):
         num_return_sequences: int,
         max_length: int,
         length_penalty: float = 0.0,
+        device: str = "cpu",
     ) -> None:
-        logger.info(f"Loading {name}")
         self.tokenzier = AutoTokenizer.from_pretrained(name)
-        self.model = AutoModelForCausalLM.from_pretrained(name)
+        if device == "auto":
+            device = get_cuda_if_available()
+        else:
+            device = torch.device(device)
+        logger.info(f"Loading {name} on {device}")
+        self.model = AutoModelForCausalLM.from_pretrained(name).to(device)
         self.max_length = max_length
         self.num_return_sequences = num_return_sequences
         self.length_penalty = length_penalty
@@ -75,6 +84,26 @@ class DecoderOnlyTransformer(Generator, Transformer):
         return outputs
 
 
+class PythiaTacticGenerator(DecoderOnlyTransformer):
+    def __init__(
+        self,
+        num_return_sequences: int,
+        max_length: int,
+        length_penalty: float = 0.0,
+        device: str = "cpu",
+    ) -> None:
+        super().__init__(
+            "wellecks/llmstep-mathlib4-pythia2.8b",
+            num_return_sequences,
+            max_length,
+            length_penalty,
+            device,
+        )
+
+    def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
+        return super().generate(f"[GOAL]{input}[PROOFSTEP]{target_prefix}")
+
+
 class EncoderDecoderTransformer(Generator, Transformer):
     def __init__(
         self,
@@ -82,9 +111,14 @@ class EncoderDecoderTransformer(Generator, Transformer):
         num_return_sequences: int,
         max_length: int,
         length_penalty: float = 0.0,
+        device: str = "cpu",
     ) -> None:
-        logger.info(f"Loading {name}")
         self.tokenzier = AutoTokenizer.from_pretrained(name)
+        if device == "auto":
+            device = get_cuda_if_available()
+        else:
+            device = torch.device(device)
+        logger.info(f"Loading {name} on {device}")
         self.model = AutoModelForSeq2SeqLM.from_pretrained(name)
         self.max_length = max_length
         self.num_return_sequences = num_return_sequences
@@ -113,9 +147,13 @@ class EncoderDecoderTransformer(Generator, Transformer):
 
 
 class EncoderOnlyTransformer(Encoder, Transformer):
-    def __init__(self, name: str) -> None:
-        logger.info(f"Loading {name}")
+    def __init__(self, name: str, device: str = "cpu") -> None:
         self.tokenzier = AutoTokenizer.from_pretrained(name)
+        if device == "auto":
+            device = get_cuda_if_available()
+        else:
+            device = torch.device(device)
+        logger.info(f"Loading {name} on {device}")
         self.model = AutoModelForTextEncoding.from_pretrained(name)
 
     @torch.no_grad()
@@ -129,11 +167,6 @@ class EncoderOnlyTransformer(Encoder, Transformer):
 
 
 if __name__ == "__main__":
-    # model = DecoderOnlyTransformer(
-    #    "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64
-    # )
-    model = EncoderOnlyTransformer(
-        "kaiyuy/leandojo-lean4-retriever-byt5-small",
-    )
-    # model.cuda()
-    print(model.encode("n : ℕ\n⊢ gcd n n = n"))
+    model = PythiaTacticGenerator(num_return_sequences=32, max_length=1024)
+    model.cuda()
+    print(model.generate("n : ℕ\n⊢ gcd n n = n"))
