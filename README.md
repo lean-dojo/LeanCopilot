@@ -89,7 +89,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 
 ### Model APIs
 
-Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (precision, temperature, beam size, etc.)
+Examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean) showcase how to run the inference of different models and configure their parameters (precision, temperature, beam size, etc.). 
 
 Lean Copilot supports two kinds of models: generator and encoder. Generators must implement the `TextToText` interface:
 ```lean
@@ -103,7 +103,18 @@ class TextToText (τ : Type) where
 We provide three types of Generators:
 * [`NativeGenerator`](LeanCopilot/Models/Native.lean) runs locally powered by [CTranslate2](https://github.com/OpenNMT/CTranslate2) and is linked to Lean using Foreign Function Interface (FFI).
 * [`ExternalGenerator`](LeanCopilot/Models/External.lean) is hosted either locally or remotely. See [Bring Your Own Model](#bring-your-own-model) for details.
-* [`GenericGenerator`](LeanCopilot/Models/Generic.lean) can be anything that implements the `generate` interface.
+* [`GenericGenerator`](LeanCopilot/Models/Generic.lean) can be anything that implements the `generate` function in the `TextToText` typeclass.
+
+
+Encoders must implement `TextToVec`:
+```lean
+class TextToVec (τ : Type) where
+  encode : τ → String → IO FloatArray
+```
+* `input` is the input string
+* `encode` should return a vector embedding produced by the model.
+
+Similar to generators, we have `NativeEncoder`, `ExternalEncoder`, and `GenericEncoder`.
 
 
 ### Bring Your Own Model
