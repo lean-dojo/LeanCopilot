@@ -40,18 +40,24 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
   let suggestions ← generate model state targetPrefix
   -- A temporary workaround to prevent the tactic from using the current theorem.
   -- TODO: Use a more pincipled way, e.g., see Lean4Repl.lean in LeanDojo.
-  let theoremName := match (← getDeclName?).get! |>.toString with
-    | "_example" => ""
-    | n => n
-  let theoremNameMatcher := String.Matcher.ofString theoremName
-  if ← isVerbose then
-    logInfo s!"State:\n{state}"
-    logInfo s!"Theorem name:\n{theoremName}"
-  let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
-    let isAesop := t == "aesop"
-    let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
-    if isSelfReference ∨ isAesop then none else some (t, s)
-  return filteredSuggestions
+  if let some declName ← getDeclName? then
+    let theoremName := match declName.toString with
+      | "_example" => ""
+      | n => n
+    let theoremNameMatcher := String.Matcher.ofString theoremName
+    if ← isVerbose then
+      logInfo s!"State:\n{state}"
+      logInfo s!"Theorem name:\n{theoremName}"
+    let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
+      let isAesop := t == "aesop"
+      let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
+      if isSelfReference ∨ isAesop then none else some (t, s)
+    return filteredSuggestions
+  else
+    let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
+      let isAesop := t == "aesop"
+      if isAesop then none else some (t, s)
+    return filteredSuggestions
 
 
 private def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do

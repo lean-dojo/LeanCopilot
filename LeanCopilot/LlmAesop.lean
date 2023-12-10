@@ -17,15 +17,21 @@ def tacGen : Aesop.TacGen := fun (mvarId : MVarId) => do
   let suggestions ← generate model state ""
   -- A temporary workaround to prevent the tactic from using the current theorem.
   -- TODO: Use a more pincipled way, e.g., see Lean4Repl.lean in LeanDojo.
-  let theoremName := match (← liftM (m := MetaM) <| Term.TermElabM.run getDeclName?).1.get! |>.toString with
-    | "_example" => ""
-    | n => n
-  let theoremNameMatcher := String.Matcher.ofString theoremName
-  let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
-    let isAesop := t == "aesop"
-    let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
-    if isSelfReference ∨ isAesop then none else some (t, s)
-  return filteredSuggestions
+  if let some declName := (← liftM (m := MetaM) <| Term.TermElabM.run getDeclName?).1 then
+    let theoremName := match declName.toString with
+      | "_example" => ""
+      | n => n
+    let theoremNameMatcher := String.Matcher.ofString theoremName
+    let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
+      let isAesop := t == "aesop"
+      let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
+      if isSelfReference ∨ isAesop then none else some (t, s)
+    return filteredSuggestions
+  else
+    let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
+      let isAesop := t == "aesop"
+      if isAesop then none else some (t, s)
+    return filteredSuggestions
 
 
 macro "#configure_llm_aesop" : command => `(@[aesop 100%] def tacGen := LeanCopilot.tacGen)
