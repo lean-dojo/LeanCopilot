@@ -27,7 +27,7 @@ def reprover' : NativeGenerator := {reprover with
 
 
 /--
-The original ByT5 checkpoint.
+The original ByT5 checkpoint in CT2 format.
 -/
 def byt5 : NativeGenerator := {
   url := Url.parse! "https://huggingface.co/kaiyuy/ct2-byt5-small"
@@ -68,12 +68,16 @@ def dummyEncoder : GenericEncoder where
 
 #eval encode dummyEncoder "Hi!"
 
+/-
+External Models
 
+1. Make sure the model is up and running, e.g., by going to ./python and running `uvicorn server:app --port 23337`.
+2. Uncomment the code below.
+-/
+
+/-
 /--
 https://huggingface.co/wellecks/llmstep-mathlib4-pythia2.8b
-
-Make sure the model is up and running, e.g.,
-by going to ./python and running `uvicorn server:app --port 23337`
 -/
 def pythia : ExternalGenerator := {
   name := "wellecks/llmstep-mathlib4-pythia2.8b"
@@ -86,9 +90,6 @@ def pythia : ExternalGenerator := {
 
 /--
 ReProver's retriever encoder as an external model.
-
-Make sure the model is up and running, e.g.,
-by going to ./python and running `uvicorn server:app --port 23337`
 -/
 def reproverExternalEncoder : ExternalEncoder := {
   name := "kaiyuy/leandojo-lean4-retriever-byt5-small"
@@ -98,3 +99,4 @@ def reproverExternalEncoder : ExternalEncoder := {
 
 -- Go to ./python and run `uvicorn server:app --port 23337`
 #eval encode reproverExternalEncoder "n : ℕ\n⊢ gcd n n = n"
+-/
