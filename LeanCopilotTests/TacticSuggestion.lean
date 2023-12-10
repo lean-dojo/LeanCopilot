@@ -69,6 +69,7 @@ example (a b c : Nat) : a + b + c = a + c + b := by
 -/
 
 
+/-
 def myModel : ExternalGenerator := {
   name := "wellecks/llmstep-mathlib4-pythia2.8b"
   host := "localhost"
@@ -78,7 +79,7 @@ def myModel : ExternalGenerator := {
 
 #eval registerGenerator "wellecks/llmstep-mathlib4-pythia2.8b" (.external myModel)
 
-/-
+
 set_option LeanCopilot.suggest_tactics.check false in
 set_option LeanCopilot.suggest_tactics.model "wellecks/llmstep-mathlib4-pythia2.8b" in
 example (a b c : Nat) : a + b + c = a + c + b := by
