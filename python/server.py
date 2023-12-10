@@ -1,3 +1,4 @@
+import torch
 from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -10,18 +11,24 @@ models = {
     "EleutherAI/llemma_7b": DecoderOnlyTransformer(
         "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64
     ),
+    "wellecks/llmstep-mathlib4-pythia2.8b": DecoderOnlyTransformer(
+        "wellecks/llmstep-mathlib4-pythia2.8b", num_return_sequences=32, max_length=64
+    ),
     "t5-small": EncoderDecoderTransformer(
         "t5-small", num_return_sequences=3, max_length=1024
     ),
     "kaiyuy/leandojo-lean4-tacgen-byt5-small": EncoderDecoderTransformer(
         "kaiyuy/leandojo-lean4-tacgen-byt5-small",
-        num_return_sequences=4,
+        num_return_sequences=32,
         max_length=1024,
     ),
     "kaiyuy/leandojo-lean4-retriever-byt5-small": EncoderOnlyTransformer(
         "kaiyuy/leandojo-lean4-tacgen-byt5-small"
     ),
 }
+
+if torch.cuda.is_available():
+    models = {k: v.cuda() for k, v in models.items(0)}
 
 
 class InferenceRequest(BaseModel):

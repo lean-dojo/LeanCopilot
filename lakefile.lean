@@ -154,6 +154,14 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
     cwd := buildDir
   }
   if ¬ ok then
+    if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
+      let ok' ← testProc {
+        cmd := "cmake"
+        args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
+        cwd := buildDir
+      }
+      if ok' then
+        return ()
     error "Failed to run cmake"
 
 

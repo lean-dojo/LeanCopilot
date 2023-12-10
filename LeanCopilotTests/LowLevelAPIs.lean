@@ -174,3 +174,13 @@ def model₆ : ExternalGenerator := {
 
 -- Go to ./python and run `uvicorn server:app --port 23333`
 #eval generate model₆ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n" "apply"
+
+
+def model₇ : ExternalGenerator := {
+  name := "wellecks/llmstep-mathlib4-pythia2.8b"
+  host := "localhost"
+  port := 23333
+}
+
+-- Go to ./python and run `uvicorn server:app --port 23333`
+#eval generate model₆ "[GOAL]\nn : ℕ\n⊢ gcd n n = n\n[PROOFSTEP]\n"
