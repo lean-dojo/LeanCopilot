@@ -135,12 +135,13 @@ In principle, it is possible to run any model using Lean Copilot through `Extern
 
 ### Caveats
 
-mul_left_comm needs to be imported from Mathlib/Algebra/Group/Basic.lean.
-
-```
+* Lean may occasionally crash when restarting or editing a file. Restarting the file again should fix the problem
+* `select_premises` always retrieves the original form of a premise. For example, `Nat.add_left_comm` is a result of the theorem below. In this case, `select_premises` retrieves `Nat.mul_left_comm` instead of `Nat.add_left_comm`.
+```lean
 @[to_additive]
 theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 ```
+* In some cases, `search_proof` produces an erroneous proof with error messages like `fail to show termination for ...`. A temporary workaround is changing the theorem's name before applying `search_proof`. You can change it back after `search_proof` completes.
 
 
 
