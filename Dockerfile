@@ -5,8 +5,8 @@ COPY . .
 
 # Install dependencies.
 RUN apt-get update && apt-get install -y curl wget git git-lfs cmake clang lld libc++-dev
-RUN git lfs install
 RUN git lfs update --force
+RUN git lfs install
 
 # Install elan.
 ENV ELAN_HOME="/.elan"
