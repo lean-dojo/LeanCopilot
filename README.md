@@ -158,7 +158,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 * We use the frontend of [llmstep](https://github.com/wellecks/llmstep) for displaying tactics.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
-* We thank Jannis Limperg for integrating our LLM-generated tactics into Aesop (https://github.com/leanprover-community/aesop/pull/70).
+* We thank Jannis Limperg for supporting our LLM-generated tactics in Aesop (https://github.com/leanprover-community/aesop/pull/70).
 
 
 ## Citation
