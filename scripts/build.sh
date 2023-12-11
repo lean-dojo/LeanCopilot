@@ -10,5 +10,6 @@ source $HOME/.elan/env
 
 # Build the project.
 lake build
+git lfs install
 lake exe LeanCopilot/download
 lake build LeanCopilotTests
