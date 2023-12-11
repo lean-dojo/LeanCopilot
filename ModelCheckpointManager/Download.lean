@@ -94,7 +94,7 @@ def downloadUnlessUpToDate (url : Url) : IO Unit := do
     cwd := parentDir
   }
   if proc.exitCode != 0 then
-    throw $ IO.userError s!"Failed to download the model. You download it manually from {url} and store it in `{dir}/`. See https://huggingface.co/docs/hub/models-downloading for details."
+    throw $ IO.userError s!"Failed to download the model. You can download it manually from {url} and store it in `{dir}/`. See https://huggingface.co/docs/hub/models-downloading for details."
 
 
 end LeanCopilot
