@@ -37,10 +37,6 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     name: Test external
     steps:
-      - name: Install Git LFS
-        run: |
-          git lfs install
-          git lfs pull
       - name: Set up elan
         run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Get lean4-example
@@ -48,6 +44,10 @@ jobs:
           git clone https://github.com/yangky11/lean4-example
           cd lean4-example
           git checkout LeanCopilot-demo
+      - name: Install Git LFS
+        run: |
+          git lfs install
+          git lfs pull
       - name: Build lean4-example
         run: |
           cd lean4-example
