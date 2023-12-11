@@ -19,8 +19,8 @@ jobs:
           fetch-depth: 0
       - name: Install Git LFS
         run: |
+          git lfs update --force
           git lfs install
-          git lfs pull
       - name: Set up elan
         run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Build project
@@ -46,8 +46,9 @@ jobs:
           git checkout LeanCopilot-demo
       - name: Install Git LFS
         run: |
+          cd lean4-example
+          git lfs update --force
           git lfs install
-          git lfs pull
       - name: Build lean4-example
         run: |
           cd lean4-example
