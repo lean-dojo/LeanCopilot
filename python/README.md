@@ -7,7 +7,7 @@ Python Server for External Models
 conda create --name lean-copilot python=3.10 python numpy
 conda activate lean-copilot
 pip install torch --index-url https://download.pytorch.org/whl/cu121  # Depending on whether you have CUDA and the CUDA version; see https://pytorch.org/.
-pip install fastapi unicorn loguru transformers openai
+pip install fastapi uvicorn loguru transformers openai
 ```
 
 
