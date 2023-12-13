@@ -271,7 +271,7 @@ inline std::string parse_str(const std::string &in) {
  */
 inline std::vector<std::string> parse_tuple(std::string in) {
   std::vector<std::string> v;
-  const char seperator = ',';
+  const char separator = ',';
 
   in = trim(in);
 
@@ -282,7 +282,7 @@ inline std::vector<std::string> parse_tuple(std::string in) {
 
   std::istringstream iss(in);
 
-  for (std::string token; std::getline(iss, token, seperator);) {
+  for (std::string token; std::getline(iss, token, separator);) {
     v.push_back(token);
   }
 
