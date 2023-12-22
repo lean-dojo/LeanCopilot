@@ -5,6 +5,11 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
 
 
 
+https://github.com/lean-dojo/LeanCopilot/assets/5431913/7742545f-e194-45fa-b744-381bb3441840
+
+
+
+
 ## Table of Contents
 
 1. [Requirements](#requirements)  
@@ -158,10 +163,12 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 * We use the frontend of [llmstep](https://github.com/wellecks/llmstep) for displaying tactics.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
-* We thank Jannis Limperg for integrating our LLM-generated tactics into Aesop (https://github.com/leanprover-community/aesop/pull/70).
+* We thank Jannis Limperg for supporting our LLM-generated tactics in Aesop (https://github.com/leanprover-community/aesop/pull/70).
 
 
 ## Citation
+
+Below is our workshop paper describing an earlier version of Lean Copilot. We plan to release the full paper in early 2024. Stay tuned!
 
 ```BibTeX
 @inproceedings{song2023towards,

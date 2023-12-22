@@ -15,5 +15,6 @@ cd lean4-example
 git checkout LeanCopilot-demo
 
 # Build lean4-example.
+git lfs install
 lake exe LeanCopilot/download
 lake build
