@@ -44,7 +44,7 @@ https://github.com/lean-dojo/LeanCopilot/assets/5431913/7742545f-e194-45fa-b744-
 
 1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]` to lakefile.lean. Also add the following line:
 ```lean
-require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v1.0.0"
+require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v1.0.1"
 ```
 3. Run `lake update LeanCopilot`
 4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`
