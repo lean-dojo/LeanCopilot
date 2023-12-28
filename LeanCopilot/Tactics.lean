@@ -60,22 +60,31 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
     return filteredSuggestions
 
 
-private def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do
-  let (premise, path, code, _) := premisesWithInfoAndScores
-  let declName := premise.toName
+/--
+Information of a premise.
+-/
+structure PremiseInfo where
+  name : String
+  path : String
+  code : String
+  score : Float
+
+
+private def annotatePremise (premisesWithInfoAndScores : PremiseInfo) : MetaM String := do
+  let declName := premisesWithInfoAndScores.name.toName
   try
     let info ← getConstInfo declName
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
-      | return s!"\n{premise} : {premise_type}"
-    return s!"\n{premise} : {premise_type}\n```doc\n{doc_str}```"
-  catch _ => return s!"\n{premise} needs to be imported from {path}.\n```code\n{code}\n```"
+      | return s!"\n{premisesWithInfoAndScores.name} : {premise_type}"
+    return s!"\n{premisesWithInfoAndScores.name} : {premise_type}\n```doc\n{doc_str}```"
+  catch _ => return s!"\n{premisesWithInfoAndScores.name} needs to be imported from {premisesWithInfoAndScores.path}.\n```code\n{premisesWithInfoAndScores.code}\n```"
 
 
 /--
 Retrieve a list of premises given a query.
 -/
-def retrieve (input : String) : TacticM (Array (String × String × String × Float)) := do
+def retrieve (input : String) : TacticM (Array PremiseInfo) := do
   if ¬ (← premiseEmbeddingsInitialized) ∧ ¬ (← initPremiseEmbeddings .auto) then
     throwError "Cannot initialize premise embeddings"
 
@@ -85,13 +94,17 @@ def retrieve (input : String) : TacticM (Array (String × String × String × Fl
   let k ← SelectPremises.getNumPremises
   let query ← encode Builtin.encoder input
 
-  return FFI.retrieve query k.toUInt64
+  let rawPremiseInfo := FFI.retrieve query k.toUInt64
+  -- Map each premise to `(name, path, code, score)`, and then assign each field to `PremiseInfo`.
+  let premiseInfo : Array PremiseInfo := rawPremiseInfo.map fun (name, path, code, score) =>
+    { name := name, path := path, code := code, score := score }
+  return premiseInfo
 
 
 /--
 Retrieve a list of premises using the current pretty-printed tactic state as the query.
 -/
-def selectPremises : TacticM (Array (String × String × String × Float)) := do
+def selectPremises : TacticM (Array PremiseInfo) := do
   retrieve (← getPpTacticState)
 
 
@@ -119,7 +132,7 @@ elab_rules : tactic
 
   | `(tactic | select_premises) => do
     let premisesWithInfoAndScores ← selectPremises
-    let rankedPremisesWithInfoAndScores := premisesWithInfoAndScores.qsort (·.2.2.2 > ·.2.2.2)
+    let rankedPremisesWithInfoAndScores := premisesWithInfoAndScores.qsort (·.score > ·.score)
     let richPremises ← Meta.liftMetaM $ (rankedPremisesWithInfoAndScores.mapM annotatePremise)
     let richPremisesExpand := richPremises.foldl (init := "") (· ++ · ++ "\n")
     logInfo richPremisesExpand
