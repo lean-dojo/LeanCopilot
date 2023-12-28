@@ -70,15 +70,15 @@ structure PremiseInfo where
   score : Float
 
 
-private def annotatePremise (premisesWithInfoAndScores : PremiseInfo) : MetaM String := do
-  let declName := premisesWithInfoAndScores.name.toName
+private def annotatePremise (pi : PremiseInfo) : MetaM String := do
+  let declName := pi.name.toName
   try
     let info ← getConstInfo declName
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
-      | return s!"\n{premisesWithInfoAndScores.name} : {premise_type}"
-    return s!"\n{premisesWithInfoAndScores.name} : {premise_type}\n```doc\n{doc_str}```"
-  catch _ => return s!"\n{premisesWithInfoAndScores.name} needs to be imported from {premisesWithInfoAndScores.path}.\n```code\n{premisesWithInfoAndScores.code}\n```"
+      | return s!"\n{pi.name} : {premise_type}"
+    return s!"\n{pi.name} : {premise_type}\n```doc\n{doc_str}```"
+  catch _ => return s!"\n{pi.name} needs to be imported from {pi.path}.\n```code\n{pi.code}\n```"
 
 
 /--
