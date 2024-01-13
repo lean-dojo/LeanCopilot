@@ -1,104 +1,12 @@
-/- Some functions in this frontend are adapted from `mathlib4`.  -/
+/- This frontend is adapted from part of `mathlib4/Mathlib/Tactic/Hint.lean`
+   originally authored by Scott Morrison. -/
 import Lean
 import LeanCopilot.Options
 import Std.Tactic.TryThis
 import Std.Data.MLList.Basic
+import Std.Control.Nondet.Basic
 
 open Lean Parser Elab Tactic
-
-
-set_option autoImplicit true
-
-/--
-`Nondet m α` is variation on `MLList m α` suitable for use with backtrackable monads `m`.
-
-We think of `Nondet m α` as a nondeterministic value in `α`,
-with the possible alternatives stored in a monadic lazy list.
-
-Along with each `a : α` we store the backtrackable state, and ensure that monadic operations
-on alternatives run with the appropriate state.
-
-Operations on the nondeterministic value via `bind`, `mapM`, and `filterMapM`
-run with the appropriate backtrackable state, and are responsible for updating the state themselves
-(typically this doesn't need to be done explicitly,
-but just happens as a side effect in the monad `m`).
--/
-@[nolint unusedArguments]
-structure Nondet (m : Type → Type) [MonadBacktrack σ m] (α : Type) : Type where
-  /--
-  Convert a non-deterministic value into a lazy list, keeping the backtrackable state.
-  Be careful that monadic operations on the `MLList` will not respect this state!
-  -/
-  toMLList : MLList m (α × σ)
-
-namespace Nondet
-
-variable {m : Type → Type} [Monad m] [MonadBacktrack σ m]
-
-/-- The empty nondeterministic value. -/
-def nil : Nondet m α := .mk .nil
-
-instance : Inhabited (Nondet m α) := ⟨.nil⟩
-
-/--
-Squash a monadic nondeterministic value to a nondeterministic value.
--/
-def squash (L : Unit → m (Nondet m α)) : Nondet m α :=
-  .mk <| MLList.squash fun _ => return (← L ()).toMLList
-
-/--
-Bind a nondeterministic function over a nondeterministic value,
-ensuring the function is run with the relevant backtrackable state at each value.
--/
-partial def bind (L : Nondet m α) (f : α → Nondet m β) : Nondet m β := .squash fun _ => do
-  match ← L.toMLList.uncons with
-  | none => pure .nil
-  | some (⟨x, s⟩, xs) => do
-    let r := (Nondet.mk xs).bind f
-    restoreState s
-    match ← (f x).toMLList.uncons with
-    | none => return r
-    | some (y, ys) => return .mk <| .cons y (ys.append (fun _ => r.toMLList))
-
-/-- Convert any value in the monad to the singleton nondeterministic value. -/
-def singletonM (x : m α) : Nondet m α :=
-  .mk <| .singletonM do
-    let a ← x
-    return (a, ← saveState)
-
-/-- Convert a value to the singleton nondeterministic value. -/
-def singleton (x : α) : Nondet m α := singletonM (pure x)
-
-/--
-Lift a list of monadic values to a nondeterministic value.
-We ensure that each monadic value is evaluated with the same backtrackable state.
--/
-def ofListM (L : List (m α)) : Nondet m α :=
-  .squash fun _ => do
-    let s ← saveState
-    return .mk <| MLList.ofListM <| L.map fun x => do
-      restoreState s
-      let a ← x
-      pure (a, ← saveState)
-
-/--
-Lift a list of values to a nondeterministic value.
-(The backtrackable state in each will be identical:
-whatever the state was when we first read from the result.)
--/
-def ofList (L : List α) : Nondet m α := ofListM (L.map pure)
-
-/-- Convert a monadic optional value to a nondeterministic value. -/
-def ofOptionM (x : m (Option α)) : Nondet m α := .squash fun _ => do
-  match ← x with
-  | none => return .nil
-  | some a => return singleton a
-
-/-- Filter and map a nondeterministic value using a monadic function which may return `none`. -/
-partial def filterMapM (f : α → m (Option β)) (L : Nondet m α) : Nondet m β :=
-  L.bind fun a => ofOptionM (f a)
-
-end Nondet
 
 
 set_option autoImplicit false
