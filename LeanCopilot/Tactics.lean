@@ -1,6 +1,5 @@
 import Lean
 import LeanCopilot.Options
-import LeanCopilot.Frontend
 import Aesop.Util.Basic
 import Std.Data.String.Basic
 import Std.Tactic.TryThis
@@ -8,8 +7,8 @@ import Std.Data.MLList.Basic
 
 open Lean Meta Parser Elab Term Tactic
 
-set_option autoImplicit true
 
+set_option autoImplicit true
 
 /--
 `Nondet m α` is variation on `MLList m α` suitable for use with backtrackable monads `m`.
@@ -103,8 +102,9 @@ partial def filterMapM (f : α → m (Option β)) (L : Nondet m α) : Nondet m �
 end Nondet
 
 
-namespace LeanCopilot
+set_option autoImplicit false
 
+namespace LeanCopilot
 
 /--
 Pretty-print a list of goals.
@@ -190,7 +190,6 @@ def retrieve (input : String) : TacticM (Array PremiseInfo) := do
   let query ← encode Builtin.encoder input
 
   let rawPremiseInfo := FFI.retrieve query k.toUInt64
-  -- Map each premise to `(name, path, code, score)`, and then assign each field to `PremiseInfo`.
   let premiseInfo : Array PremiseInfo := rawPremiseInfo.map fun (name, path, code, score) =>
     { name := name, path := path, code := code, score := score }
   return premiseInfo
@@ -203,7 +202,15 @@ def selectPremises : TacticM (Array PremiseInfo) := do
   retrieve (← getPpTacticState)
 
 
+
 open Std.Tactic.TryThis in
+/--
+Construct a suggestion for a tactic.
+* Check the passed `MessageLog` for an info message beginning with "Try this: ".
+* If found, use that as the suggestion.
+* Otherwise use the provided syntax.
+* Also, look for remaining goals and pretty print them after the suggestion.
+-/
 def suggestion (tac : String) (msgs : MessageLog := {}) : TacticM Suggestion := do
   -- TODO `addExactSuggestion` has an option to construct `postInfo?`
   -- Factor that out so we can use it here instead of copying and pasting?
@@ -241,6 +248,15 @@ def withoutInfoTrees (t : TacticM Unit) : TacticM Unit := do
 
 
 open Std.Tactic.TryThis in
+/--
+Run all tactics registered using `register_hint`.
+Print a "Try these:" suggestion for each of the successful tactics.
+
+If one tactic succeeds and closes the goal, we don't look at subsequent tactics.
+-/
+-- TODO We could run the tactics in parallel.
+-- TODO With widget support, could we run the tactics in parallel
+--      and do live updates of the widget as results come in?
 def hint (stx : Syntax) (tacStrs : Array String) : TacticM Unit := do
   let tacStxs ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
     | Except.error _ => return none
@@ -251,48 +267,13 @@ def hint (stx : Syntax) (tacStrs : Array String) : TacticM Unit := do
       return some (← getGoals, ← suggestion t.prettyPrint.pretty' msgs)
     else
       return none
-  -- let results := Nondet.ofList results.toList
   let results ← (results.toMLList.takeUpToFirst fun r => r.1.1.isEmpty).asArray
   let results := results.qsort (·.1.1.length < ·.1.1.length)
   addSuggestions stx (results.map (·.1.2))
   match results.find? (·.1.1.isEmpty) with
   | some r =>
-    -- We don't restore the entire state, as that would delete the suggestion messages.
     setMCtx r.2.term.meta.meta.mctx
   | none => admitGoal (← getMainGoal)
-
-
--- open Std.Tactic.TryThis in
--- def hint (stx : Syntax) (tacStrs : Array String) : TacticM Unit := do
---   let results ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
---     | Except.error _ => return none
---     | Except.ok stx =>
---         if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic stx))) then
---           return some (← getGoals, ← suggestion tstr msgs)
---         else
---           return none
---   let results := Nondet.ofList results.toList
---   let results ← (results.toMLList.takeUpToFirst fun r => r.1.1.isEmpty).asArray
---   let results := results.qsort (·.1.1.length < ·.1.1.length)
---   addSuggestions stx (results.map (·.1.2))
---   match results.find? (·.1.1.isEmpty) with
---   | some r =>
---     -- We don't restore the entire state, as that would delete the suggestion messages.
---     setMCtx r.2.term.meta.meta.mctx
---   | none => admitGoal (← getMainGoal)
-
-
--- def hint (stx : Syntax) (tacStrs : Array String) : TacticM Unit := do
---   let results ← tacStrs.mapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
---     | Except.error _ => return none
---     | Except.ok stx =>
---         if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic stx))) then
---           return some (← getGoals, ← suggestion tstr msgs)
---         else
---           return none
---   -- `result` is of type `Array (Option (List MVarId × Std.Tactic.TryThis.Suggestion))`, we want to drop the `none`s.
---   let results := results.filterMap (·)
---   Std.Tactic.TryThis.addSuggestions stx (results.map (·.2))
 
 
 syntax "pp_state" : tactic
