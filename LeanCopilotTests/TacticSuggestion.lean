@@ -7,7 +7,12 @@ import LeanCopilot
 
 
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics
+  -- apply  Nat.add_right_comm
+  -- rw [Nat.add_assoc]
+  -- rw [Nat.add_comm]
+  -- simp [Nat.add_assoc]
+  -- simp [Nat.add_comm]
+  -- rw [Nat.add_comm, Nat.add_assoc]
   sorry
 
 
