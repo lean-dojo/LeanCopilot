@@ -11,17 +11,17 @@ open Lean Meta Parser Elab Term Tactic
 set_option autoImplicit true
 
 
-namespace MLList
+-- namespace MLList
 
-/-- Construct a singleton monadic lazy list from a single monadic value. -/
-def singletonM [Monad m] (x : m α) : MLList m α :=
-  .squash fun _ => do return .cons (← x) .nil
+-- /-- Construct a singleton monadic lazy list from a single monadic value. -/
+-- def singletonM [Monad m] (x : m α) : MLList m α :=
+--   .squash fun _ => do return .cons (← x) .nil
 
-/-- Construct a singleton monadic lazy list from a single value. -/
-def singleton [Monad m] (x : α) : MLList m α :=
-  .singletonM (pure x)
+-- /-- Construct a singleton monadic lazy list from a single value. -/
+-- def singleton [Monad m] (x : α) : MLList m α :=
+--   .singletonM (pure x)
 
-end MLList
+-- end MLList
 
 
 /--
