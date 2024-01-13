@@ -1,156 +1,177 @@
-/-
-The MIT License (MIT)
+/- Some functions in this frontend are adapted from `mathlib4`.  -/
+import Lean
+import LeanCopilot.Options
+import Std.Tactic.TryThis
+import Std.Data.MLList.Basic
 
-Copyright (c) 2023 Sean Welleck
+open Lean Parser Elab Tactic
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+set_option autoImplicit true
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+/--
+`Nondet m α` is variation on `MLList m α` suitable for use with backtrackable monads `m`.
+
+We think of `Nondet m α` as a nondeterministic value in `α`,
+with the possible alternatives stored in a monadic lazy list.
+
+Along with each `a : α` we store the backtrackable state, and ensure that monadic operations
+on alternatives run with the appropriate state.
+
+Operations on the nondeterministic value via `bind`, `mapM`, and `filterMapM`
+run with the appropriate backtrackable state, and are responsible for updating the state themselves
+(typically this doesn't need to be done explicitly,
+but just happens as a side effect in the monad `m`).
 -/
+@[nolint unusedArguments]
+structure Nondet (m : Type → Type) [MonadBacktrack σ m] (α : Type) : Type where
+  /--
+  Convert a non-deterministic value into a lazy list, keeping the backtrackable state.
+  Be careful that monadic operations on the `MLList` will not respect this state!
+  -/
+  toMLList : MLList m (α × σ)
 
-/-
-`llmstep` tactic for LLM-based next-step suggestions in Lean4.
-Examples:
- llmstep ""
- llmstep "have"
- llmstep "apply Continuous"
+namespace Nondet
 
-Author: Sean Welleck
+variable {m : Type → Type} [Monad m] [MonadBacktrack σ m]
+
+/-- The empty nondeterministic value. -/
+def nil : Nondet m α := .mk .nil
+
+instance : Inhabited (Nondet m α) := ⟨.nil⟩
+
+/--
+Squash a monadic nondeterministic value to a nondeterministic value.
 -/
+def squash (L : Unit → m (Nondet m α)) : Nondet m α :=
+  .mk <| MLList.squash fun _ => return (← L ()).toMLList
 
-/-
-This file is adapted from the frontend of the `llmstep` tactic for
-LLM-based next-step suggestions in Lean4, originally built by Sean Welleck.
+/--
+Bind a nondeterministic function over a nondeterministic value,
+ensuring the function is run with the relevant backtrackable state at each value.
 -/
-import Lean.Widget.UserWidget
-import Std.Lean.Position
-import Std.Lean.Format
-import Std.Data.String.Basic
+partial def bind (L : Nondet m α) (f : α → Nondet m β) : Nondet m β := .squash fun _ => do
+  match ← L.toMLList.uncons with
+  | none => pure .nil
+  | some (⟨x, s⟩, xs) => do
+    let r := (Nondet.mk xs).bind f
+    restoreState s
+    match ← (f x).toMLList.uncons with
+    | none => return r
+    | some (y, ys) => return .mk <| .cons y (ys.append (fun _ => r.toMLList))
 
-open Lean
+/-- Convert any value in the monad to the singleton nondeterministic value. -/
+def singletonM (x : m α) : Nondet m α :=
+  .mk <| .singletonM do
+    let a ← x
+    return (a, ← saveState)
 
+/-- Convert a value to the singleton nondeterministic value. -/
+def singleton (x : α) : Nondet m α := singletonM (pure x)
 
-/- Display clickable suggestions in the VSCode Lean Infoview.
-    When a suggestion is clicked, this widget replaces the `llmstep` call
-    with the suggestion, and saves the call in an adjacent comment.
-    Code based on `Std.Tactic.TryThis.tryThisWidget`. -/
-@[widget] def llmstepTryThisWidget : Widget.UserWidgetDefinition where
-  name := "Tactic suggestions"
-  javascript := "
-import * as React from 'react';
-import { EditorContext } from '@leanprover/infoview';
-const e = React.createElement;
-export default function(props) {
-  const editorConnection = React.useContext(EditorContext)
-  function onClick(suggestion) {
-    editorConnection.api.applyEdit({
-      changes: { [props.pos.uri]: [{ range:
-        props.range,
-        newText: suggestion[0] + ' -- ' + props.tactic
-        }] }
-    })
-  }
-  const suggestionElement = props.suggestions.length > 0
-    ? [
-      'Try this: ',
-      ...(props.suggestions.map((suggestion, i) =>
-          e('li', {onClick: () => onClick(suggestion),
-            className:
-              suggestion[1] === 'ProofDone' ? 'link pointer dim green' :
-              suggestion[1] === 'Valid' ? 'link pointer dim blue' :
-              'link pointer dim',
-            title: 'Apply suggestion'},
-            suggestion[1] === 'ProofDone' ? '🎉 ' + suggestion[0] : suggestion[0]
-        )
-      )),
-      props.info
-    ]
-    : 'No valid suggestions.';
-  return e('div',
-  {className: 'ml1'},
-  e('ul', {className: 'font-code pre-wrap'},
-  suggestionElement))
-}"
+/--
+Lift a list of monadic values to a nondeterministic value.
+We ensure that each monadic value is evaluated with the same backtrackable state.
+-/
+def ofListM (L : List (m α)) : Nondet m α :=
+  .squash fun _ => do
+    let s ← saveState
+    return .mk <| MLList.ofListM <| L.map fun x => do
+      restoreState s
+      let a ← x
+      pure (a, ← saveState)
 
+/--
+Lift a list of values to a nondeterministic value.
+(The backtrackable state in each will be identical:
+whatever the state was when we first read from the result.)
+-/
+def ofList (L : List α) : Nondet m α := ofListM (L.map pure)
 
-inductive CheckResult : Type
-  | ProofDone
-  | Valid
-  | Invalid
-  | Unknown
-  deriving ToJson, Ord
+/-- Convert a monadic optional value to a nondeterministic value. -/
+def ofOptionM (x : m (Option α)) : Nondet m α := .squash fun _ => do
+  match ← x with
+  | none => return .nil
+  | some a => return singleton a
 
-/- Check whether the suggestion `s` completes the proof, is valid (does
-not result in an error message), or is invalid. -/
-def checkSuggestion (check: Bool) (s: String) : Lean.Elab.Tactic.TacticM CheckResult := do
-  if check == true then
-    withoutModifyingState do
-    try
-      match Parser.runParserCategory (← getEnv) `tactic s with
-        | Except.ok stx =>
-          try
-            _ ← Lean.Elab.Tactic.evalTactic stx
-            let goals ← Lean.Elab.Tactic.getUnsolvedGoals
-            if (← getThe Core.State).messages.hasErrors then
-              pure CheckResult.Invalid
-            else if goals.isEmpty then
-              pure CheckResult.ProofDone
-            else
-              pure CheckResult.Valid
-          catch _ =>
-            pure CheckResult.Invalid
-        | Except.error _ =>
-          pure CheckResult.Invalid
-    catch _ => pure CheckResult.Invalid
-  else pure CheckResult.Unknown
+/-- Filter and map a nondeterministic value using a monadic function which may return `none`. -/
+partial def filterMapM (f : α → m (Option β)) (L : Nondet m α) : Nondet m β :=
+  L.bind fun a => ofOptionM (f a)
+
+end Nondet
 
 
-/- Adds multiple suggestions to the Lean InfoView.
-   Code based on `Std.Tactic.addSuggestion`. -/
-def addSuggestions (tacRef : Syntax) (pfxRef: Syntax) (suggestions: List String)
-    (check : Bool) (origSpan? : Option Syntax := none) (extraMsg : String := "") : Lean.Elab.Tactic.TacticM Unit := do
-  if let some tacticRange := (origSpan?.getD tacRef).getRange? then
-    if let some argRange := (origSpan?.getD pfxRef).getRange? then
-      let map ← getFileMap
-      let start := findLineStart map.source tacticRange.start
-      let body := map.source.findAux (· ≠ ' ') tacticRange.start start
-      let checks ← suggestions.mapM (checkSuggestion check)
-      let texts := suggestions.map fun text => (
-        (Std.Format.prettyExtra (text.stripSuffix "\n")
-         (indent := (body - start).1)
-         (column := (tacticRange.start - start).1)
-      ))
+set_option autoImplicit false
 
-      let textsAndChecks := texts.zip checks |>.toArray |>.qsort
-        fun a b => compare a.2 b.2 = Ordering.lt
 
-      let start := (tacRef.getRange?.getD tacticRange).start
-      let stop := (pfxRef.getRange?.getD argRange).stop
-      let stxRange :=
-      { start := map.lineStart (map.toPosition start).line
-        stop := map.lineStart ((map.toPosition stop).line + 1) }
-      let full_range : String.Range :=
-      { start := tacticRange.start, stop := argRange.stop }
-      let full_range := map.utf8RangeToLspRange full_range
-      let tactic := Std.Format.prettyExtra f!"{tacRef.prettyPrint}{pfxRef.prettyPrint}"
-      let json := Json.mkObj [
-        ("tactic", tactic),
-        ("suggestions", toJson textsAndChecks),
-        ("range", toJson full_range),
-        ("info", extraMsg)
-      ]
-      Widget.saveWidgetInfo ``llmstepTryThisWidget json (.ofRange stxRange)
+open Std.Tactic.TryThis in
+/--
+Construct a suggestion for a tactic.
+* Check the passed `MessageLog` for an info message beginning with "Try this: ".
+* If found, use that as the suggestion.
+* Otherwise use the provided syntax.
+* Also, look for remaining goals and pretty print them after the suggestion.
+-/
+def suggestion (tac : String) (msgs : MessageLog := {}) : TacticM Suggestion := do
+  -- TODO `addExactSuggestion` has an option to construct `postInfo?`
+  -- Factor that out so we can use it here instead of copying and pasting?
+  let goals ← getGoals
+  let postInfo? ← if goals.isEmpty then pure none else
+    let mut str := "\nRemaining subgoals:"
+    for g in goals do
+      let e ← PrettyPrinter.ppExpr (← instantiateMVars (← g.getType))
+      str := str ++ Format.pretty ("\n⊢ " ++ e)
+    pure (some str)
+  let style? := if goals.isEmpty then some .success else none
+  let msg? ← msgs.toList.findM? fun m => do pure <|
+    m.severity == MessageSeverity.information && (← m.data.toString).startsWith "Try this: "
+  let suggestion ← match msg? with
+  | some m => pure <| SuggestionText.string (((← m.data.toString).drop 10).takeWhile (· != '\n'))
+  | none => pure <| SuggestionText.string tac
+  return { suggestion, postInfo?, style? }
+
+
+/-- Run a tactic, returning any new messages rather than adding them to the message log. -/
+def withMessageLog (t : TacticM Unit) : TacticM MessageLog := do
+  let initMsgs ← modifyGetThe Core.State fun st => (st.messages, { st with messages := {} })
+  t
+  modifyGetThe Core.State fun st => (st.messages, { st with messages := initMsgs })
+
+
+/--
+Run a tactic, but revert any changes to info trees.
+We use this to inhibit the creation of widgets by subsidiary tactics.
+-/
+def withoutInfoTrees (t : TacticM Unit) : TacticM Unit := do
+  let trees := (← getInfoState).trees
+  t
+  modifyInfoState fun s => { s with trees }
+
+
+open Std.Tactic.TryThis in
+/--
+Run all tactics registered using `register_hint`.
+Print a "Try these:" suggestion for each of the successful tactics.
+
+If one tactic succeeds and closes the goal, we don't look at subsequent tactics.
+-/
+-- TODO We could run the tactics in parallel.
+-- TODO With widget support, could we run the tactics in parallel
+--      and do live updates of the widget as results come in?
+def hint (stx : Syntax) (tacStrs : Array String) : TacticM Unit := do
+  let tacStxs ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
+    | Except.error _ => return none
+    | Except.ok stx => return some stx
+  let tacs := Nondet.ofList tacStxs.toList
+  let results := tacs.filterMapM fun t : Syntax => do
+    if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic t))) then
+      return some (← getGoals, ← suggestion t.prettyPrint.pretty' msgs)
+    else
+      return none
+  let results ← (results.toMLList.takeUpToFirst fun r => r.1.1.isEmpty).asArray
+  let results := results.qsort (·.1.1.length < ·.1.1.length)
+  addSuggestions stx (results.map (·.1.2))
+  match results.find? (·.1.1.isEmpty) with
+  | some r =>
+    setMCtx r.2.term.meta.meta.mctx
+  | none => admitGoal (← getMainGoal)
