@@ -71,6 +71,9 @@ structure PremiseInfo where
   score : Float
 
 
+/--
+Annotate a premise with its type, doc string, import module path, and definition code.
+-/
 private def annotatePremise (pi : PremiseInfo) : MetaM String := do
   let declName := pi.name.toName
   try
