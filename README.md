@@ -60,11 +60,11 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v
 
 After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate tactic suggestions. You can click on any of the suggested tactics to use it in the proof.
 
-<img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e6ca8280-1b8d-4431-9f2b-8ec3bc4d6706">
+<img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/edb7ffbd-59b0-4112-9621-c4344ed14ac8">
 
 You can provide a prefix (e.g., `simp`) to constrain the generated tactics:
 
-<img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/e55a21d4-8191-4c18-8902-7590d5f17053">
+<img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/ab3b75a2-e61c-4ba8-83b6-31f344f0a64d">
 
 
 #### Proof Search
@@ -161,7 +161,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 ## Acknowledgements
 
-* We use the frontend of [llmstep](https://github.com/wellecks/llmstep) for displaying tactics.
+* Our frontend is built upon the `try_these` widget in Std, and adapted from part of `mathlib4/Mathlib/Tactic/Hint.lean` originally authored by Scott Morrison.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 * We thank Jannis Limperg for supporting our LLM-generated tactics in Aesop (https://github.com/leanprover-community/aesop/pull/70).
 

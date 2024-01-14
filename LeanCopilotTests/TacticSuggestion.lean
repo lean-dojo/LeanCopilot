@@ -8,13 +8,11 @@ import LeanCopilot
 
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
-  sorry
 
 
 -- You may provide a prefix to constrain the generated tactics.
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics "rw"
-  sorry
 
 
 /-
@@ -28,13 +26,11 @@ open Lean Meta LeanCopilot
 set_option LeanCopilot.verbose true in
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
-  sorry
 
 
 set_option LeanCopilot.suggest_tactics.check false in
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
-  sorry
 
 
 /-
@@ -58,7 +54,6 @@ def updatedModel := {Builtin.generator with params := params}
 set_option LeanCopilot.suggest_tactics.model "updatedModel" in
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
-  sorry
 
 
 /-
@@ -84,6 +79,5 @@ set_option LeanCopilot.suggest_tactics.check false in
 set_option LeanCopilot.suggest_tactics.model "wellecks/llmstep-mathlib4-pythia2.8b" in
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
-  sorry
 
 -/
