@@ -161,7 +161,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 ## Acknowledgements
 
-* Our frontend is built upon the `try_these` wedget in Std, and adapted from part of `mathlib4/Mathlib/Tactic/Hint.lean` originally authored by Scott Morrison.
+* Our frontend is built upon the `try_these` widget in Std, and adapted from part of `mathlib4/Mathlib/Tactic/Hint.lean` originally authored by Scott Morrison.
 * We thank Scott Morrison for suggestions on simplifying Lean Copilot's installation and Mac Malone for helping implement it. Both Scott and Mac work for the [Lean FRO](https://lean-fro.org/).
 * We thank Jannis Limperg for supporting our LLM-generated tactics in Aesop (https://github.com/leanprover-community/aesop/pull/70).
 
