@@ -4,12 +4,13 @@ import LeanCopilot.Frontend
 import Aesop.Util.Basic
 import Std.Data.String.Basic
 
-open Lean Meta Elab Term Tactic
+open Lean Meta Parser Elab Term Tactic
+
 
 set_option autoImplicit false
 
-namespace LeanCopilot
 
+namespace LeanCopilot
 
 /--
 Pretty-print a list of goals.
@@ -60,22 +61,34 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
     return filteredSuggestions
 
 
-private def annotatePremise (premisesWithInfoAndScores : String × String × String × Float) : MetaM String := do
-  let (premise, path, code, _) := premisesWithInfoAndScores
-  let declName := premise.toName
+/--
+Information of a premise.
+-/
+structure PremiseInfo where
+  name : String
+  path : String
+  code : String
+  score : Float
+
+
+/--
+Annotate a premise with its type, doc string, import module path, and definition code.
+-/
+private def annotatePremise (pi : PremiseInfo) : MetaM String := do
+  let declName := pi.name.toName
   try
     let info ← getConstInfo declName
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
-      | return s!"\n{premise} : {premise_type}"
-    return s!"\n{premise} : {premise_type}\n```doc\n{doc_str}```"
-  catch _ => return s!"\n{premise} needs to be imported from {path}.\n```code\n{code}\n```"
+      | return s!"\n{pi.name} : {premise_type}"
+    return s!"\n{pi.name} : {premise_type}\n```doc\n{doc_str}```"
+  catch _ => return s!"\n{pi.name} needs to be imported from {pi.path}.\n```code\n{pi.code}\n```"
 
 
 /--
 Retrieve a list of premises given a query.
 -/
-def retrieve (input : String) : TacticM (Array (String × String × String × Float)) := do
+def retrieve (input : String) : TacticM (Array PremiseInfo) := do
   if ¬ (← premiseEmbeddingsInitialized) ∧ ¬ (← initPremiseEmbeddings .auto) then
     throwError "Cannot initialize premise embeddings"
 
@@ -85,13 +98,16 @@ def retrieve (input : String) : TacticM (Array (String × String × String × Fl
   let k ← SelectPremises.getNumPremises
   let query ← encode Builtin.encoder input
 
-  return FFI.retrieve query k.toUInt64
+  let rawPremiseInfo := FFI.retrieve query k.toUInt64
+  let premiseInfo : Array PremiseInfo := rawPremiseInfo.map fun (name, path, code, score) =>
+    { name := name, path := path, code := code, score := score }
+  return premiseInfo
 
 
 /--
 Retrieve a list of premises using the current pretty-printed tactic state as the query.
 -/
-def selectPremises : TacticM (Array (String × String × String × Float)) := do
+def selectPremises : TacticM (Array PremiseInfo) := do
   retrieve (← getPpTacticState)
 
 
@@ -115,11 +131,13 @@ elab_rules : tactic
     if ← isVerbose then
       logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
     let tactics := tacticsWithScores.map (·.1)
-    addSuggestions tac pfx tactics.toList (← SuggestTactics.checkTactics)
+    let range : String.Range := { start := tac.getRange?.get!.start, stop := pfx.raw.getRange?.get!.stop }
+    let ref := Syntax.ofRange range
+    hint ref tactics
 
   | `(tactic | select_premises) => do
     let premisesWithInfoAndScores ← selectPremises
-    let rankedPremisesWithInfoAndScores := premisesWithInfoAndScores.qsort (·.2.2.2 > ·.2.2.2)
+    let rankedPremisesWithInfoAndScores := premisesWithInfoAndScores.qsort (·.score > ·.score)
     let richPremises ← Meta.liftMetaM $ (rankedPremisesWithInfoAndScores.mapM annotatePremise)
     let richPremisesExpand := richPremises.foldl (init := "") (· ++ · ++ "\n")
     logInfo richPremisesExpand
