@@ -1,9 +1,10 @@
+import Lean
+import Std.Data.HashMap
 import LeanCopilot.Models.Native
 import LeanCopilot.Models.External
 import LeanCopilot.Models.Generic
 import LeanCopilot.Models.Builtin
 import LeanCopilot.Models.FFI
-import Std.Data.HashMap
 
 set_option autoImplicit false
 
@@ -83,11 +84,15 @@ initialize modelRegistryRef : IO.Ref ModelRegistry ← IO.mkRef default
 def getModelRegistry : IO ModelRegistry := modelRegistryRef.get
 
 
-def getGenerator (name : String) : IO Generator := do
+def getGenerator (name : String) : Lean.CoreM Generator := do
   let mr ← getModelRegistry
   match mr.generators.find? name with
+  | some (.native model) =>
+    if ¬(← isUpToDate model.url) then
+      Lean.logWarning s!"The local model {model.name} is not up to date. You may want to run `lake exe LeanCopilot/download` to re-download it."
+    return .native model
   | some descr => return descr
-  | none => throw $ IO.userError s!"unknown generator: {name}"
+  | none => throwError s!"unknown generator: {name}"
 
 
 def getEncoder (name : String) : IO Encoder := do
