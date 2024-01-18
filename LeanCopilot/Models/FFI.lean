@@ -1,3 +1,4 @@
+import Lean
 import LeanCopilot.Models.Interface
 import LeanCopilot.Models.Native
 import LeanCopilot.Models.Builtin
@@ -118,10 +119,13 @@ def premiseEmbeddingsInitialized : IO Bool := do
   return FFI.premiseEmbeddingsInitialized ()
 
 
-def initPremiseEmbeddings (device : Device) : IO Bool := do
-  let path := (← getModelDir Builtin.premisesUrl) / "embeddings.npy"
+def initPremiseEmbeddings (device : Device) : Lean.CoreM Bool := do
+  let url := Builtin.premisesUrl
+  if ¬(← isUpToDate url) then
+    Lean.logWarning s!"The local premise embeddings are not up to date. You may want to run `lake exe LeanCopilot/download` to re-download it."
+  let path := (← getModelDir url) / "embeddings.npy"
   if ¬ (← path.pathExists) then
-    throw $ IO.userError s!"Please run `lake exe download {Builtin.premisesUrl}` to download premise embeddings."
+    throwError s!"Please run `lake exe download {url}` to download premise embeddings."
     return false
   return FFI.initPremiseEmbeddings path.toString device.toString
 
