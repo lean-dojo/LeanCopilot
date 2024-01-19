@@ -31,6 +31,7 @@ example (a b c : Nat) : a + b + c = a + c + b := by
 set_option LeanCopilot.suggest_tactics.check false in
 example (a b c : Nat) : a + b + c = a + c + b := by
   suggest_tactics
+  sorry
 
 
 /-

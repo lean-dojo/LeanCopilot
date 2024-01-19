@@ -133,7 +133,7 @@ elab_rules : tactic
     let tactics := tacticsWithScores.map (·.1)
     let range : String.Range := { start := tac.getRange?.get!.start, stop := pfx.raw.getRange?.get!.stop }
     let ref := Syntax.ofRange range
-    hint ref tactics
+    hint ref tactics (← SuggestTactics.checkTactics)
 
   | `(tactic | select_premises) => do
     let premisesWithInfoAndScores ← selectPremises
