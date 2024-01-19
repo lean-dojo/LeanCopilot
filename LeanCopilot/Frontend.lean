@@ -66,20 +66,24 @@ If one tactic succeeds and closes the goal, we don't look at subsequent tactics.
 -- TODO We could run the tactics in parallel.
 -- TODO With widget support, could we run the tactics in parallel
 --      and do live updates of the widget as results come in?
-def hint (stx : Syntax) (tacStrs : Array String) : TacticM Unit := do
-  let tacStxs ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
-    | Except.error _ => return none
-    | Except.ok stx => return some stx
-  let tacs := Nondet.ofList tacStxs.toList
-  let results := tacs.filterMapM fun t : Syntax => do
-    if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic t))) then
-      return some (← getGoals, ← suggestion t.prettyPrint.pretty' msgs)
-    else
-      return none
-  let results ← (results.toMLList.takeUpToFirst fun r => r.1.1.isEmpty).asArray
-  let results := results.qsort (·.1.1.length < ·.1.1.length)
-  addSuggestions stx (results.map (·.1.2))
-  match results.find? (·.1.1.isEmpty) with
-  | some r =>
-    setMCtx r.2.term.meta.meta.mctx
-  | none => admitGoal (← getMainGoal)
+def hint (stx : Syntax) (tacStrs : Array String) (check : Bool) : TacticM Unit := do
+  if check then
+    let tacStxs ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
+      | Except.error _ => return none
+      | Except.ok stx => return some stx
+    let tacs := Nondet.ofList tacStxs.toList
+    let results := tacs.filterMapM fun t : Syntax => do
+      if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic t))) then
+        return some (← getGoals, ← suggestion t.prettyPrint.pretty' msgs)
+      else
+        return none
+    let results ← (results.toMLList.takeUpToFirst fun r => r.1.1.isEmpty).asArray
+    let results := results.qsort (·.1.1.length < ·.1.1.length)
+    addSuggestions stx (results.map (·.1.2))
+    match results.find? (·.1.1.isEmpty) with
+    | some r =>
+      setMCtx r.2.term.meta.meta.mctx
+    | none => admitGoal (← getMainGoal)
+  else
+    let tacsNoCheck : Array Suggestion := tacStrs.map fun tac => { suggestion := SuggestionText.string tac }
+    addSuggestions stx tacsNoCheck
