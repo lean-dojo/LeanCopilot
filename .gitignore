@@ -1,5 +1,4 @@
-/lake-packages/*
-/.lake
+.lake
 
 .vscode
 *.olean
