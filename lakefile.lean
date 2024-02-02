@@ -66,9 +66,9 @@ def buildArchiveName : String :=
   let arch := if run_io isArm! then "arm64" else "x86_64"
   let os := if getOS! == .macos then "macOS" else "linux"
   if run_io useCUDA then
-    s!"{arch}-cuda-{os}"
+    s!"{arch}-cuda-{os}.tar.gz"
   else
-    s!"{arch}-{os}"
+    s!"{arch}-{os}.tar.gz"
 
 
 structure SupportedPlatform where
