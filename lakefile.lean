@@ -11,13 +11,13 @@ inductive SupportedOS where
 deriving Inhabited, BEq
 
 
-def getOS! : IO SupportedOS := do
+def getOS! : SupportedOS :=
   if Platform.isWindows then
-    error "Windows is not supported"
-  if Platform.isOSX then
-    return .macos
+    panic! "Windows is not supported"
+  else if Platform.isOSX then
+     .macos
   else
-    return .linux
+     .linux
 
 
 inductive SupportedArch where
@@ -64,10 +64,11 @@ def useCUDA : IO Bool := do
 
 def buildArchiveName : String :=
   let arch := if run_io isArm! then "arm64" else "x86_64"
+  let os := if getOS! == .macos then "macOS" else "linux"
   if run_io useCUDA then
-    s!"{arch}-cuda"
+    s!"{arch}-cuda-{os}"
   else
-    arch
+    s!"{arch}-{os}"
 
 
 structure SupportedPlatform where
@@ -78,7 +79,7 @@ structure SupportedPlatform where
 def getPlatform! : IO SupportedPlatform := do
   if Platform.numBits != 64 then
     error "Only 64-bit platforms are supported"
-  return ⟨← getOS!, ← getArch!⟩
+  return ⟨getOS!, ← getArch!⟩
 
 
 package LeanCopilot where
@@ -206,7 +207,7 @@ target libopenblas pkg : FilePath := do
 def getCt2CmakeFlags : IO (Array String) := do
   let mut flags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF"]
 
-  match ← getOS! with
+  match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
 
@@ -220,7 +221,7 @@ def getCt2CmakeFlags : IO (Array String) := do
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
-  if (← getOS!) == .linux then
+  if getOS! == .linux then
     let openblas ← libopenblas.fetch
     let _ ← openblas.await
 
