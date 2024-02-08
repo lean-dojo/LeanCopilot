@@ -44,11 +44,17 @@ https://github.com/lean-dojo/LeanCopilot/assets/5431913/7742545f-e194-45fa-b744-
 
 1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]` to lakefile.lean. Also add the following line:
 ```lean
-require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "v1.1.1"
+require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ LEAN_COPILOT_VERSION
 ```
-3. Run `lake update LeanCopilot`
-4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`
-5. Run `lake build`
+`LEAN_COPILOT_VERSION` depends on your lean-toolchain:
+| lean-toolchain | Recommended Lean Copilot version |
+| -------------- | -------------------------------- |
+| `v4.6.0-rc1`   | `v1.1.1`                         |
+| `v4.5.0`       | `v1.1.0`                         |
+| `v4.5.0-rc1`   | `v1.1.0`                         |
+2. Run `lake update LeanCopilot`
+3. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`
+4. Run `lake build`
 
 [Here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo) is an example of a Lean package depending on Lean Copilot. If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
