@@ -42,9 +42,9 @@ https://github.com/lean-dojo/LeanCopilot/assets/5431913/7742545f-e194-45fa-b744-
 
 ### Adding Lean Copilot as a Dependency
 
-1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]` to lakefile.lean. Also add the following line:
+1. Add the package configuration option `moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]` to lakefile.lean. Also add the following line, including the quotation marks:
 ```lean
-require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ LEAN_COPILOT_VERSION
+require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 `LEAN_COPILOT_VERSION` depends on your lean-toolchain:
 | lean-toolchain | Recommended Lean Copilot version |
