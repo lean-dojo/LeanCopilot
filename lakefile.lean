@@ -253,8 +253,8 @@ target libctranslate2 pkg : FilePath := do
           cmd := "cp"
           args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
         }
-        -- TODO: Don't hardcode the version "3".
-        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "3")
+        -- TODO: Don't hardcode the version "4".
+        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
         proc {
           cmd := "cp"
           args := #[dst.toString, dst'.toString]
