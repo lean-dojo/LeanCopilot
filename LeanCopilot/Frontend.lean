@@ -2,7 +2,7 @@
    originally authored by Scott Morrison. -/
 import Lean
 import LeanCopilot.Options
-import Std.Tactic.TryThis
+import Lean.Meta.Tactic.TryThis
 import Std.Data.MLList.Basic
 import Std.Control.Nondet.Basic
 
@@ -12,7 +12,7 @@ open Lean Parser Elab Tactic
 set_option autoImplicit false
 
 
-open Std.Tactic.TryThis in
+open Lean.Meta.Tactic.TryThis in
 /--
 Construct a suggestion for a tactic.
 * Check the passed `MessageLog` for an info message beginning with "Try this: ".
@@ -56,7 +56,7 @@ def withoutInfoTrees (t : TacticM Unit) : TacticM Unit := do
   modifyInfoState fun s => { s with trees }
 
 
-open Std.Tactic.TryThis in
+open Lean.Meta.Tactic.TryThis in
 /--
 Run all tactics registered using `register_hint`.
 Print a "Try these:" suggestion for each of the successful tactics.
