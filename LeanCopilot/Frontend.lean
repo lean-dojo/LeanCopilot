@@ -27,7 +27,8 @@ def suggestion (tac : String) (msgs : MessageLog := {}) : TacticM Suggestion := 
   let postInfo? ← if goals.isEmpty then pure none else
     let mut str := "\nRemaining subgoals:"
     for g in goals do
-      let e ← PrettyPrinter.ppExpr (← instantiateMVars (← g.getType))
+      let goalType ← instantiateMVars (← g.getType)
+      let e ← g.withContext do (PrettyPrinter.ppExpr goalType)
       str := str ++ Format.pretty ("\n⊢ " ++ e)
     pure (some str)
   let style? := if goals.isEmpty then some .success else none
