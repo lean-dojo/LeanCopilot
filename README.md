@@ -31,7 +31,7 @@ https://github.com/lean-dojo/LeanCopilot/assets/5431913/7742545f-e194-45fa-b744-
 
 ## Requirements
 
-* Supported platforms: Linux, macOS and Windows WSL
+* Supported platforms: Linux, macOS, and [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/install); :warning: Native Windows currently not supported.
 * [Git LFS](https://git-lfs.com/)
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn)
 * Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler
@@ -49,7 +49,7 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "L
 `LEAN_COPILOT_VERSION` depends on your lean-toolchain:
 | lean-toolchain | Recommended Lean Copilot version |
 | -------------- | -------------------------------- |
-| `v4.6.0`       | `v1.1.2`                         |
+| `v4.7.0-rc2`   | `v1.1.2`                         |
 | `v4.6.0-rc1`   | `v1.1.1`                         |
 | `v4.5.0`       | `v1.1.0`                         |
 | `v4.5.0-rc1`   | `v1.1.0`                         |
