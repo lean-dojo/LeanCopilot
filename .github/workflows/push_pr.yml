@@ -31,7 +31,6 @@ jobs:
       - name: Build tests
         run: ~/.elan/bin/lake build LeanCopilotTests
   test_external:
-    needs: build
     runs-on: ubuntu-latest
     name: Test external
     steps:
