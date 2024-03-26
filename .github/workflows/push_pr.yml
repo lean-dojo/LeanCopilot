@@ -11,10 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     name: Build
     steps:
       - name: Checkout project
@@ -35,10 +32,7 @@ jobs:
         run: ~/.elan/bin/lake build LeanCopilotTests
   test_external:
     needs: build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     name: Test external
     steps:
       - name: Set up elan
