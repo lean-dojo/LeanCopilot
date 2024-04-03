@@ -71,11 +71,11 @@ def hint (stx : Syntax) (tacStrs : Array String) (check : Bool) : TacticM Unit :
   if check then
     let tacStxs ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
       | Except.error _ => return none
-      | Except.ok stx => return some stx
+      | Except.ok stx => return some (tstr, stx)
     let tacs := Nondet.ofList tacStxs.toList
-    let results := tacs.filterMapM fun t : Syntax => do
-      if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic t))) then
-        return some (← getGoals, ← suggestion t.prettyPrint.pretty' msgs)
+    let results := tacs.filterMapM fun t : (String × Syntax) => do
+      if let some msgs ← observing? (withMessageLog (withoutInfoTrees (evalTactic t.2))) then
+        return some (← getGoals, ← suggestion t.1 msgs)
       else
         return none
     let results ← (results.toMLList.takeUpToFirst fun r => r.1.1.isEmpty).asArray
