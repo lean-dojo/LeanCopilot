@@ -76,11 +76,11 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "L
 
 After `import LeanCopilot`, you can use the tactic `suggest_tactics` to generate tactic suggestions. You can click on any of the suggested tactics to use it in the proof.
 
-<img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/edb7ffbd-59b0-4112-9621-c4344ed14ac8">
+<img width="977" alt="suggest_tactics" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/f06865b6-58be-4938-a75c-2a23484384b4">
 
 You can provide a prefix (e.g., `simp`) to constrain the generated tactics:
 
-<img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/ab3b75a2-e61c-4ba8-83b6-31f344f0a64d">
+<img width="915" alt="suggest_tactics_simp" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/95dcae31-41cb-451c-9fdf-d73522addb6e">
 
 
 #### Proof Search
