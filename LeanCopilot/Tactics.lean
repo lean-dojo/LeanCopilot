@@ -131,6 +131,8 @@ elab_rules : tactic
     if ← isVerbose then
       logInfo s!"{elapsed.printAsMillis} for generating {tacticsWithScores.size} tactics"
     let tactics := tacticsWithScores.map (·.1)
+    if ← isVerbose then
+      logInfo s!"Tactics: {tactics}"
     let range : String.Range := { start := tac.getRange?.get!.start, stop := pfx.raw.getRange?.get!.stop }
     let ref := Syntax.ofRange range
     hint ref tactics (← SuggestTactics.checkTactics)
