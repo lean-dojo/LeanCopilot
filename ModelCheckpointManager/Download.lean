@@ -57,13 +57,7 @@ def isUpToDate (url : Url) : IO Bool := do
     cwd := dir
   }).trim != ""
 
-  let hasLocalChange := (← IO.Process.run {
-    cmd := "git"
-    args := #["diff", "--shortstat"]
-    cwd := dir
-  }).trim != ""
-
-  return ¬ (hasRemoteChange ∨ hasLocalChange)
+  return ¬hasRemoteChange
 
 
 def initGitLFS : IO Unit := do
