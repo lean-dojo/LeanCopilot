@@ -184,14 +184,13 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 ## Citation
 
-Below is our workshop paper describing an earlier version of Lean Copilot. We plan to release the full paper in early 2024. Stay tuned!
+If you find our work useful, please consider citing our paper:
 
 ```BibTeX
-@inproceedings{song2023towards,
+@article{song2024towards,
   title={Towards Large Language Models as Copilots for Theorem Proving in {Lean}},
-  author={Song, Peiyang and Yang, Kaiyu and Anandkumar, Anima},
-  comment={The last two authors advised equally.},
-  booktitle={The 3rd Workshop on Mathematical Reasoning and AI at NeurIPS'23},
-  year={2023}
+  author={Peiyang Song and Kaiyu Yang and Anima Anandkumar},
+  year={2024},
+  journal = {arXiv preprint arXiv: Arxiv-2404.12534}
 }
 ```
