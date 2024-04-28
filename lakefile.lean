@@ -106,7 +106,7 @@ lean_exe download {
 
 
 lean_lib LeanCopilotTests {
-  globs := #[.submodules "LeanCopilotTests"]
+  globs := #[.submodules "LeanCopilotTests".toName]
 }
 
 
