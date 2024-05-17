@@ -281,7 +281,7 @@ def tokenize (text : String) : Array String :=
 
 
 def detokenize (tokens : Array String) : String :=
-  String.fromUTF8Unchecked ⟨tokens.map tokenToByte!⟩
+  String.fromUTF8! ⟨tokens.map tokenToByte!⟩
 
 
 def eosToken := "</s>"

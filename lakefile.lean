@@ -106,7 +106,7 @@ lean_exe download {
 
 
 lean_lib LeanCopilotTests {
-  globs := #[.submodules "LeanCopilotTests"]
+  globs := #[.submodules "LeanCopilotTests".toName]
 }
 
 
@@ -116,14 +116,14 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
   else s!"lib{name}.so.{v}"
 
 
-def afterReleaseSync {α : Type} (pkg : Package) (build : SchedulerM (Job α)) : IndexBuildM (Job α) := do
+def afterReleaseSync {α : Type} (pkg : Package) (build : SpawnM (Job α)) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindAsync fun _ _ => build
   else
     build
 
 
-def afterReleaseAsync {α : Type} (pkg : Package) (build : BuildM α) : IndexBuildM (Job α) := do
+def afterReleaseAsync {α : Type} (pkg : Package) (build : BuildM α) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
@@ -177,12 +177,12 @@ target libopenblas pkg : FilePath := do
     try
       let depTrace := Hash.ofString url
       let trace ← buildFileUnlessUpToDate dst depTrace do
-        logStep s!"Cloning OpenBLAS from {url}"
+        logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
 
         let numThreads := max 4 $ min 32 (← nproc)
         let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
-        logStep s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
+        logInfo s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
         proc (quiet := true) {
           cmd := "make"
           args := flags
@@ -233,15 +233,15 @@ target libctranslate2 pkg : FilePath := do
     try
       let depTrace := Hash.ofString ct2URL
       let trace ← buildFileUnlessUpToDate dst depTrace do
-        logStep s!"Cloning CTranslate2 from {ct2URL}"
+        logInfo s!"Cloning CTranslate2 from {ct2URL}"
         gitClone ct2URL pkg.buildDir
 
         let ct2Dir := pkg.buildDir / "CTranslate2"
         let flags ← getCt2CmakeFlags
-        logStep s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
+        logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
         runCmake ct2Dir flags
         let numThreads := max 4 $ min 32 (← nproc)
-        logStep s!"Building CTranslate2 with `make -j{numThreads}`"
+        logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
         proc {
           cmd := "make"
           args := #[s!"-j{numThreads}"]
@@ -280,14 +280,14 @@ target libctranslate2 pkg : FilePath := do
       return (dst, ← computeTrace dst)
 
 
-def buildCpp (pkg : Package) (path : FilePath) (dep : BuildJob FilePath) : SchedulerM (BuildJob FilePath) := do
+def buildCpp (pkg : Package) (path : FilePath) (dep : BuildJob FilePath) : SpawnM (BuildJob FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let flags := #["-fPIC", "-std=c++17", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputFile <| pkg.dir / path
   buildFileAfterDepList oFile [srcJob, dep] (extraDepTrace := computeHash flags) fun deps =>
-    compileO path.toString oFile deps[0]! args "c++"
+    compileO oFile deps[0]! args "c++"
 
 
 target ct2.o pkg : FilePath := do
