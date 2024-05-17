@@ -3,8 +3,8 @@
 import Lean
 import LeanCopilot.Options
 import Lean.Meta.Tactic.TryThis
-import Std.Data.MLList.Basic
-import Std.Control.Nondet.Basic
+import Batteries.Data.MLList.Basic
+import Batteries.Control.Nondet.Basic
 
 open Lean Parser Elab Tactic
 

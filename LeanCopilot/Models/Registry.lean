@@ -1,5 +1,5 @@
 import Lean
-import Std.Data.HashMap
+import Batteries.Data.HashMap
 import LeanCopilot.Models.Native
 import LeanCopilot.Models.External
 import LeanCopilot.Models.Generic
@@ -8,7 +8,7 @@ import LeanCopilot.Models.FFI
 
 set_option autoImplicit false
 
-open Std
+open Batteries
 
 namespace LeanCopilot
 
