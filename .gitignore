@@ -1,7 +1,5 @@
 .lake
-
 .vscode
 *.olean
 python/__pycache__
-
 */.DS_Store
