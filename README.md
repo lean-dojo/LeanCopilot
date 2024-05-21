@@ -5,7 +5,7 @@ Lean Copilot allows large language models (LLMs) to be used in Lean for proof au
 
 
 
-https://github.com/lean-dojo/LeanCopilot/assets/5431913/7742545f-e194-45fa-b744-381bb3441840
+https://github.com/lean-dojo/LeanCopilot/assets/114432581/ee0f56f8-849e-4099-9284-d8092cbd22a3
 
 
 
