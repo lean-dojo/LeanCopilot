@@ -123,7 +123,7 @@ def afterReleaseSync {α : Type} (pkg : Package) (build : SpawnM (Job α)) : Fet
     build
 
 
-def afterReleaseAsync {α : Type} (pkg : Package) (build : BuildM α) : FetchM (Job α) := do
+def afterReleaseAsync {α : Type} (pkg : Package) (build : JobM α) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
     (← pkg.release.fetch).bindSync fun _ _ => build
   else
