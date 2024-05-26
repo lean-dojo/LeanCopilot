@@ -117,7 +117,7 @@ You can also run the inference of any LLMs in Lean, which can be used to build c
 ### Tactic APIs
 
 * Examples in [TacticSuggestion.lean](LeanCopilotTests/TacticSuggestion.lean) showcase how to configure `suggest_tactics`, e.g., to use different models or generate different numbers of tactics.
-* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to configure the proof search using options provided by [aesop](https://github.com/leanprover-community/aesop).
+* Examples in [ProofSearch.lean](LeanCopilotTests/ProofSearch.lean) showcase how to configure `search_proof` using options provided by [aesop](https://github.com/leanprover-community/aesop).
 * Examples in [PremiseSelection.lean](LeanCopilotTests/PremiseSelection.lean) showcase how to set the number of retrieved premises for `select_premises`.
 
 
