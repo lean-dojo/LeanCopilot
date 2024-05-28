@@ -52,5 +52,6 @@ jobs:
       - name: Build lean4-example
         run: |
           cd lean4-example
+          export GIT_CLONE_PROTECTION_ACTIVE=false
           ~/.elan/bin/lake exe LeanCopilot/download
           ~/.elan/bin/lake build
