@@ -193,6 +193,6 @@ If you find our work useful, please consider citing our paper:
   title={Towards Large Language Models as Copilots for Theorem Proving in {Lean}},
   author={Peiyang Song and Kaiyu Yang and Anima Anandkumar},
   year={2024},
-  journal = {arXiv preprint arXiv: Arxiv-2404.12534}
+  journal={arXiv preprint arXiv: Arxiv-2404.12534}
 }
 ```
