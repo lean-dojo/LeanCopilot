@@ -27,7 +27,9 @@ jobs:
       - name: Build project
         run: ~/.elan/bin/lake build
       - name: Download model
-        run: ~/.elan/bin/lake exe LeanCopilot/download
+        run: |
+          export GIT_CLONE_PROTECTION_ACTIVE=false
+          ~/.elan/bin/lake exe LeanCopilot/download
       - name: Build tests
         run: ~/.elan/bin/lake build LeanCopilotTests
   test_external:
