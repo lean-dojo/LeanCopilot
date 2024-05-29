@@ -90,7 +90,7 @@ You can provide a prefix (e.g., `simp`) to constrain the generated tactics:
 
 The tactic `search_proof` combines LLM-generated tactics with [aesop](https://github.com/leanprover-community/aesop) to search for multi-tactic proofs. When a proof is found, you can click on it to insert it into the editor. 
 
-<img width="824" alt="search_proof" src="https://github.com/lean-dojo/LeanCopilot/assets/5431913/0748b9b1-8eb0-4437-bcbf-12e4ea939943">
+<img width="824" alt="search_proof" src="https://github.com/lean-dojo/LeanCopilot/assets/114432581/26381fca-da4e-43d9-84b5-7e27b0612626">
 
 
 
@@ -98,7 +98,7 @@ The tactic `search_proof` combines LLM-generated tactics with [aesop](https://gi
 
 The `select_premises` tactic retrieves a list of potentially useful premises. Currently, it uses the retriever in [LeanDojo](https://leandojo.org/) to select premises from a fixed snapshot of Lean and [mathlib4](https://github.com/leanprover-community/mathlib4/tree/3ce43c18f614b76e161f911b75a3e1ef641620ff).
 
-![select_premises](https://github.com/lean-dojo/LeanCopilot/assets/5431913/1ab1cc9b-39ac-4f40-b2c9-40d57e235d3e)
+![select_premises](https://github.com/lean-dojo/LeanCopilot/assets/114432581/2817663c-ba98-4a47-9ae9-5b8680b6265a)
 
 
 
