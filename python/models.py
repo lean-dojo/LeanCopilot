@@ -48,7 +48,7 @@ class DecoderOnlyTransformer(Generator, Transformer):
         length_penalty: float = 0.0,
         device: str = "cpu",
     ) -> None:
-        self.tokenzier = AutoTokenizer.from_pretrained(name)
+        self.tokenizer = AutoTokenizer.from_pretrained(name)
         if device == "auto":
             device = get_cuda_if_available()
         else:
@@ -60,7 +60,7 @@ class DecoderOnlyTransformer(Generator, Transformer):
         self.length_penalty = length_penalty
 
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
-        tokenized_input = self.tokenzier(input + target_prefix, return_tensors="pt")
+        tokenized_input = self.tokenizer(input + target_prefix, return_tensors="pt")
         output = self.model.generate(
             tokenized_input.input_ids.to(self.device),
             max_length=self.max_length,
@@ -72,7 +72,7 @@ class DecoderOnlyTransformer(Generator, Transformer):
             return_dict_in_generate=True,
             output_scores=True,
         )
-        raw_outputs = self.tokenzier.batch_decode(
+        raw_outputs = self.tokenizer.batch_decode(
             output.sequences, skip_special_tokens=True
         )
         outputs = []
@@ -113,7 +113,7 @@ class EncoderDecoderTransformer(Generator, Transformer):
         length_penalty: float = 0.0,
         device: str = "cpu",
     ) -> None:
-        self.tokenzier = AutoTokenizer.from_pretrained(name)
+        self.tokenizer = AutoTokenizer.from_pretrained(name)
         if device == "auto":
             device = get_cuda_if_available()
         else:
@@ -128,7 +128,7 @@ class EncoderDecoderTransformer(Generator, Transformer):
         assert (
             target_prefix == ""
         ), "target_prefix is not supported by encoder-decoder Transformer"
-        tokenized_input = self.tokenzier(input, return_tensors="pt")
+        tokenized_input = self.tokenizer(input, return_tensors="pt")
         output = self.model.generate(
             tokenized_input.input_ids.to(self.device),
             max_length=self.max_length,
@@ -140,7 +140,7 @@ class EncoderDecoderTransformer(Generator, Transformer):
             return_dict_in_generate=True,
             output_scores=True,
         )
-        raw_outputs = self.tokenzier.batch_decode(
+        raw_outputs = self.tokenizer.batch_decode(
             output.sequences, skip_special_tokens=True
         )
         return list(zip(raw_outputs, output.sequences_scores.exp().tolist()))
@@ -148,7 +148,7 @@ class EncoderDecoderTransformer(Generator, Transformer):
 
 class EncoderOnlyTransformer(Encoder, Transformer):
     def __init__(self, name: str, device: str = "cpu") -> None:
-        self.tokenzier = AutoTokenizer.from_pretrained(name)
+        self.tokenizer = AutoTokenizer.from_pretrained(name)
         if device == "auto":
             device = get_cuda_if_available()
         else:
@@ -158,7 +158,7 @@ class EncoderOnlyTransformer(Encoder, Transformer):
 
     @torch.no_grad()
     def encode(self, input: str) -> np.ndarray:
-        tokenized_input = self.tokenzier(input, return_tensors="pt")
+        tokenized_input = self.tokenizer(input, return_tensors="pt")
         hidden_state = self.model(
             tokenized_input.input_ids.to(self.device)
         ).last_hidden_state
