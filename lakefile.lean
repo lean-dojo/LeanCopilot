@@ -285,7 +285,7 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : BuildJob FilePath) : Spawn
   let flags := #["-fPIC", "-std=c++17", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
-  let srcJob ← inputFile <| pkg.dir / path
+  let srcJob ← inputTextFile <| pkg.dir / path
   buildFileAfterDepList oFile [srcJob, dep] (extraDepTrace := computeHash flags) fun deps =>
     compileO oFile deps[0]! args "c++"
 
