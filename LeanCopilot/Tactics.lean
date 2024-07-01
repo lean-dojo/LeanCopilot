@@ -81,7 +81,7 @@ private def annotatePremise (pi : PremiseInfo) : MetaM String := do
     let premise_type ← Meta.ppExpr info.type
     let some doc_str ← findDocString? (← getEnv) declName
       | return s!"\n{pi.name} : {premise_type}"
-    return s!"\n{pi.name} : {premise_type}\n```doc\n{doc_str}```"
+    return s!"\n{pi.name} : {premise_type}\n```doc\n{doc_str}\n```"
   catch _ => return s!"\n{pi.name} needs to be imported from {pi.path}.\n```code\n{pi.code}\n```"
 
 
