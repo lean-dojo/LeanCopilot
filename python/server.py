@@ -3,13 +3,29 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from models import *
+from external_models import *
 
 app = FastAPI()
 
+
+generation_kwargs = {"model": "gpt-4-turbo-preview",
+                     "temperature": 0.9,
+                     "max_tokens": 1024,
+                     "top_p": 0.9,
+                     "frequency_penalty": 0,
+                     "presence_penalty": 0,
+                     "num_return_sequences": 16,
+                     "openai_timeout": 45,
+                     # "stop": args.stop, --> stop is only used for base models currently
+                     }
 models = {
     # "EleutherAI/llemma_7b": DecoderOnlyTransformer(
     #    "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64, device="auto"
-    #),
+    # ),
+
+    "gpt4": OpenAIRunner(**generation_kwargs),
+
+    
     "wellecks/llmstep-mathlib4-pythia2.8b": PythiaTacticGenerator(
         num_return_sequences=32, max_length=1024, device="auto"
     ),
