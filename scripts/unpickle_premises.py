@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 
 
-# indexed_corpurs.pickle is produced by retrieval/index.py in [ReProver](https://github.com/lean-dojo/ReProver).
+# `indexed_corpurs.pickle` is produced by `retrieval/index.py` in [ReProver](https://github.com/lean-dojo/ReProver).
 indexed_corpus = pickle.load(open("indexed_corpus.pickle", "rb"))
 
 embeddings_tensor = indexed_corpus.embeddings
