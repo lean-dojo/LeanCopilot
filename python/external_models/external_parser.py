@@ -19,8 +19,8 @@ def get_cuda_if_available():
 
 def pre_process_input(model_name, input):
     if model_name == "internlm/internlm2-math-plus-1_8b":
-        prompt = 'Here is a theorom you need to prove in Lean:\n' + \
-            input+'\nNow you should suggest one line tactic in lean code:'
+        prompt="My LEAN 4 state is:\n```lean\n" + input + \
+        "```\nPlease predict a possible tactic to help me prove the theorem."
         prompt = f"""<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"""
     elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
         prompt = 'Here is a theorom you need to prove in Lean:\n' + \
