@@ -25,6 +25,11 @@ def pre_process_input(model_name, input):
     elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
         prompt = 'Here is a theorom you need to prove in Lean:\n' + \
             input+'\nNow you should suggest one line tactic in lean code:'
+    elif 'gemini' in model_name  or "claude" in model_name:
+        prompt = 'Here is a theorom you need to prove in Lean:\n' + \
+            input+'\nNow you should suggest one line tactic in lean code:'
+            
+    #implement here        
     else:
         assert NotImplementedError
     return prompt
@@ -36,6 +41,9 @@ def post_process_output(model_name, output):
             'assistant')[-1].split('lean')[-1].split('```')[0].split('\n')[1]
     elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
         result = output.split('lean')[-1].split('```')[0].split('\n')[1]
+    elif 'gemini' in model_name  or "claude" in model_name: 
+        result = output.split('lean')[-1].split('```')[0].split('\n')[1]
+    #implement here
     else:
         assert NotImplementedError
     return result
