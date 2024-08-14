@@ -194,7 +194,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 ## Citation
 
-If you find our work useful, please consider citing our paper:
+If you find our work useful, please consider citing [our paper](https://arxiv.org/abs/2404.12534):
 
 ```BibTeX
 @misc{song2024largelanguagemodelscopilots,
