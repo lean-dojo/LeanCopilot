@@ -33,5 +33,4 @@ set_option trace.aesop true
 
 
 example (a b c : Nat) : a + b + c = c + b + a := by
-  try aesop? (config := { maxRuleApplications := 2 })
-  try sorry
+  aesop? (config := { maxRuleApplications := 2 })

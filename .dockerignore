@@ -3,5 +3,5 @@
 tmp
 .lake
 clang+llvm*
-python/__pycache__
+**/__pycache__
 */.DS_Store
