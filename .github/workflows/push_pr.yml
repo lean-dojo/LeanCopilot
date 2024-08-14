@@ -25,13 +25,13 @@ jobs:
       - name: Set up elan
         run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Build project
-        run: ~/.elan/bin/lake build
+        run: ~/.elan/bin/lake build -v -U
       - name: Download model
         run: |
           export GIT_CLONE_PROTECTION_ACTIVE=false
           ~/.elan/bin/lake exe LeanCopilot/download
       - name: Build tests
-        run: ~/.elan/bin/lake build LeanCopilotTests
+        run: ~/.elan/bin/lake build LeanCopilotTests -v -U
   test_external:
     needs: build
     runs-on: ubuntu-latest
@@ -54,4 +54,4 @@ jobs:
           cd lean4-example
           export GIT_CLONE_PROTECTION_ACTIVE=false
           ~/.elan/bin/lake exe LeanCopilot/download
-          ~/.elan/bin/lake build
+          ~/.elan/bin/lake build -v -U
