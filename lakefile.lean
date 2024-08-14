@@ -205,16 +205,11 @@ target libopenblas pkg : FilePath := do
 
 
 def getCt2CmakeFlags : IO (Array String) := do
-  let mut flags := #["-DBUILD_CLI=OFF", "-DOPENMP_RUNTIME=NONE", "-DWITH_DNNL=OFF", "-DWITH_MKL=OFF"]
+  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF"]
 
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
-
-  if ← useCUDA then
-    flags := flags ++ #["-DWITH_CUDA=ON", "-DWITH_CUDNN=ON"]
-  else
-    flags := flags ++ #["-DWITH_CUDA=OFF", "-DWITH_CUDNN=OFF"]
 
   return flags
 
