@@ -15,7 +15,7 @@ import numpy as np
 
 import openai
 from openai import OpenAI
-from external_parser import *
+from .external_parser import *
 
 
 class HFTacticGenerator(Generator, Transformer):

@@ -11,7 +11,7 @@ from transformers import (
 )
 import os
 import numpy as np
-from external_parser import *
+from .external_parser import *
 
 try:
     import google.generativeai as genai

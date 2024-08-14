@@ -15,7 +15,7 @@ try:
     from anthropic import Anthropic
 except ImportError as e:
     pass
-from external_parser import *
+from .external_parser import *
 
 
 class ClaudeRunner(Generator, Transformer):

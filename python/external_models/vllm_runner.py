@@ -19,7 +19,7 @@ except ImportError as e:
     print("Cannot import vllm")
     pass
 
-from external_parser import *
+from .external_parser import *
 
 
 class VLLMTacticGenerator(Generator, Transformer):
