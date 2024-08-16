@@ -51,6 +51,7 @@ package «my-package» {
   ]
 }
 ```
+
 2. Add the following line to lakefile.lean, including the quotation marks:
 ```lean
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
@@ -74,9 +75,18 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "L
 | `v4.6.0-rc1`   | `v1.1.1`                         |
 | `v4.5.0`       | `v1.1.0`                         |
 | `v4.5.0-rc1`   | `v1.1.0`                         |
-3. Run `lake update LeanCopilot`
-4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`
-5. Run `lake build`
+
+3. Run `lake update LeanCopilot`.
+
+4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`. *Alternatively*, you can download the models from Hugging Face manually from
+```url
+"https://huggingface.co/kaiyuy/ct2-leandojo-lean4-tacgen-byt5-small"
+"https://huggingface.co/kaiyuy/ct2-leandojo-lean4-retriever-byt5-small"
+"https://huggingface.co/kaiyuy/premise-embeddings-leandojo-lean4-retriever-byt5-small"
+"https://huggingface.co/kaiyuy/ct2-byt5-small"
+```
+
+5. Run `lake build`.
 
 [Here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo) is an example of a Lean package depending on Lean Copilot. If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
