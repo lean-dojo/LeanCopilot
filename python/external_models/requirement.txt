@@ -1,0 +1,6 @@
+loguru
+transformers
+anthropic
+openai
+google
+vllm
