@@ -28,10 +28,8 @@ def pre_process_input(model_name, input):
     elif 'gemini' in model_name  or "claude" in model_name:
         prompt = 'Here is a theorom you need to prove in Lean:\n' + \
             input+'\nNow you should suggest one line tactic in lean code:'
-            
-    #implement here        
     else:
-        assert NotImplementedError
+        raise NotImplementedError(f"External model '{model_name}' not supported")
     return prompt
 
 
@@ -43,9 +41,8 @@ def post_process_output(model_name, output):
         result = output.split('lean')[-1].split('```')[0].split('\n')[1]
     elif 'gemini' in model_name  or "claude" in model_name: 
         result = output.split('lean')[-1].split('```')[0].split('\n')[1]
-    #implement here
     else:
-        assert NotImplementedError
+        raise NotImplementedError(f"External model '{model_name}' not supported")
     return result
 
 

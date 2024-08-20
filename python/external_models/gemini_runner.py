@@ -60,15 +60,14 @@ class GeminiRunner(Generator, Transformer):
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
         prompt = pre_process_input(self.name, input + target_prefix)
         
-        try:
-            response = self.client.generate_content(
+        
+        response = self.client.generate_content(
                     prompt,
                     generation_config=self.generation_config,
                     safety_settings=GeminiRunner.safety_settings,
                 )
 
-        except Exception as e:
-            raise e
+        
 
         results = [(post_process_output(self.name, response.text),1.0)]# current gemini only supports one output
         return choices_dedup(results)

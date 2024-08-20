@@ -58,9 +58,7 @@ class OpenAIRunner(Generator, Transformer):
             openai.APIConnectionError,
         ) as e:
             print("Exception: ", repr(e))
-            print("Sleeping for 30 seconds...")
             print("Consider reducing the number of parallel processes.")
-            # sleep(30)
             return OpenAIRunner.generate(self, input, target_prefix)
         except Exception as e:
             print(f"Failed to run the model for {prompt}!")
