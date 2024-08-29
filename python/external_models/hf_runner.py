@@ -65,18 +65,13 @@ class HFTacticGenerator(Generator, Transformer):
             eos_token_id=eos_token_id,
             **self.generation_args
         )
-        # outputs = outputs[0].tolist()[len(tokenized_input.input_ids[0]) :]
         response = self.tokenizer.batch_decode(
             outputs['sequences'], skip_special_tokens=True)
-        # response = response.split("<|im_end|>")[0]
         result = []
-        # if we ues beam search here should be zip(response,outputs.sequence_scores)
         index = 0
         for out, score in zip(response, outputs.scores):
             out = post_process_output(self.name, out)
             result.append((out, score[index].exp().sum().log().cpu().item()))
-            # if beam seach:
-            # result.append((out,score.exp().item()))
             index += 1
         result = choices_dedup(result)
         return result
