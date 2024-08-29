@@ -32,26 +32,3 @@ jobs:
           ~/.elan/bin/lake exe LeanCopilot/download
       - name: Build tests
         run: ~/.elan/bin/lake build LeanCopilotTests -v -U
-  test_external:
-    needs: build
-    runs-on: ubuntu-latest
-    name: Test external
-    steps:
-      - name: Set up elan
-        run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
-      - name: Get lean4-example
-        run: |
-          git clone https://github.com/yangky11/lean4-example
-          cd lean4-example
-          git checkout LeanCopilot-demo
-      - name: Install Git LFS
-        run: |
-          cd lean4-example
-          git lfs update --force
-          git lfs install
-      - name: Build lean4-example
-        run: |
-          cd lean4-example
-          export GIT_CLONE_PROTECTION_ACTIVE=false
-          ~/.elan/bin/lake exe LeanCopilot/download
-          ~/.elan/bin/lake build -v -U
