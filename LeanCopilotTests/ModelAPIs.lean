@@ -99,4 +99,27 @@ def reproverExternalEncoder : ExternalEncoder := {
 
 -- Go to ./python and run `uvicorn server:app --port 23337`
 #eval encode reproverExternalEncoder "n : ℕ\n⊢ gcd n n = n"
+
+/--
+General-purpose LLM apis: openai, claude, etc.
+-/
+def gpt4 : ExternalGenerator := {
+  name := "gpt4"
+  host := "localhost"
+  port := 23337
+}
+
+#eval generate gpt4 "n : ℕ\n⊢ gcd n n = n"
+
+/--
+Math LLMs: InternLM, Deepseekmath, etc.
+-/
+def internLM : ExternalGenerator := {
+  name := "InternLM"
+  host := "localhost"
+  port := 23337
+}
+
+#eval generate internLM "n : ℕ\n⊢ gcd n n = n"
+
 -/
