@@ -10,15 +10,24 @@ def get_cuda_if_available():
 
 def pre_process_input(model_name, input):
     if model_name == "internlm/internlm2-math-plus-1_8b":
-        prompt="My LEAN 4 state is:\n```lean\n" + input + \
-        "```\nPlease predict a possible tactic to help me prove the theorem."
+        prompt = (
+            "My LEAN 4 state is:\n```lean\n"
+            + input
+            + "```\nPlease predict a possible tactic to help me prove the theorem."
+        )
         prompt = f"""<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"""
     elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
-        prompt = 'Here is a theorom you need to prove in Lean:\n' + \
-            input+'\nNow you should suggest one line tactic in lean code:'
-    elif 'gemini' in model_name  or "claude" in model_name:
-        prompt = 'Here is a theorom you need to prove in Lean:\n' + \
-            input+'\nNow you should suggest one line tactic in lean code:'
+        prompt = (
+            "Here is a theorom you need to prove in Lean:\n"
+            + input
+            + "\nNow you should suggest one line tactic in lean code:"
+        )
+    elif "gemini" in model_name or "claude" in model_name:
+        prompt = (
+            "Here is a theorom you need to prove in Lean:\n"
+            + input
+            + "\nNow you should suggest one line tactic in lean code:"
+        )
     else:
         raise NotImplementedError(f"External model '{model_name}' not supported")
     return prompt
@@ -26,12 +35,16 @@ def pre_process_input(model_name, input):
 
 def post_process_output(model_name, output):
     if model_name == "internlm/internlm2-math-plus-1_8b":
-        result = output.split(
-            'assistant')[-1].split('lean')[-1].split('```')[0].split('\n')[1]
+        result = (
+            output.split("assistant")[-1]
+            .split("lean")[-1]
+            .split("```")[0]
+            .split("\n")[1]
+        )
     elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
-        result = output.split('lean')[-1].split('```')[0].split('\n')[1]
-    elif 'gemini' in model_name  or "claude" in model_name: 
-        result = output.split('lean')[-1].split('```')[0].split('\n')[1]
+        result = output.split("lean")[-1].split("```")[0].split("\n")[1]
+    elif "gemini" in model_name or "claude" in model_name:
+        result = output.split("lean")[-1].split("```")[0].split("\n")[1]
     else:
         raise NotImplementedError(f"External model '{model_name}' not supported")
     return result

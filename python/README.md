@@ -21,3 +21,9 @@ uvicorn server:app --port 23337
 ```
 
 After the server is up running, you can go to `LeanCopilotTests/ModelAPIs.lean` to try your external models out!
+
+## Contributions
+
+We welcome contributions. If you think it would beneficial to add some other external models, or if you would like to make other contributions regarding the external model support in Lean Copilot, please feel free to open a PR. The main entry point is this `python` folder as well as the `ModelAPIs.lean` file under `LeanCopilotTests`.
+
+We use [`black`](https://pypi.org/project/black/) to format code in this folder.

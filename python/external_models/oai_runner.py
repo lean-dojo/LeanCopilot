@@ -14,14 +14,14 @@ class OpenAIRunner(Generator, Transformer):
 
     def __init__(self, **args):
         self.client_kwargs: dict[str | str] = {
-            "model": args['model'],
-            "temperature": args['temperature'],
-            "max_tokens": args['max_tokens'],
-            "top_p": args['top_p'],
+            "model": args["model"],
+            "temperature": args["temperature"],
+            "max_tokens": args["max_tokens"],
+            "top_p": args["top_p"],
             "frequency_penalty": 0,
             "presence_penalty": 0,
-            "n": args['num_return_sequences'],
-            "timeout": args['openai_timeout'],
+            "n": args["num_return_sequences"],
+            "timeout": args["openai_timeout"],
             # "stop": args.stop,  # stop is only used for base models currently
         }
         self.name = self.client_kwargs["model"]
@@ -30,7 +30,6 @@ class OpenAIRunner(Generator, Transformer):
         prompt = pre_process_input(self.name, input + target_prefix)
         prompt = [
             {"role": "user", "content": f"{prompt}"},
-
         ]
         try:
             response = OpenAIRunner.client.chat.completions.create(
@@ -56,22 +55,28 @@ class OpenAIRunner(Generator, Transformer):
             print("Exception: ", repr(e))
             raise e
 
-        results = [(post_process_output(self.name, c.message.content), np.exp(-np.mean([
-            token.logprob for token in c.logprobs.content])))for c in response.choices]
+        results = [
+            (
+                post_process_output(self.name, c.message.content),
+                np.exp(-np.mean([token.logprob for token in c.logprobs.content])),
+            )
+            for c in response.choices
+        ]
         return choices_dedup(results)
 
 
 if __name__ == "__main__":
-    generation_kwargs = {"model": "gpt-4-turbo-preview",
-                         "temperature": 0.9,
-                         "max_tokens": 1024,
-                         "top_p": 0.9,
-                         "frequency_penalty": 0,
-                         "presence_penalty": 0,
-                         "num_return_sequences": 16,
-                         "openai_timeout": 45,
-                         # "stop": args.stop,  # stop is only used for base models currently
-                         }
+    generation_kwargs = {
+        "model": "gpt-4-turbo-preview",
+        "temperature": 0.9,
+        "max_tokens": 1024,
+        "top_p": 0.9,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "num_return_sequences": 16,
+        "openai_timeout": 45,
+        # "stop": args.stop,  # stop is only used for base models currently
+    }
 
     model = OpenAIRunner(**generation_kwargs)
     print(model.generate("n : ℕ\n⊢ gcd n n = n"))
