@@ -101,7 +101,7 @@ def reproverExternalEncoder : ExternalEncoder := {
 #eval encode reproverExternalEncoder "n : ℕ\n⊢ gcd n n = n"
 
 /--
-LLMs apis: openai, claude etc.
+General-purpose LLM apis: openai, claude, etc.
 -/
 def gpt4 : ExternalGenerator := {
   name := "gpt4"
@@ -112,7 +112,7 @@ def gpt4 : ExternalGenerator := {
 #eval generate gpt4 "n : ℕ\n⊢ gcd n n = n"
 
 /--
-Math LLMs: InternLM, Deepseekmath etc.
+Math LLMs: InternLM, Deepseekmath, etc.
 -/
 def internLM : ExternalGenerator := {
   name := "InternLM"

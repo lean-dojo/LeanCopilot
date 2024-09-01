@@ -2,22 +2,12 @@ import torch
 import numpy as np
 from loguru import logger
 from typing import List, Tuple
-from abc import ABC, abstractmethod
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
-    AutoTokenizer,
-    AutoModelForTextEncoding,
-)
-import os
-import numpy as np
-
+from transformers import AutoTokenizer
 try:
     from vllm import LLM, SamplingParams
 except ImportError as e:
     print("Cannot import vllm")
     pass
-
 from .external_parser import *
 
 
@@ -26,17 +16,14 @@ class VLLMTacticGenerator(Generator, Transformer):
         self,
         **args
     ) -> None:
-
         self.name = args['model']
         self.llm = LLM(
             model=self.name,
             tokenizer=self.name,
             tensor_parallel_size=args["tensor_parallel_size"],
-            # dtype=args.dtype,
             enforce_eager=True,
             max_model_len=4096,
             disable_custom_all_reduce=False,
-            # enable_prefix_caching=args.enable_prefix_caching,
             trust_remote_code=True,
         )
         self.sampling_params = SamplingParams(
@@ -56,21 +43,6 @@ class VLLMTacticGenerator(Generator, Transformer):
         else:
             device = torch.device(device)
         logger.info(f"Loading {self.name} on {device}")
-        # self.model = AutoModelForCausalLM.from_pretrained(self.name, trust_remote_code=True).to(device)
-
-        '''self.generation_args: dict[str | str] = {
-            "do_sample":args["do_sample"],
-            "temperature": args['temperature'],#chat default is 0.8
-            "max_new_tokens": args['max_new_tokens'],
-            "top_p": args['top_p'],#chat default is 0.8
-            #"length_penalty": args["length_penalty"],
-            "num_return_sequences": args['num_return_sequences'],
-            #"num_beams": self.num_return_sequences,
-            ##Here if we use beam search for llms the output are not diverse(few tactics are provided).
-            "output_scores":args["output_scores"],
-            "output_logits":args["output_logits"],
-            "return_dict_in_generate":args["return_dict_in_generate"],
-        }'''
 
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
         prompt = input + target_prefix
@@ -79,12 +51,7 @@ class VLLMTacticGenerator(Generator, Transformer):
         '''
         prompt = pre_process_input(self.name, prompt)
 
-        # self.model = self.model.eval()
-
         vllm_outputs = self.llm.generate(prompt, self.sampling_params)
-        # pdb.set_trace()
-        # print(vllm_outputs)
-        # exit()
         result = []
         for output in vllm_outputs[0].outputs:  # bsz=1 for now
             out = output.text.split('<|im_end|>')[0]
@@ -96,7 +63,6 @@ class VLLMTacticGenerator(Generator, Transformer):
 
 
 if __name__ == "__main__":
-
     generation_kwargs = {"model": "internlm/internlm2-math-plus-1_8b",
                          "tensor_parallel_size": 2,
                          "temperature": 0.6,

@@ -1,16 +1,7 @@
-import os
 import torch
-import argparse
 import numpy as np
-from loguru import logger
 from typing import List, Tuple
 from abc import ABC, abstractmethod
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
-    AutoTokenizer,
-    AutoModelForTextEncoding,
-)
 
 
 def get_cuda_if_available():
@@ -77,5 +68,3 @@ class Transformer:
     @property
     def device(self) -> torch.device:
         return self.model.device
-
-

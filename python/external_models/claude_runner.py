@@ -1,16 +1,5 @@
-import torch
-import numpy as np
-from loguru import logger
 from typing import List, Tuple
-from abc import ABC, abstractmethod
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
-    AutoTokenizer,
-    AutoModelForTextEncoding,
-)
 import os
-import numpy as np
 try:
     from anthropic import Anthropic
 except ImportError as e:
@@ -33,22 +22,17 @@ class ClaudeRunner(Generator, Transformer):
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
         prompt = pre_process_input(self.name, input + target_prefix)
         
-        try:
-            response = self.client.completions.create(
-                    prompt=prompt,
-                    **self.client_kwargs,
-                )                                
-            content = response.completion
-            
-        except Exception as e:
-            raise e
+        response = self.client.completions.create(
+                prompt=prompt,
+                **self.client_kwargs,
+            )                                
+        content = response.completion
 
-        results = [(post_process_output(self.name, content),1.0)]# current claude only supports one output
+        results = [(post_process_output(self.name, content),1.0)] # Currently Claude only supports one output.
         return choices_dedup(results)
 
 
 if __name__ == "__main__":
-
     generation_kwargs = {"model": "claude-3-opus",
                          "temperature": 0.9,
                          "max_tokens": 1024,

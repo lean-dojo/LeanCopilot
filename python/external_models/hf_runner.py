@@ -1,19 +1,10 @@
 import torch
-import numpy as np
 from loguru import logger
 from typing import List, Tuple
-from abc import ABC, abstractmethod
 from transformers import (
     AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
     AutoTokenizer,
-    AutoModelForTextEncoding,
 )
-import os
-import numpy as np
-
-import openai
-from openai import OpenAI
 from .external_parser import *
 
 
@@ -36,13 +27,11 @@ class HFTacticGenerator(Generator, Transformer):
 
         self.generation_args: dict[str | str] = {
             "do_sample": args["do_sample"],
-            "temperature": args['temperature'],  # chat default is 0.8
+            "temperature": args['temperature'],  # chat default is 0.8.
             "max_new_tokens": args['max_new_tokens'],
-            "top_p": args['top_p'],  # chat default is 0.8
-            # "length_penalty": args["length_penalty"],
+            "top_p": args['top_p'],  # chat default is 0.8.
             "num_return_sequences": args['num_return_sequences'],
-            # "num_beams": self.num_return_sequences,
-            # Here if we use beam search for llms the output are not diverse(few tactics are provided).
+            # "num_beams": self.num_return_sequences,  # Here if we use beam search for llms the output are not diverse (few tactics are provided).
             "output_scores": args["output_scores"],
             "output_logits": args["output_logits"],
             "return_dict_in_generate": args["return_dict_in_generate"],
@@ -67,6 +56,7 @@ class HFTacticGenerator(Generator, Transformer):
         )
         response = self.tokenizer.batch_decode(
             outputs['sequences'], skip_special_tokens=True)
+        
         result = []
         index = 0
         for out, score in zip(response, outputs.scores):
@@ -78,7 +68,6 @@ class HFTacticGenerator(Generator, Transformer):
 
 
 if __name__ == "__main__":
-
     generation_kwargs = {"model": "internlm/internlm2-math-plus-1_8b",
                          "temperature": 0.6,
                          "max_new_tokens": 1024,

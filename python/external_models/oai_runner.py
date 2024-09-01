@@ -1,14 +1,5 @@
-import torch
 import numpy as np
-from loguru import logger
 from typing import List, Tuple
-from abc import ABC, abstractmethod
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
-    AutoTokenizer,
-    AutoModelForTextEncoding,
-)
 import os
 import numpy as np
 import openai
@@ -31,7 +22,7 @@ class OpenAIRunner(Generator, Transformer):
             "presence_penalty": 0,
             "n": args['num_return_sequences'],
             "timeout": args['openai_timeout'],
-            # "stop": args.stop, --> stop is only used for base models currently
+            # "stop": args.stop,  # stop is only used for base models currently
         }
         self.name = self.client_kwargs["model"]
 
@@ -71,7 +62,6 @@ class OpenAIRunner(Generator, Transformer):
 
 
 if __name__ == "__main__":
-
     generation_kwargs = {"model": "gpt-4-turbo-preview",
                          "temperature": 0.9,
                          "max_tokens": 1024,
@@ -80,7 +70,7 @@ if __name__ == "__main__":
                          "presence_penalty": 0,
                          "num_return_sequences": 16,
                          "openai_timeout": 45,
-                         # "stop": args.stop, --> stop is only used for base models currently
+                         # "stop": args.stop,  # stop is only used for base models currently
                          }
 
     model = OpenAIRunner(**generation_kwargs)

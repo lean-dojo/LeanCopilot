@@ -1,23 +1,11 @@
-import torch
-import numpy as np
-from loguru import logger
 from typing import List, Tuple
-from abc import ABC, abstractmethod
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
-    AutoTokenizer,
-    AutoModelForTextEncoding,
-)
 import os
-import numpy as np
-from .external_parser import *
-
 try:
     import google.generativeai as genai
     from google.generativeai import GenerationConfig
 except ImportError as e:
     pass
+from .external_parser import *
 
 
 class GeminiRunner(Generator, Transformer):
@@ -39,8 +27,8 @@ class GeminiRunner(Generator, Transformer):
             "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
             "threshold": "BLOCK_NONE",
         },]
-    def __init__(self, **args):
-        
+    
+    def __init__(self, **args):   
         self.client_kwargs: dict[str | str] = {
             "model": args['model'],
             "temperature": args['temperature'],
@@ -49,7 +37,6 @@ class GeminiRunner(Generator, Transformer):
             
         }
         self.name = self.client_kwargs["model"]
-        
         self.client = genai.GenerativeModel(args['model'])
         self.generation_config = GenerationConfig(
             candidate_count=1,
@@ -57,9 +44,9 @@ class GeminiRunner(Generator, Transformer):
             temperature=args['temperature'],
             top_p=args['top_p'],
         )
+        
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
         prompt = pre_process_input(self.name, input + target_prefix)
-        
         
         response = self.client.generate_content(
                     prompt,
@@ -67,14 +54,11 @@ class GeminiRunner(Generator, Transformer):
                     safety_settings=GeminiRunner.safety_settings,
                 )
 
-        
-
-        results = [(post_process_output(self.name, response.text),1.0)]# current gemini only supports one output
+        results = [(post_process_output(self.name, response.text),1.0)] # Currently Gemini only supports one output.
         return choices_dedup(results)
 
 
 if __name__ == "__main__":
-
     generation_kwargs = {"model": 'gemini-1.0-pro',
                          "temperature": 0.9,
                          "max_tokens": 1024,
