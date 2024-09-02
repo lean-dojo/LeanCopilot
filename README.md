@@ -59,6 +59,7 @@ require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "L
 `LEAN_COPILOT_VERSION` depends on your lean-toolchain:
 | lean-toolchain | Recommended Lean Copilot version |
 | -------------- | -------------------------------- |
+| `v4.11.0`      | `v1.6.0`                         |
 | `v4.11.0-rc3`  | `v1.5.3`                         |
 | `v4.11.0-rc2`  | `v1.5.2`                         |
 | `v4.11.0-rc1`  | `v1.5.1`                         |
