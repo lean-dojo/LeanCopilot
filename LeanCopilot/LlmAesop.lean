@@ -1,6 +1,5 @@
 import LeanCopilot.Tactics
 import LeanCopilot.Options
-import Batteries.Data.String.Basic
 import Aesop
 
 set_option autoImplicit false
