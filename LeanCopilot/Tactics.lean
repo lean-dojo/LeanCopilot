@@ -3,6 +3,7 @@ import LeanCopilot.Options
 import LeanCopilot.Frontend
 import Aesop.Util.Basic
 import Batteries.Data.String.Basic
+import Batteries.Data.String.Matcher
 
 open Lean Meta Parser Elab Term Tactic
 
