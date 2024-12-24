@@ -118,14 +118,14 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
 
 def afterReleaseSync {α : Type} (pkg : Package) (build : SpawnM (Job α)) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
-    (← pkg.release.fetch).bindAsync fun _ _ => build
+    (← pkg.gitHubRelease.fetch).bindAsync fun _ _ => build
   else
     build
 
 
 def afterReleaseAsync {α : Type} (pkg : Package) (build : JobM α) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
-    (← pkg.release.fetch).bindSync fun _ _ => build
+    (← pkg.gitHubRelease.fetch).bindSync fun _ _ => build
   else
     Job.async build
 
@@ -303,8 +303,8 @@ extern_lib libleanffi pkg := do
   buildStaticLib (pkg.nativeLibDir / name) #[ct2O]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "9c6c2d647e57b2b7a0b42dd8080c698bd33a1b6f" -- Lean v4.11.0
-require aesop from git "https://github.com/leanprover-community/aesop" @ "deb279eb7be16848d0bc8387f80d6e41bcdbe738" -- Lean v4.11.0
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "v4.14.0" -- Lean v4.11.0
+require aesop from git "https://github.com/leanprover-community/aesop" @ "v4.14.0" -- Lean v4.11.0
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
-require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "e490631b72a43a6a82b4ddd3a2d020b2029491d0" -- Lean v4.11.0
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "v4.14.0" -- Lean v4.11.0
