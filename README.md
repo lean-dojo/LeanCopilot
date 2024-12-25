@@ -52,7 +52,7 @@ package «my-package» {
 }
 ```
 Alternatively, if your project uses lakefile.toml, it should include:
-```
+```toml
 moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]
 ```
 
@@ -61,6 +61,13 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 `LEAN_COPILOT_VERSION` must match with your lean-toolchain.
+If your project uses lakefile.toml, it should include:
+```toml
+[[require]]
+name = "LeanCopilot"
+git = "https://github.com/lean-dojo/LeanCopilot.git"
+rev = "LEAN_COPILOT_VERSION"
+```
 
 3. Run `lake update LeanCopilot`.
 
