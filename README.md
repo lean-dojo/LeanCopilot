@@ -51,6 +51,10 @@ package «my-package» {
   ]
 }
 ```
+Alternatively, if your project uses lakefile.toml, you should have something like
+```
+moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]
+```
 
 2. Add the following line to lakefile.lean, including the quotation marks:
 ```lean
