@@ -118,14 +118,14 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
 
 def afterReleaseSync {α : Type} (pkg : Package) (build : SpawnM (Job α)) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
-    (← pkg.gitHubRelease.fetch).bindAsync fun _ _ => build
+    (← pkg.optGitHubRelease.fetch).bindAsync fun _ _ => build
   else
     build
 
 
 def afterReleaseAsync {α : Type} (pkg : Package) (build : JobM α) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
-    (← pkg.gitHubRelease.fetch).bindSync fun _ _ => build
+    (← pkg.optGitHubRelease.fetch).bindSync fun _ _ => build
   else
     Job.async build
 
