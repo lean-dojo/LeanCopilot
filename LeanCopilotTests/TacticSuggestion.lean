@@ -54,7 +54,8 @@ def updatedModel := {Builtin.generator with params := params}
 
 set_option LeanCopilot.suggest_tactics.model "updatedModel" in
 example (a b c : Nat) : a + b + c = a + c + b := by
-  suggest_tactics
+  try suggest_tactics
+  try sorry
 
 
 /-
