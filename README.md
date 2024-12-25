@@ -51,7 +51,7 @@ package «my-package» {
   ]
 }
 ```
-Alternatively, if your project uses lakefile.toml, you should have something like
+Alternatively, if your project uses lakefile.toml, it should include:
 ```
 moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]
 ```
