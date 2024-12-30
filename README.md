@@ -71,12 +71,11 @@ rev = "LEAN_COPILOT_VERSION"
 3. Run `lake update LeanCopilot`.
 
 4. Run `lake exe LeanCopilot/download` to download the built-in models from Hugging Face to `~/.cache/lean_copilot/`. *Alternatively*, you can download the models from Hugging Face manually from
-```url
-"https://huggingface.co/kaiyuy/ct2-leandojo-lean4-tacgen-byt5-small"
-"https://huggingface.co/kaiyuy/ct2-leandojo-lean4-retriever-byt5-small"
-"https://huggingface.co/kaiyuy/premise-embeddings-leandojo-lean4-retriever-byt5-small"
-"https://huggingface.co/kaiyuy/ct2-byt5-small"
-```
+* [ct2-leandojo-lean4-tacgen-byt5-small](https://huggingface.co/kaiyuy/ct2-leandojo-lean4-tacgen-byt5-small)
+* [ct2-leandojo-lean4-retriever-byt5-small](https://huggingface.co/kaiyuy/ct2-leandojo-lean4-retriever-byt5-small)
+* [premise-embeddings-leandojo-lean4-retriever-byt5-small](https://huggingface.co/kaiyuy/premise-embeddings-leandojo-lean4-retriever-byt5-small)
+* [ct2-byt5-small](https://huggingface.co/kaiyuy/ct2-byt5-small)
+
 
 5. Run `lake build`.
 
