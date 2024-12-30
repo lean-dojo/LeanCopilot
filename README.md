@@ -60,7 +60,7 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 ```lean
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
-`LEAN_COPILOT_VERSION` is your lean version (e.g.: `v4.3.0-rc2`) and must match the version declared in your lean-toolchain. Alternatively, if your project uses lakefile.toml, it should include:
+For stable Lean versions (e.g., `v4.14.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean version (e.g., `v4.15.0-rc1`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml, it should include:
 ```toml
 [[require]]
 name = "LeanCopilot"
