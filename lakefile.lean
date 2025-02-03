@@ -118,14 +118,14 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
 
 def afterReleaseSync {α : Type} (pkg : Package) (build : SpawnM (Job α)) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
-    (← pkg.optGitHubRelease.fetch).bindAsync fun _ _ => build
+    (← pkg.optGitHubRelease.fetch).bindM fun _ => build
   else
     build
 
 
 def afterReleaseAsync {α : Type} (pkg : Package) (build : JobM α) : FetchM (Job α) := do
   if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
-    (← pkg.optGitHubRelease.fetch).bindSync fun _ _ => build
+    (← pkg.optGitHubRelease.fetch).mapM fun _ => build
   else
     Job.async build
 
@@ -176,7 +176,8 @@ target libopenblas pkg : FilePath := do
 
     try
       let depTrace := Hash.ofString url
-      let trace ← buildFileUnlessUpToDate dst depTrace do
+      setTrace depTrace
+      buildFileUnlessUpToDate' dst do
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
 
@@ -198,10 +199,12 @@ target libopenblas pkg : FilePath := do
           cmd := "cp"
           args := #[dst.toString, dst'.toString]
         }
-      return (dst, trace)
+      let _ := (← getTrace)
+      return dst
 
     else
-      return (dst, ← computeTrace dst)
+      addTrace <| ← computeTrace dst
+      return dst
 
 
 def getCt2CmakeFlags : IO (Array String) := do
@@ -233,7 +236,8 @@ target libctranslate2 pkg : FilePath := do
 
     try
       let depTrace := Hash.ofString ct2URL
-      let trace ← buildFileUnlessUpToDate dst depTrace do
+      setTrace depTrace
+      buildFileUnlessUpToDate' dst do
         logInfo s!"Cloning CTranslate2 from {ct2URL}"
         gitClone ct2URL pkg.buildDir
 
@@ -276,18 +280,20 @@ target libctranslate2 pkg : FilePath := do
           cmd := "rm"
           args := #["-rf", ct2Dir.toString]
         }
-      return (dst, trace)
+      let _ := (← getTrace)
+      return dst
     else
-      return (dst, ← computeTrace dst)
+      addTrace <| ← computeTrace dst
+      return dst
 
 
-def buildCpp (pkg : Package) (path : FilePath) (dep : BuildJob FilePath) : SpawnM (BuildJob FilePath) := do
+def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Job FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let flags := #["-fPIC", "-std=c++17", optLevel]
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
-  buildFileAfterDepList oFile [srcJob, dep] (extraDepTrace := computeHash flags) fun deps =>
+  buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
     compileO oFile deps[0]! args "c++"
 
 
@@ -303,8 +309,8 @@ extern_lib libleanffi pkg := do
   buildStaticLib (pkg.nativeLibDir / name) #[ct2O]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "e8dc5fc16c625fc4fe08f42d625523275ddbbb4b" -- Lean v4.15.0
-require aesop from git "https://github.com/leanprover-community/aesop" @ "2689851f387bb2cef351e6825fe94a56a304ca13" -- Lean v4.15.0
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "main"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "master"
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
-require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "0291556f04e89d46cd2999f0f4c1164c81778207" -- Lean v4.15.0
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
