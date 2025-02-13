@@ -51,7 +51,7 @@ def getArch! : IO SupportedArch := do
 
 
 def isArm! : IO Bool := do
-  return (← getArch!) == .arm64
+  return false
 
 
 def hasCUDA : IO Bool := do
@@ -60,7 +60,7 @@ def hasCUDA : IO Bool := do
 
 
 def useCUDA : IO Bool := do
-  return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
+  return false
 
 
 def buildArchiveName : String :=
@@ -214,7 +214,7 @@ def getCt2CmakeFlags : IO (Array String) := do
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
-  | .windows => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=OFF"]
+  | .windows => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=OFF", "-DENABLE_CPU_DISPATCH=OFF"]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
   -- if ← useCUDA then
@@ -247,41 +247,56 @@ target libctranslate2 pkg : FilePath := do
         let flags ← getCt2CmakeFlags
         logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
         runCmake ct2Dir flags
-        let numThreads := max 4 $ min 32 (← nproc)
-        logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
-        proc {
-          cmd := "make"
-          args := #[s!"-j{numThreads}"]
-          cwd := ct2Dir / "build"
-        }
+
+        if getOS! == .windows then
+          proc {
+            cmd := "nmake"
+            cwd := ct2Dir / "build"
+          }
+        else
+          let numThreads := max 4 $ min 32 (← nproc)
+          logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
+          proc {
+            cmd := "make"
+            args := #[s!"-j{numThreads}"]
+            cwd := ct2Dir / "build"
+          }
+
+        logInfo s!"Start Copying"
 
         ensureDirExists $ pkg.buildDir / "include"
         proc {
           cmd := "cp"
-          args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
+          args := #[(ct2Dir / "build" / nameToSharedLib "libctranslate2").toString, dst.toString]
         }
+        logInfo s!"Done"
         -- TODO: Don't hardcode the version "4".
         let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
         proc {
           cmd := "cp"
           args := #[dst.toString, dst'.toString]
         }
+        logInfo s!"Done"
         proc {
           cmd := "cp"
           args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
         }
+        logInfo s!"Done"
         proc {
           cmd := "cp"
           args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
         }
+        logInfo s!"Done"
         proc {
           cmd := "cp"
           args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
         }
+        logInfo s!"Done"
         proc {
           cmd := "rm"
           args := #["-rf", ct2Dir.toString]
         }
+        logInfo s!"Done Copying"
       let _ := (← getTrace)
       return dst
     else
