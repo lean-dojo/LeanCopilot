@@ -268,7 +268,7 @@ target libctranslate2 pkg : FilePath := do
         ensureDirExists $ pkg.buildDir / "include"
         proc {
           cmd := "cp"
-          args := #[(ct2Dir / "build" / nameToSharedLib "libctranslate2").toString, dst.toString]
+          args := #[(ct2Dir / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")).toString, dst.toString]
         }
         logInfo s!"Done"
         -- TODO: Don't hardcode the version "4".
