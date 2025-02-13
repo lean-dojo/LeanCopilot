@@ -249,6 +249,7 @@ target libctranslate2 pkg : FilePath := do
         runCmake ct2Dir flags
 
         if getOS! == .windows then
+          logInfo s!"Building CTranslate2 with `nmake`"
           proc {
             cmd := "nmake"
             cwd := ct2Dir / "build"
