@@ -112,7 +112,7 @@ lean_lib LeanCopilotTests {
 
 
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
-  if Platform.isWindows then s!"{name}.dll"
+  if Platform.isWindows then s!"{name}.{v}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
   else s!"lib{name}.so.{v}"
 
@@ -152,7 +152,7 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   IO.FS.createDirAll buildDir
   let ok ← testProc {
     cmd := "cmake"
-    args := flags ++ #[".."]
+    args := if getOS! == .windows then #["-G", "NMake Makefiles"] ++ flags ++ #[".."] else flags ++ #[".."]
     cwd := buildDir
   }
   if ¬ ok then
@@ -250,70 +250,67 @@ target libctranslate2 pkg : FilePath := do
     createParentDirs dst
     let ct2URL := "https://github.com/OpenNMT/CTranslate2"
 
-    try
-      let depTrace := Hash.ofString ct2URL
-      setTrace depTrace
-      buildFileUnlessUpToDate' dst do
-        logInfo s!"Cloning CTranslate2 from {ct2URL}"
-        gitClone ct2URL pkg.buildDir
+    let depTrace := Hash.ofString ct2URL
+    setTrace depTrace
+    buildFileUnlessUpToDate' dst do
+      logInfo s!"Cloning CTranslate2 from {ct2URL}"
+      gitClone ct2URL pkg.buildDir
 
-        let ct2Dir := pkg.buildDir / "CTranslate2"
-        let flags ← getCt2CmakeFlags
-        logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
-        runCmake ct2Dir flags
+      let ct2Dir := pkg.buildDir / "CTranslate2"
+      let flags ← getCt2CmakeFlags
+      logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
+      runCmake ct2Dir flags
 
-        if getOS! == .windows then
-          logInfo s!"Building CTranslate2 with `nmake`"
-          proc {
-            cmd := "nmake"
-            cwd := ct2Dir / "build"
-          }
-        else
-          let numThreads := max 4 $ min 32 (← nproc)
-          logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
-          proc {
-            cmd := "make"
-            args := #[s!"-j{numThreads}"]
-            cwd := ct2Dir / "build"
-          }
-
-        logInfo s!"Start Copying"
-
-        ensureDirExists $ pkg.buildDir / "include"
-        logInfo s!"Done"
-
-        copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib "ctranslate2") dst
-
-        logInfo s!"Done"
-        -- TODO: Don't hardcode the version "4".
-        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
-        copyFile dst dst'
-        logInfo s!"Done"
+      if getOS! == .windows then
+        logInfo s!"Building CTranslate2 with `nmake`"
         proc {
-          cmd := "cp"
-          args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
+          cmd := "nmake"
+          cwd := ct2Dir / "build"
         }
-        logInfo s!"Done"
+      else
+        let numThreads := max 4 $ min 32 (← nproc)
+        logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
         proc {
-          cmd := "cp"
-          args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
+          cmd := "make"
+          args := #[s!"-j{numThreads}"]
+          cwd := ct2Dir / "build"
         }
-        logInfo s!"Done"
-        proc {
-          cmd := "cp"
-          args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
-        }
-        logInfo s!"Done"
-        proc {
-          cmd := "rm"
-          args := #["-rf", ct2Dir.toString]
-        }
-        logInfo s!"Done Copying"
-      let _ := (← getTrace)
-      return dst
-    else
-      addTrace <| ← computeTrace dst
-      return dst
+
+      logInfo s!"Start Copying"
+
+      ensureDirExists $ pkg.buildDir / "include"
+      logInfo s!"Done"
+
+      copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib "ctranslate2") dst
+
+      logInfo s!"Done"
+      -- TODO: Don't hardcode the version "4".
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
+      copyFile dst dst'
+      logInfo s!"Done"
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
+      }
+      logInfo s!"Done"
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
+      }
+      logInfo s!"Done"
+      proc {
+        cmd := "cp"
+        args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
+      }
+      logInfo s!"Done"
+      proc {
+        cmd := "rm"
+        args := #["-rf", ct2Dir.toString]
+      }
+      logInfo s!"Done Copying"
+    let _ := (← getTrace)
+    return dst
+
 
 
 def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Job FilePath) := do
