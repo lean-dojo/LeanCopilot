@@ -224,6 +224,20 @@ def getCt2CmakeFlags : IO (Array String) := do
 
   return flags
 
+def copyFile (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #["/c copy" ++ src.toString ++ " " ++ dst.toString]
+    else
+      #[src.toString, dst.toString]
+
+  proc {
+    cmd := cmd
+    args := args
+  }
+
+
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
@@ -266,17 +280,14 @@ target libctranslate2 pkg : FilePath := do
         logInfo s!"Start Copying"
 
         ensureDirExists $ pkg.buildDir / "include"
-        proc {
-          cmd := "cp"
-          args := #[(ct2Dir / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")).toString, dst.toString]
-        }
+        logInfo s!"Done"
+
+        copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib "ctranslate2") dst
+
         logInfo s!"Done"
         -- TODO: Don't hardcode the version "4".
         let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
-        proc {
-          cmd := "cp"
-          args := #[dst.toString, dst'.toString]
-        }
+        copyFile dst dst'
         logInfo s!"Done"
         proc {
           cmd := "cp"
