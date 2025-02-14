@@ -82,14 +82,52 @@ def getPlatform! : IO SupportedPlatform := do
     error "Only 64-bit platforms are supported"
   return ⟨getOS!, ← getArch!⟩
 
+def copyFile (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #["/c copy" ++ src.toString ++ " " ++ dst.toString]
+    else
+      #[src.toString, dst.toString]
+
+  proc {
+    cmd := cmd
+    args := args
+  }
+
+def copyFolder (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "robocopy" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #[src.toString, dst.toString, "/E"]
+    else
+      #["-r", src.toString, dst.toString]
+
+  let _out ← rawProc {
+    cmd := cmd
+    args := args
+  }
+
+def removeFolder (dir : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "rm"
+  let args :=
+    if getOS! == .windows then
+      #["/c rmdir /s /q " ++ dir.toString]
+    else
+      #["-rf", dir.toString]
+
+  proc {
+    cmd := cmd
+    args := args
+  }
 
 package LeanCopilot where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   buildArchive? := buildArchiveName
   precompileModules := true
   buildType := BuildType.release
-  moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lctranslate2"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib "ctranslate2"]
+  moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-l" ++ if getOS! == .windows then "libctranslate2" else "ctranslate2"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")]
 
 
 @[default_target]
@@ -152,7 +190,7 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   IO.FS.createDirAll buildDir
   let ok ← testProc {
     cmd := "cmake"
-    args := if getOS! == .windows then #["-G", "NMake Makefiles"] ++ flags ++ #[".."] else flags ++ #[".."]
+    args := if getOS! == .windows then #["-G", "MinGW Makefiles"] ++ flags ++ #[".."] else flags ++ #[".."]
     cwd := buildDir
   }
   if ¬ ok then
@@ -185,21 +223,19 @@ target libopenblas pkg : FilePath := do
         let numThreads := max 4 $ min 32 (← nproc)
         let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
         logInfo s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
+
+        let cmd := if getOS! == .windows then "mingw32-make" else "make"
+        logInfo s!"Building OpenBLAS with `{cmd} -j{numThreads}`"
+
         proc (quiet := true) {
-          cmd := "make"
+          cmd := cmd
           args := flags
           cwd := rootDir
         }
-        proc {
-          cmd := "cp"
-          args := #[(rootDir / nameToSharedLib "openblas").toString, dst.toString]
-        }
+        copyFile (rootDir / nameToSharedLib "openblas") dst
         -- TODO: Don't hardcode the version "0".
         let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "openblas" "0")
-        proc {
-          cmd := "cp"
-          args := #[dst.toString, dst'.toString]
-        }
+        copyFile dst dst'
       let _ := (← getTrace)
       return dst
 
@@ -214,7 +250,7 @@ def getCt2CmakeFlags : IO (Array String) := do
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
-  | .windows => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=OFF", "-DENABLE_CPU_DISPATCH=OFF"]
+  | .windows => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=OFF", "-DENABLE_CPU_DISPATCH=OFF", "-DCMAKE_C_COMPILER=gcc", "-DCMAKE_CXX_COMPILER=g++"]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
   -- if ← useCUDA then
@@ -224,46 +260,6 @@ def getCt2CmakeFlags : IO (Array String) := do
 
   return flags
 
-def copyFile (src dst : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "copy" else "cp"
-  let args :=
-    if getOS! == .windows then
-      #[src.toString, dst.toString]
-    else
-      #[src.toString, dst.toString]
-
-  let _ := testProc {
-    cmd := cmd
-    args := args
-  }
-
-def copyFolder (src dst : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "robocopy" else "cp"
-  let args :=
-    if getOS! == .windows then
-      #[src.toString, dst.toString, "/E"]
-    else
-      #["-r", src.toString, dst.toString]
-
-  -- for reasons unknown robocopy returns exit code 1 not 0 when successful
-  let _ := testProc {
-    cmd := cmd
-    args := args
-  }
-
-def removeFolder (dir : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "cmd" else "rm"
-  let args :=
-    if getOS! == .windows then
-      #["/c rmdir /s /q " ++ dir.toString]
-    else
-      #["-rf", dir.toString]
-
-  proc {
-    cmd := cmd
-    args := args
-  }
-
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
@@ -272,7 +268,7 @@ target libctranslate2 pkg : FilePath := do
     let _ ← openblas.await
 
   afterReleaseAsync pkg do
-    let dst := pkg.nativeLibDir / (nameToSharedLib "ctranslate2")
+    let dst := pkg.nativeLibDir / (nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2"))
     createParentDirs dst
     let ct2URL := "https://github.com/OpenNMT/CTranslate2"
 
@@ -287,29 +283,21 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
       runCmake ct2Dir flags
 
-      if getOS! == .windows then
-        logInfo s!"Building CTranslate2 with `nmake`"
-        proc {
-          cmd := "nmake"
-          cwd := ct2Dir / "build"
-        }
-      else
-        let numThreads := max 4 $ min 32 (← nproc)
-        logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
-        proc {
-          cmd := "make"
-          args := #[s!"-j{numThreads}"]
-          cwd := ct2Dir / "build"
-        }
-
-      logInfo s!"Start Copying"
+      let numThreads := max 4 $ min 32 (← nproc)
+      let cmd := if getOS! == .windows then "mingw32-make" else "make"
+      logInfo s!"Building CTranslate2 with `{cmd} -j{numThreads}`"
+      proc (quiet := true) {
+        cmd := cmd
+        args := #[s!"-j{numThreads}"]
+        cwd := ct2Dir / "build"
+      }
 
       ensureDirExists $ pkg.buildDir / "include"
 
-      copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib "ctranslate2") dst
+      copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
 
       -- TODO: Don't hardcode the version "4".
-      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2") "4")
       copyFile dst dst'
 
       copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
