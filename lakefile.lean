@@ -225,18 +225,44 @@ def getCt2CmakeFlags : IO (Array String) := do
   return flags
 
 def copyFile (src dst : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "cmd" else "cp"
+  let cmd := if getOS! == .windows then "copy" else "cp"
   let args :=
     if getOS! == .windows then
-      #["/c copy" ++ src.toString ++ " " ++ dst.toString]
+      #[src.toString, dst.toString]
     else
       #[src.toString, dst.toString]
+
+  let _ := testProc {
+    cmd := cmd
+    args := args
+  }
+
+def copyFolder (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "robocopy" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #[src.toString, dst.toString, "/E"]
+    else
+      #["-r", src.toString, dst.toString]
+
+  -- for reasons unknown robocopy returns exit code 1 not 0 when successful
+  let _ := testProc {
+    cmd := cmd
+    args := args
+  }
+
+def removeFolder (dir : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "rm"
+  let args :=
+    if getOS! == .windows then
+      #["/c rmdir /s /q " ++ dir.toString]
+    else
+      #["-rf", dir.toString]
 
   proc {
     cmd := cmd
     args := args
   }
-
 
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
@@ -252,7 +278,7 @@ target libctranslate2 pkg : FilePath := do
 
     let depTrace := Hash.ofString ct2URL
     setTrace depTrace
-    buildFileUnlessUpToDate' dst do
+    do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       gitClone ct2URL pkg.buildDir
 
@@ -279,35 +305,21 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Start Copying"
 
       ensureDirExists $ pkg.buildDir / "include"
-      logInfo s!"Done"
 
       copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib "ctranslate2") dst
 
-      logInfo s!"Done"
       -- TODO: Don't hardcode the version "4".
       let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
       copyFile dst dst'
-      logInfo s!"Done"
-      proc {
-        cmd := "cp"
-        args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
-      }
-      logInfo s!"Done"
-      proc {
-        cmd := "cp"
-        args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
-      }
-      logInfo s!"Done"
-      proc {
-        cmd := "cp"
-        args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
-      }
-      logInfo s!"Done"
-      proc {
-        cmd := "rm"
-        args := #["-rf", ct2Dir.toString]
-      }
-      logInfo s!"Done Copying"
+
+      copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
+
+      copyFolder (ct2Dir / "include" / "nlohmann") (pkg.buildDir / "include" / "nlohmann")
+
+      copyFolder (ct2Dir / "include" / "half_float") (pkg.buildDir / "include" / "half_float")
+
+      removeFolder ct2Dir
+
     let _ := (← getTrace)
     return dst
 
