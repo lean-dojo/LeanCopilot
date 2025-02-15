@@ -285,7 +285,7 @@ def getCt2CmakeFlags : IO (Array String) := do
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
-  if getOS! == .linux then
+  if getOS! == .linux ∨ getOS! == .windows then
     let openblas ← libopenblas.fetch
     let _ ← openblas.await
 
