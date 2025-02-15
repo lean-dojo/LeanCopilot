@@ -226,7 +226,7 @@ target libopenblas pkg : FilePath := do
         }
         proc {
           cmd := "unzip"
-          args := #["OpenBLAS.zip", "-d", "OpenBLAS"]
+          args := #["-o", "OpenBLAS.zip", "-d", "OpenBLAS"]
           cwd := pkg.buildDir
         }
       else
@@ -332,7 +332,10 @@ target libctranslate2 pkg : FilePath := do
 
       if getOS! == .windows then
         removeFolder (pkg.buildDir / "OPENBLAS")
-        removeFolder (pkg.buildDir / "OPENBLAS.zip")
+        proc {
+          cmd := "rm"
+          args := #[(pkg.buildDir / "OPENBLAS.zip").toString]
+        }
 
     let _ := (← getTrace)
     return dst
