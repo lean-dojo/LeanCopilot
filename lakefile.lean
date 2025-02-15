@@ -330,6 +330,10 @@ target libctranslate2 pkg : FilePath := do
 
       removeFolder ct2Dir
 
+      if getOS! == .windows then
+        removeFolder (pkg.buildDir / "OPENBLAS")
+        removeFolder (pkg.buildDir / "OPENBLAS.zip")
+
     let _ := (← getTrace)
     return dst
 
