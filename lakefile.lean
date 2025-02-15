@@ -214,13 +214,24 @@ target libopenblas pkg : FilePath := do
     createParentDirs dst
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
-    try
-      let depTrace := Hash.ofString url
-      setTrace depTrace
-      buildFileUnlessUpToDate' dst do
+    let depTrace := Hash.ofString url
+    setTrace depTrace
+    do
+      if getOS! == .windows then
+        -- For Windows, the binary for OpenBLAS is provided.
+        let _out ← rawProc {
+          cmd := "curl"
+          args := #["-L", "-o", "OpenBLAS.zip", "https://sourceforge.net/projects/openblas/files/v0.3.29/OpenBLAS-0.3.29_x64.zip/download"]
+          cwd := pkg.buildDir
+        }
+        proc {
+          cmd := "unzip"
+          args := #["OpenBLAS.zip", "-d", "OpenBLAS"]
+          cwd := pkg.buildDir
+        }
+      else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
-
         let numThreads := max 4 $ min 32 (← nproc)
         let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
         logInfo s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
@@ -237,12 +248,12 @@ target libopenblas pkg : FilePath := do
         -- TODO: Don't hardcode the version "0".
         let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "openblas" "0")
         copyFile dst dst'
-      let _ := (← getTrace)
-      return dst
+    let _ := (← getTrace)
+    return dst
 
-    else
-      addTrace <| ← computeTrace dst
-      return dst
+    -- else
+    --   addTrace <| ← computeTrace dst
+    --   return dst
 
 
 def getCt2CmakeFlags : IO (Array String) := do
@@ -251,7 +262,17 @@ def getCt2CmakeFlags : IO (Array String) := do
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
-  | .windows => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=OFF", "-DENABLE_CPU_DISPATCH=OFF", "-DCMAKE_C_COMPILER=gcc", "-DCMAKE_CXX_COMPILER=g++"]
+  | .windows => flags := flags ++ #[
+      "-G",
+      "MinGW Makefiles",
+      "-DWITH_ACCELERATE=OFF",
+      "-DWITH_OPENBLAS=ON",
+      "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS/include",
+      "-DOPENBLAS_LIBRARY=../../OpenBLAS/bin/libopenblas.dll",
+      "-DENABLE_CPU_DISPATCH=OFF",
+      "-DCMAKE_C_COMPILER=gcc",
+      "-DCMAKE_CXX_COMPILER=g++"
+    ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
   -- if ← useCUDA then
@@ -275,7 +296,7 @@ target libctranslate2 pkg : FilePath := do
 
     let depTrace := Hash.ofString ct2URL
     setTrace depTrace
-    do
+    buildFileUnlessUpToDate' dst do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       gitClone ct2URL pkg.buildDir
 
