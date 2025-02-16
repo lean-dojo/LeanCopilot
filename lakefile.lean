@@ -33,11 +33,15 @@ def nproc : IO Nat := do
 
 
 def getArch? : IO (Option SupportedArch) := do
-  let out ← IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
+  let cmd := if getOS! == .windows then "cmd" else "uname"
+  let args := if getOS! == .windows then #["/c echo %PROCESSOR_ARCHITECTURE%\n"] else #["-m"]
+
+  let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
   let arch := out.stdout.trim
-  if arch ∈ ["arm64", "aarch64"] then
+
+  if arch ∈ ["arm64", "aarch64", "ARM64"] then
     return some .arm64
-  else if arch == "x86_64" then
+  else if arch ∈ ["x86_64", "AMD64"] then
     return some .x86_64
   else
     return none
@@ -51,16 +55,19 @@ def getArch! : IO SupportedArch := do
 
 
 def isArm! : IO Bool := do
-  return false
+  return (← getArch!) == .arm64
 
 
 def hasCUDA : IO Bool := do
-  let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
+  let cmd := if getOS! == .windows then "cmd" else "which"
+  let args := if getOS! == .windows then #["/c which", "nvcc"] else #["nvcc"]
+
+  let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
   return out.exitCode == 0
 
 
 def useCUDA : IO Bool := do
-  return false
+  return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
 
 
 def buildArchiveName : String :=
