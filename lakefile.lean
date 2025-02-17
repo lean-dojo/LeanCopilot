@@ -90,42 +90,27 @@ def getPlatform! : IO SupportedPlatform := do
   return ⟨getOS!, ← getArch!⟩
 
 def copyFile (src dst : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "cmd" else "cp"
-  let args :=
-    if getOS! == .windows then
-      #["/c copy" ++ src.toString ++ " " ++ dst.toString]
-    else
-      #[src.toString, dst.toString]
-
   proc {
-    cmd := cmd
-    args := args
+    cmd := "cp"
+    args := #[src.toString, dst.toString]
   }
 
 def copyFolder (src dst : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "robocopy" else "cp"
-  let args :=
-    if getOS! == .windows then
-      #[src.toString, dst.toString, "/E"]
-    else
-      #["-r", src.toString, dst.toString]
-
-  let _out ← rawProc {
-    cmd := cmd
-    args := args
+  proc {
+    cmd := "cp"
+    args := #["-r", src.toString, dst.toString]
   }
 
 def removeFolder (dir : FilePath) : LogIO Unit := do
-  let cmd := if getOS! == .windows then "cmd" else "rm"
-  let args :=
-    if getOS! == .windows then
-      #["/c rmdir /s /q " ++ dir.toString]
-    else
-      #["-rf", dir.toString]
-
   proc {
-    cmd := cmd
-    args := args
+    cmd := "rm"
+    args := #["-rf", dir.toString]
+  }
+
+def removeFile (src: FilePath) : LogIO Unit := do
+  proc {
+    cmd := "rm"
+    args := #[src.toString]
   }
 
 package LeanCopilot where
@@ -195,22 +180,22 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   if ← buildDir.pathExists then
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
-  
-  let ok ← testProc {
+
+  proc {
     cmd := "cmake"
     args := flags ++ #[".."]
     cwd := buildDir
   }
-  if ¬ ok then
-    if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
-      let ok' ← testProc {
-        cmd := "cmake"
-        args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
-        cwd := buildDir
-      }
-      if ok' then
-        return ()
-    error "Failed to run cmake"
+  -- if ¬ ok then
+  --   if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
+  --     let ok' ← testProc {
+  --       cmd := "cmake"
+  --       args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
+  --       cwd := buildDir
+  --     }
+  --     if ok' then
+  --       return ()
+  --   error "Failed to run cmake"
 
 
 target libopenblas pkg : FilePath := do
@@ -232,8 +217,8 @@ target libopenblas pkg : FilePath := do
           cwd := pkg.buildDir
         }
         proc {
-          cmd := "unzip"
-          args := #["-o", "OpenBLAS.zip", "-d", "OpenBLAS"]
+          cmd := "tar"
+          args := #["-xvf", "OpenBLAS.zip"]
           cwd := pkg.buildDir
         }
       else
@@ -243,11 +228,8 @@ target libopenblas pkg : FilePath := do
         let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
         logInfo s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
 
-        let cmd := if getOS! == .windows then "mingw32-make" else "make"
-        logInfo s!"Building OpenBLAS with `{cmd} -j{numThreads}`"
-
         proc (quiet := true) {
-          cmd := cmd
+          cmd := "make"
           args := flags
           cwd := rootDir
         }
@@ -274,11 +256,11 @@ def getCt2CmakeFlags : IO (Array String) := do
       "MinGW Makefiles",
       "-DWITH_ACCELERATE=OFF",
       "-DWITH_OPENBLAS=ON",
-      "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS/include",
-      "-DOPENBLAS_LIBRARY=../../OpenBLAS/bin/libopenblas.dll",
+      "-DOPENBLAS_INCLUDE_DIR=../../include",
+      "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
       "-DENABLE_CPU_DISPATCH=OFF",
-      "-DCMAKE_C_COMPILER=gcc",
-      "-DCMAKE_CXX_COMPILER=g++"
+      "-DCMAKE_C_COMPILER=C:/msys64/clang64/bin/clang.exe",
+      "-DCMAKE_CXX_COMPILER=C:/msys64/clang64/bin/clang++.exe"
     ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -305,7 +287,8 @@ target libctranslate2 pkg : FilePath := do
     setTrace depTrace
     buildFileUnlessUpToDate' dst do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
-      gitClone ct2URL pkg.buildDir
+      if !(← (pkg.buildDir / "CTranslate2").pathExists) then
+        gitClone ct2URL pkg.buildDir
 
       let ct2Dir := pkg.buildDir / "CTranslate2"
       let flags ← getCt2CmakeFlags
@@ -339,10 +322,7 @@ target libctranslate2 pkg : FilePath := do
 
       if getOS! == .windows then
         removeFolder (pkg.buildDir / "OPENBLAS")
-        proc {
-          cmd := "rm"
-          args := #[(pkg.buildDir / "OPENBLAS.zip").toString]
-        }
+        removeFile (pkg.buildDir / "OPENBLAS.zip")
 
     let _ := (← getTrace)
     return dst
