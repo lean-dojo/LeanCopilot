@@ -202,13 +202,13 @@ target libopenblas pkg : FilePath := do
   afterReleaseAsync pkg do
     let rootDir := pkg.buildDir / "OpenBLAS"
     ensureDirExists rootDir
-    let dst := pkg.nativeLibDir / (nameToSharedLib "openblas")
+    let dst := pkg.nativeLibDir / (nameToSharedLib (if getOS! == .windows then "libopenblas" else "openblas"))
     createParentDirs dst
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
     let depTrace := Hash.ofString url
     setTrace depTrace
-    do
+    buildFileUnlessUpToDate' dst do
       if getOS! == .windows then
         -- For Windows, the binary for OpenBLAS is provided.
         let _out ← rawProc {
@@ -221,6 +221,7 @@ target libopenblas pkg : FilePath := do
           args := #["-xvf", "OpenBLAS.zip"]
           cwd := pkg.buildDir
         }
+        copyFile (pkg.buildDir / "bin" / "libopenblas.dll") (pkg.buildDir / "lib" / "libopenblas.dll")
       else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
