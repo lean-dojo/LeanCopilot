@@ -28,7 +28,9 @@ deriving Inhabited, BEq
 
 
 def nproc : IO Nat := do
-  let out ← IO.Process.output {cmd := "nproc", stdin := .null}
+  let cmd := if getOS! == .windows then "cmd" else "nproc"
+  let args := if getOS! == .windows then #["/c echo %NUMBER_OF_PROCESSORS%"] else #[]
+  let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
   return out.stdout.trim.toNat!
 
 
@@ -90,27 +92,48 @@ def getPlatform! : IO SupportedPlatform := do
   return ⟨getOS!, ← getArch!⟩
 
 def copyFile (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #[s!"/c copy {src.toString.replace "/" "\\"} {dst.toString.replace "/" "\\"}"]
+    else
+      #[src.toString, dst.toString]
+
   proc {
-    cmd := "cp"
-    args := #[src.toString, dst.toString]
+    cmd := cmd
+    args := args
   }
 
 def copyFolder (src dst : FilePath) : LogIO Unit := do
-  proc {
-    cmd := "cp"
-    args := #["-r", src.toString, dst.toString]
+  let cmd := if getOS! == .windows then "robocopy" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #[src.toString, dst.toString, "/E"]
+    else
+      #["-r", src.toString, dst.toString]
+
+  let _out ← rawProc {
+    cmd := cmd
+    args := args
   }
 
 def removeFolder (dir : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "rm"
+  let args :=
+    if getOS! == .windows then
+      #[s!"/c rmdir /s /q {dir.toString.replace "/" "\\"}"]
+    else
+      #["-rf", dir.toString]
+
   proc {
-    cmd := "rm"
-    args := #["-rf", dir.toString]
+    cmd := cmd
+    args := args
   }
 
 def removeFile (src: FilePath) : LogIO Unit := do
   proc {
-    cmd := "rm"
-    args := #[src.toString]
+    cmd := if getOS! == .windows then "cmd" else "rm"
+    args := if getOS! == .windows then #[s!"/c del {src.toString.replace "/" "\\"}"] else #[src.toString]
   }
 
 package LeanCopilot where
@@ -167,9 +190,9 @@ def ensureDirExists (dir : FilePath) : IO Unit := do
 
 
 def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
-  proc (quiet := true) {
+  proc {
     cmd := "git"
-    args := #["clone", "--recursive", url]
+    args := if getOS! == .windows then #["clone", url] else #["clone", "--recursive", url]
     cwd := cwd
   }
 
@@ -260,8 +283,9 @@ def getCt2CmakeFlags : IO (Array String) := do
       "-DOPENBLAS_INCLUDE_DIR=../../include",
       "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
       "-DENABLE_CPU_DISPATCH=OFF",
-      "-DCMAKE_C_COMPILER=C:/msys64/clang64/bin/clang.exe",
-      "-DCMAKE_CXX_COMPILER=C:/msys64/clang64/bin/clang++.exe"
+      "-DCMAKE_C_COMPILER=c:/Users/electron/MSYS2/clang64/bin/clang.exe",
+      "-DCMAKE_CXX_COMPILER=c:/Users/electron/MSYS2/clang64/bin/clang++.exe",
+      "-DCMAKE_MAKE_PROGRAM=C:/Users/electron/MSYS2/clang64/bin/mingw32-make.exe"
     ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -290,6 +314,15 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
         gitClone ct2URL pkg.buildDir
+        if getOS! == .windows then
+          gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
+          gitClone "https://github.com/NVIDIA/thrust.git" (pkg.buildDir / "CTranslate2/third_party")
+          gitClone "https://github.com/google/googletest.git" (pkg.buildDir / "CTranslate2/third_party")
+          gitClone "https://github.com/google/cpu_features.git" (pkg.buildDir / "CTranslate2/third_party")
+          gitClone "https://github.com/gabime/spdlog.git" (pkg.buildDir / "CTranslate2/third_party")
+          gitClone "https://github.com/google/ruy.git" (pkg.buildDir / "CTranslate2/third_party")
+          gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
+
 
       let ct2Dir := pkg.buildDir / "CTranslate2"
       let flags ← getCt2CmakeFlags
@@ -297,7 +330,7 @@ target libctranslate2 pkg : FilePath := do
       runCmake ct2Dir flags
 
       let numThreads := max 4 $ min 32 (← nproc)
-      let cmd := if getOS! == .windows then "mingw32-make" else "make"
+      let cmd := "make"
       logInfo s!"Building CTranslate2 with `{cmd} -j{numThreads}`"
       proc (quiet := true) {
         cmd := cmd
@@ -337,7 +370,7 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args "c++"
+    compileO oFile deps[0]! args "c:/Users/electron/MSYS2/clang64/bin/clang"
 
 
 target ct2.o pkg : FilePath := do
