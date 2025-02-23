@@ -4,6 +4,21 @@ set_option autoImplicit false
 
 open System (FilePath)
 
+inductive SupportedOS where
+  | linux
+  | macos
+  | windows
+deriving Inhabited, BEq
+
+
+def getOS! : SupportedOS :=
+  if System.Platform.isWindows then
+     .windows
+  else if System.Platform.isOSX then
+     .macos
+  else
+     .linux
+
 namespace LeanCopilot
 
 inductive SupportedOS where
@@ -28,7 +43,7 @@ def ensureDirExists (dir : FilePath) : IO Unit := do
 
 def getHomeDir : IO FilePath := do
   let home := if getOS! == .windows then "USERPROFILE" else "HOME"
-  let some dir ← IO.getEnv home | throw $ IO.userError "Cannot find the ${home} environment variable."
+  let some dir ← IO.getEnv home | throw $ IO.userError s!"Cannot find the ${home} environment variable."
   return dir
 
 
