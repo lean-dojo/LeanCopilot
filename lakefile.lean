@@ -164,7 +164,7 @@ lean_lib LeanCopilotTests {
 
 
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
-  if Platform.isWindows then s!"{name}.{v}.dll"
+  if Platform.isWindows then s!"lib{name}.{v}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
   else s!"lib{name}.so.{v}"
 
@@ -342,7 +342,7 @@ target libctranslate2 pkg : FilePath := do
       copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
 
       -- TODO: Don't hardcode the version "4".
-      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2") "4")
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
       copyFile dst dst'
 
       copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
