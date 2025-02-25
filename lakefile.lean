@@ -282,9 +282,9 @@ def getCt2CmakeFlags : IO (Array String) := do
       "-DOPENBLAS_INCLUDE_DIR=../../include",
       "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
       "-DENABLE_CPU_DISPATCH=OFF",
-      "-DCMAKE_C_COMPILER=c:/Users/electron/MSYS2/clang64/bin/clang.exe",
-      "-DCMAKE_CXX_COMPILER=c:/Users/electron/MSYS2/clang64/bin/clang++.exe",
-      "-DCMAKE_MAKE_PROGRAM=C:/Users/electron/MSYS2/clang64/bin/mingw32-make.exe"
+      "-DCMAKE_C_COMPILER=clang64/bin/clang.exe",
+      "-DCMAKE_CXX_COMPILER=clang64/bin/clang++.exe",
+      "-DCMAKE_MAKE_PROGRAM=clang64/bin/mingw32-make.exe"
     ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -329,10 +329,9 @@ target libctranslate2 pkg : FilePath := do
       runCmake ct2Dir flags
 
       let numThreads := max 4 $ min 32 (← nproc)
-      let cmd := "make"
-      logInfo s!"Building CTranslate2 with `{cmd} -j{numThreads}`"
+      logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
       proc (quiet := true) {
-        cmd := cmd
+        cmd := "make"
         args := #[s!"-j{numThreads}"]
         cwd := ct2Dir / "build"
       }
@@ -361,7 +360,6 @@ target libctranslate2 pkg : FilePath := do
     return dst
 
 
-
 def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Job FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let flags := #["-fPIC", "-std=c++17", optLevel]
@@ -369,7 +367,7 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args "c:/Users/electron/MSYS2/clang64/bin/clang"
+    compileO oFile deps[0]! args "clang64/bin/clang"
 
 
 target ct2.o pkg : FilePath := do
@@ -389,3 +387,4 @@ require aesop from git "https://github.com/leanprover-community/aesop" @ "master
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
+
