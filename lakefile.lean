@@ -247,10 +247,10 @@ target libopenblas pkg : FilePath := do
       else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
+
         let numThreads := max 4 $ min 32 (← nproc)
         let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
         logInfo s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
-
         proc (quiet := true) {
           cmd := "make"
           args := flags
@@ -282,9 +282,9 @@ def getCt2CmakeFlags : IO (Array String) := do
       "-DOPENBLAS_INCLUDE_DIR=../../include",
       "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
       "-DENABLE_CPU_DISPATCH=OFF",
-      "-DCMAKE_C_COMPILER=clang64/bin/clang.exe",
-      "-DCMAKE_CXX_COMPILER=clang64/bin/clang++.exe",
-      "-DCMAKE_MAKE_PROGRAM=clang64/bin/mingw32-make.exe"
+      "-DCMAKE_C_COMPILER=clang64/bin/clang",
+      "-DCMAKE_CXX_COMPILER=clang64/bin/clang++",
+      "-DCMAKE_MAKE_PROGRAM=clang64/bin/mingw32-make"
     ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -314,6 +314,7 @@ target libctranslate2 pkg : FilePath := do
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
         gitClone ct2URL pkg.buildDir
         if getOS! == .windows then
+          -- git clone --recursive doesn't work on powershell
           gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
           gitClone "https://github.com/NVIDIA/thrust.git" (pkg.buildDir / "CTranslate2/third_party")
           gitClone "https://github.com/google/googletest.git" (pkg.buildDir / "CTranslate2/third_party")
@@ -322,12 +323,10 @@ target libctranslate2 pkg : FilePath := do
           gitClone "https://github.com/google/ruy.git" (pkg.buildDir / "CTranslate2/third_party")
           gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
 
-
       let ct2Dir := pkg.buildDir / "CTranslate2"
       let flags ← getCt2CmakeFlags
       logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
       runCmake ct2Dir flags
-
       let numThreads := max 4 $ min 32 (← nproc)
       logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
       proc (quiet := true) {
@@ -387,4 +386,3 @@ require aesop from git "https://github.com/leanprover-community/aesop" @ "master
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
-
