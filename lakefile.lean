@@ -366,7 +366,7 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args "clang64/bin/clang"
+    compileO oFile deps[0]! args (if getOS! == .windows then "clang64/bin/clang++" else "c++")
 
 
 target ct2.o pkg : FilePath := do
