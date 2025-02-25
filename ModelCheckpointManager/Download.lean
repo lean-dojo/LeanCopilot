@@ -4,21 +4,6 @@ set_option autoImplicit false
 
 open System (FilePath)
 
-inductive SupportedOS where
-  | linux
-  | macos
-  | windows
-deriving Inhabited, BEq
-
-
-def getOS! : SupportedOS :=
-  if System.Platform.isWindows then
-     .windows
-  else if System.Platform.isOSX then
-     .macos
-  else
-     .linux
-
 namespace LeanCopilot
 
 inductive SupportedOS where
@@ -26,7 +11,6 @@ inductive SupportedOS where
   | macos
   | windows
 deriving Inhabited, BEq
-
 
 def getOS! : SupportedOS :=
   if System.Platform.isWindows then
