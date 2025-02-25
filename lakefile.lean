@@ -70,6 +70,10 @@ def hasCUDA : IO Bool := do
 def useCUDA : IO Bool := do
   return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
 
+def getHomeDir : IO FilePath := do
+  let home := if getOS! == .windows then "USERPROFILE" else "HOME"
+  let some dir ← IO.getEnv home | throw $ IO.userError s!"Cannot find the ${home} environment variable."
+  return dir
 
 def buildArchiveName : String :=
   let arch := if run_io isArm! then "arm64" else "x86_64"
@@ -203,8 +207,10 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
 
+  let home ← getHomeDir
+
   proc {
-    cmd := "cmake"
+    cmd := if getOS! == .windows then s!"{home}\\MSYS2\\clang64\\bin\\cmake.exe" else "cmake"
     args := flags ++ #[".."]
     cwd := buildDir
   }
@@ -270,6 +276,7 @@ target libopenblas pkg : FilePath := do
 
 def getCt2CmakeFlags : IO (Array String) := do
   let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF"]
+  let home ← getHomeDir
 
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
@@ -282,9 +289,9 @@ def getCt2CmakeFlags : IO (Array String) := do
       "-DOPENBLAS_INCLUDE_DIR=../../include",
       "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
       "-DENABLE_CPU_DISPATCH=OFF",
-      "-DCMAKE_C_COMPILER=clang64/bin/clang",
-      "-DCMAKE_CXX_COMPILER=clang64/bin/clang++",
-      "-DCMAKE_MAKE_PROGRAM=clang64/bin/mingw32-make"
+      s!"-DCMAKE_C_COMPILER={home}\\MSYS2\\clang64\\bin\\clang.exe",
+      s!"-DCMAKE_CXX_COMPILER={home}\\MSYS2\\clang64\\bin\\clang++.exe",
+      s!"-DCMAKE_MAKE_PROGRAM={home}\\MSYS2\\clang64\\bin\\mingw32-make.exe"
     ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -365,8 +372,11 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
+  let home? ← IO.getEnv "USERPROFILE"
+  let home := home?.getD "C:/Users/Default"
+
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args (if getOS! == .windows then "clang64/bin/clang++" else "c++")
+    compileO oFile deps[0]! args (if getOS! == .windows then s!"{home}\\MSYS2\\clang64\\bin\\clang++.exe" else "c++")
 
 
 target ct2.o pkg : FilePath := do
