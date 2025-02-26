@@ -70,11 +70,6 @@ def hasCUDA : IO Bool := do
 def useCUDA : IO Bool := do
   return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
 
-def getHomeDir : IO FilePath := do
-  let home := if getOS! == .windows then "USERPROFILE" else "HOME"
-  let some dir ← IO.getEnv home | throw $ IO.userError s!"Cannot find the ${home} environment variable."
-  return dir
-
 def buildArchiveName : String :=
   let arch := if run_io isArm! then "arm64" else "x86_64"
   let os := if getOS! == .macos then "macOS" else "linux"
@@ -207,10 +202,8 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
 
-  let home ← getHomeDir
-
   proc {
-    cmd := if getOS! == .windows then s!"{home}\\MSYS2\\clang64\\bin\\cmake.exe" else "cmake"
+    cmd := if getOS! == .windows then s!"C:\\msys64\\clang64\\bin\\cmake.exe" else "cmake"
     args := flags ++ #[".."]
     cwd := buildDir
   }
@@ -276,7 +269,6 @@ target libopenblas pkg : FilePath := do
 
 def getCt2CmakeFlags : IO (Array String) := do
   let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF"]
-  let home ← getHomeDir
 
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
@@ -289,9 +281,9 @@ def getCt2CmakeFlags : IO (Array String) := do
       "-DOPENBLAS_INCLUDE_DIR=../../include",
       "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
       "-DENABLE_CPU_DISPATCH=OFF",
-      s!"-DCMAKE_C_COMPILER={home}\\MSYS2\\clang64\\bin\\clang.exe",
-      s!"-DCMAKE_CXX_COMPILER={home}\\MSYS2\\clang64\\bin\\clang++.exe",
-      s!"-DCMAKE_MAKE_PROGRAM={home}\\MSYS2\\clang64\\bin\\mingw32-make.exe"
+      s!"-DCMAKE_C_COMPILER=C:\\msys64\\clang64\\bin\\clang.exe",
+      s!"-DCMAKE_CXX_COMPILER=C:\\msys64\\clang64\\bin\\clang++.exe",
+      s!"-DCMAKE_MAKE_PROGRAM=C:\\msys64\\clang64\\bin\\mingw32-make.exe"
     ]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -320,6 +312,11 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
         gitClone ct2URL pkg.buildDir
+        proc {
+          cmd := "git"
+          args := #["checkout", "6a3dc63"]
+          cwd := pkg.buildDir / "CTranslate2"
+        }
         if getOS! == .windows then
           -- git clone --recursive doesn't work on powershell
           gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
@@ -337,7 +334,7 @@ target libctranslate2 pkg : FilePath := do
       let numThreads := max 4 $ min 32 (← nproc)
       logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
       proc (quiet := true) {
-        cmd := "make"
+        cmd := "C:\\msys64\\clang64\\bin\\mingw32-make"
         args := #[s!"-j{numThreads}"]
         cwd := ct2Dir / "build"
       }
@@ -372,11 +369,9 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
-  let home? ← IO.getEnv "USERPROFILE"
-  let home := home?.getD "C:/Users/Default"
 
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args (if getOS! == .windows then s!"{home}\\MSYS2\\clang64\\bin\\clang++.exe" else "c++")
+    compileO oFile deps[0]! args (if getOS! == .windows then s!"C:\\msys64\\clang64\\bin\\clang++.exe" else "c++")
 
 
 target ct2.o pkg : FilePath := do
