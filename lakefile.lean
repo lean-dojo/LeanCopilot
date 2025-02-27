@@ -311,21 +311,21 @@ target libctranslate2 pkg : FilePath := do
     buildFileUnlessUpToDate' dst do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
-        gitClone ct2URL pkg.buildDir
-        proc {
+        let _ ← gitClone ct2URL pkg.buildDir
+        let _ ← proc {
           cmd := "git"
           args := #["checkout", "6a3dc63"]
           cwd := pkg.buildDir / "CTranslate2"
         }
         if getOS! == .windows then
           -- git clone --recursive doesn't work on powershell
-          gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
-          gitClone "https://github.com/NVIDIA/thrust.git" (pkg.buildDir / "CTranslate2/third_party")
-          gitClone "https://github.com/google/googletest.git" (pkg.buildDir / "CTranslate2/third_party")
-          gitClone "https://github.com/google/cpu_features.git" (pkg.buildDir / "CTranslate2/third_party")
-          gitClone "https://github.com/gabime/spdlog.git" (pkg.buildDir / "CTranslate2/third_party")
-          gitClone "https://github.com/google/ruy.git" (pkg.buildDir / "CTranslate2/third_party")
-          gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/NVIDIA/thrust.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/google/googletest.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/google/cpu_features.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/gabime/spdlog.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/google/ruy.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
 
       let ct2Dir := pkg.buildDir / "CTranslate2"
       let flags ← getCt2CmakeFlags
