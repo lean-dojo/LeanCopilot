@@ -202,22 +202,21 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   if ← buildDir.pathExists then
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
-
-  proc {
+  let ok ← testProc {
     cmd := "cmake"
     args := flags ++ #[".."]
     cwd := buildDir
   }
-  -- if ¬ ok then
-  --   if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
-  --     let ok' ← testProc {
-  --       cmd := "cmake"
-  --       args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
-  --       cwd := buildDir
-  --     }
-  --     if ok' then
-  --       return ()
-  --   error "Failed to run cmake"
+  if ¬ ok then
+    if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
+      let ok' ← testProc {
+        cmd := "cmake"
+        args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
+        cwd := buildDir
+      }
+      if ok' then
+        return ()
+    error "Failed to run cmake"
 
 
 target libopenblas pkg : FilePath := do
@@ -263,10 +262,6 @@ target libopenblas pkg : FilePath := do
     let _ := (← getTrace)
     return dst
 
-    -- else
-    --   addTrace <| ← computeTrace dst
-    --   return dst
-
 
 def getCt2CmakeFlags : IO (Array String) := do
   let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF"]
@@ -302,6 +297,7 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
         let _ ← gitClone ct2URL pkg.buildDir
+        -- newer versions of CTranslate2 contains a bug that breaks the build
         let _ ← proc {
           cmd := "git"
           args := #["checkout", "6a3dc63"]
