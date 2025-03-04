@@ -203,7 +203,7 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   IO.FS.createDirAll buildDir
 
   proc {
-    cmd := if getOS! == .windows then s!"C:\\msys64\\clang64\\bin\\cmake.exe" else "cmake"
+    cmd := "cmake"
     args := flags ++ #[".."]
     cwd := buildDir
   }
@@ -273,18 +273,7 @@ def getCt2CmakeFlags : IO (Array String) := do
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
-  | .windows => flags := flags ++ #[
-      "-G",
-      "MinGW Makefiles",
-      "-DWITH_ACCELERATE=OFF",
-      "-DWITH_OPENBLAS=ON",
-      "-DOPENBLAS_INCLUDE_DIR=../../include",
-      "-DOPENBLAS_LIBRARY=../../bin/libopenblas.dll",
-      "-DENABLE_CPU_DISPATCH=OFF",
-      s!"-DCMAKE_C_COMPILER=C:\\msys64\\clang64\\bin\\clang.exe",
-      s!"-DCMAKE_CXX_COMPILER=C:\\msys64\\clang64\\bin\\clang++.exe",
-      s!"-DCMAKE_MAKE_PROGRAM=C:\\msys64\\clang64\\bin\\mingw32-make.exe"
-    ]
+  | .windows => flags := flags ++ #[]
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
   -- if ← useCUDA then
@@ -329,6 +318,7 @@ target libctranslate2 pkg : FilePath := do
 
       let ct2Dir := pkg.buildDir / "CTranslate2"
       if getOS! == .windows then
+        ensureDirExists $ ct2Dir / "build"
         let _out ← rawProc {
           cmd := "curl"
           args := #["-L", "-o", "libctranslate2.dll", "https://drive.google.com/uc?export=download&id=1W6ZsbBG8gK9FRoMedNCKkg8qqS-bDa9U"]
@@ -341,7 +331,7 @@ target libctranslate2 pkg : FilePath := do
         let numThreads := max 4 $ min 32 (← nproc)
         logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
         proc (quiet := true) {
-          cmd := "C:\\msys64\\clang64\\bin\\mingw32-make"
+          cmd := "make"
           args := #[s!"-j{numThreads}"]
           cwd := ct2Dir / "build"
         }
@@ -378,7 +368,7 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let srcJob ← inputTextFile <| pkg.dir / path
 
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args (if getOS! == .windows then s!"C:\\msys64\\clang64\\bin\\clang++.exe" else "c++")
+    compileO oFile deps[0]! args (if getOS! == .windows then "C:\\msys64\\clang64\\bin\\clang++.exe" else "c++")
 
 
 target ct2.o pkg : FilePath := do
