@@ -190,7 +190,7 @@ def ensureDirExists (dir : FilePath) : IO Unit := do
 def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
   proc {
     cmd := "git"
-    args := if getOS! == .windows then #["clone", url] else #["clone", "--recursive", url]
+    args := if getOS! == .windows then #["clone", "--depth=10", url] else #["clone", "--recursive", url]
     cwd := cwd
   }
 
@@ -328,16 +328,23 @@ target libctranslate2 pkg : FilePath := do
           let _ ← gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
 
       let ct2Dir := pkg.buildDir / "CTranslate2"
-      let flags ← getCt2CmakeFlags
-      logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
-      runCmake ct2Dir flags
-      let numThreads := max 4 $ min 32 (← nproc)
-      logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
-      proc (quiet := true) {
-        cmd := "C:\\msys64\\clang64\\bin\\mingw32-make"
-        args := #[s!"-j{numThreads}"]
-        cwd := ct2Dir / "build"
-      }
+      if getOS! == .windows then
+        let _out ← rawProc {
+          cmd := "curl"
+          args := #["-L", "-o", "libctranslate2.dll", "https://drive.google.com/uc?export=download&id=1W6ZsbBG8gK9FRoMedNCKkg8qqS-bDa9U"]
+          cwd := ct2Dir / "build"
+        }
+      else
+        let flags ← getCt2CmakeFlags
+        logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
+        runCmake ct2Dir flags
+        let numThreads := max 4 $ min 32 (← nproc)
+        logInfo s!"Building CTranslate2 with `make -j{numThreads}`"
+        proc (quiet := true) {
+          cmd := "C:\\msys64\\clang64\\bin\\mingw32-make"
+          args := #[s!"-j{numThreads}"]
+          cwd := ct2Dir / "build"
+        }
 
       ensureDirExists $ pkg.buildDir / "include"
 
