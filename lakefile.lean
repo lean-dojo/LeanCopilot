@@ -297,12 +297,6 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
         let _ ← gitClone ct2URL pkg.buildDir
-        -- newer versions of CTranslate2 contains a bug that breaks the build
-        let _ ← proc {
-          cmd := "git"
-          args := #["checkout", "6a3dc63"]
-          cwd := pkg.buildDir / "CTranslate2"
-        }
         if getOS! == .windows then
           -- git clone --recursive doesn't work on powershell
           let _ ← gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
