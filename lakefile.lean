@@ -61,11 +61,15 @@ def isArm! : IO Bool := do
 
 
 def hasCUDA : IO Bool := do
-  let ok ← testProc {
-    cmd := "nvidia-smi"
-    args := #[]
-  }
-  return ok
+  if getOS! == .windows then
+    let ok ← testProc {
+      cmd := "nvidia-smi"
+      args := #[]
+    }
+    return ok
+  else
+    let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
+    return out.exitCode == 0
 
 def useCUDA : IO Bool := do
   return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
