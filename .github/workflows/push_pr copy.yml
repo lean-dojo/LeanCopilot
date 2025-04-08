@@ -21,10 +21,10 @@ jobs:
       - name: Set up elan
         run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
       - name: Build project
-        run: ~/.elan/bin/lake build -v -U
+        run: ~/.elan/bin/lake build
       - name: Download model
         run: |
           export GIT_CLONE_PROTECTION_ACTIVE=false
           ~/.elan/bin/lake exe LeanCopilot/download
       - name: Build tests
-        run: ~/.elan/bin/lake build LeanCopilotTests -v -U
+        run: ~/.elan/bin/lake build LeanCopilotTests
