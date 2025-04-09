@@ -369,6 +369,7 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
   if getOS! == .windows then
+    let _ ← ct2.await
     ensureDirExists $ pkg.buildDir / "cpp"
     proc {
       cmd := "curl"
