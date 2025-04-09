@@ -8,9 +8,6 @@ from external_models import *
 app = FastAPI()
 
 models = {
-    # "EleutherAI/llemma_7b": DecoderOnlyTransformer(
-    #    "EleutherAI/llemma_7b", num_return_sequences=2, max_length=64, device="auto"
-    # ),
     "gpt4": OpenAIRunner(
         model="gpt-4-turbo-preview",
         temperature=0.9,
