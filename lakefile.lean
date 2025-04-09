@@ -363,13 +363,22 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let srcJob ← inputTextFile <| pkg.dir / path
 
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args (if getOS! == .windows then "C:\\msys64\\clang64\\bin\\clang++.exe" else "c++")
+    compileO oFile deps[0]! args "c++"
 
 
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
-  let build := buildCpp pkg "cpp/ct2.cpp" ct2
-  afterReleaseSync pkg build
+  if getOS! == .windows then
+    ensureDirExists $ pkg.buildDir / "cpp"
+    proc {
+      cmd := "curl"
+      args := #["-L", "-o", "ct2.o", "https://drive.google.com/uc?export=download&id=17x-8eSTQtZesPGfzZZ5jRjUgBAzx9r-n"]
+      cwd := pkg.buildDir / "cpp"
+    }
+    return pure (pkg.buildDir / "cpp" / "ct2.o")
+  else
+    let build := buildCpp pkg "cpp/ct2.cpp" ct2
+    afterReleaseSync pkg build
 
 
 extern_lib libleanffi pkg := do
