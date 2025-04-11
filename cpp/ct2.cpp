@@ -11,6 +11,7 @@
 #include <locale>
 #include <stdexcept>
 #include <vector>
+#include <filesystem>
 
 #include "json.hpp"
 #include "npy.hpp"
@@ -23,9 +24,9 @@ std::map<std::string, std::unique_ptr<ctranslate2::Encoder>> encoders;
 ctranslate2::StorageView *p_premise_embeddings = nullptr;
 json *p_premise_dictionary = nullptr;
 
+// ifstream does not support directories on Windows
 inline bool exists(const std::string &path) {
-  std::ifstream f(path.c_str());
-  return f.good();
+  return std::filesystem::exists(path);
 }
 
 inline lean_obj_res lean_mk_pair(lean_obj_arg a, lean_obj_arg b) {

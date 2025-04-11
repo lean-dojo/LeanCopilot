@@ -30,7 +30,6 @@ class HFTacticGenerator(Generator, Transformer):
             "max_new_tokens": args["max_new_tokens"],
             "top_p": args["top_p"],  # chat default is 0.8.
             "num_return_sequences": args["num_return_sequences"],
-            # "num_beams": self.num_return_sequences,  # Here if we use beam search for llms the output are not diverse (few tactics are provided).
             "output_scores": args["output_scores"],
             "output_logits": args["output_logits"],
             "return_dict_in_generate": args["return_dict_in_generate"],

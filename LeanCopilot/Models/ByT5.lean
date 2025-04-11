@@ -269,7 +269,7 @@ def vocab : Array String := #[
 
 
 private def byteToToken (b : UInt8) : String :=
-  vocab.get! b.toNat
+  vocab[b.toNat]!
 
 
 private def tokenToByte! (t : String) : UInt8 :=

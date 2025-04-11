@@ -8,12 +8,13 @@ set_option autoImplicit false
 inductive SupportedOS where
   | linux
   | macos
+  | windows
 deriving Inhabited, BEq
 
 
 def getOS! : SupportedOS :=
   if Platform.isWindows then
-    panic! "Windows is not supported"
+     .windows
   else if Platform.isOSX then
      .macos
   else
@@ -27,16 +28,22 @@ deriving Inhabited, BEq
 
 
 def nproc : IO Nat := do
-  let out ← IO.Process.output {cmd := "nproc", stdin := .null}
+  let cmd := if getOS! == .windows then "cmd" else "nproc"
+  let args := if getOS! == .windows then #["/c echo %NUMBER_OF_PROCESSORS%"] else #[]
+  let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
   return out.stdout.trim.toNat!
 
 
 def getArch? : IO (Option SupportedArch) := do
-  let out ← IO.Process.output {cmd := "uname", args := #["-m"], stdin := .null}
+  let cmd := if getOS! == .windows then "cmd" else "uname"
+  let args := if getOS! == .windows then #["/c echo %PROCESSOR_ARCHITECTURE%\n"] else #["-m"]
+
+  let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
   let arch := out.stdout.trim
-  if arch ∈ ["arm64", "aarch64"] then
+
+  if arch ∈ ["arm64", "aarch64", "ARM64"] then
     return some .arm64
-  else if arch == "x86_64" then
+  else if arch ∈ ["x86_64", "AMD64"] then
     return some .x86_64
   else
     return none
@@ -54,9 +61,15 @@ def isArm! : IO Bool := do
 
 
 def hasCUDA : IO Bool := do
-  let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
-  return out.exitCode == 0
-
+  if getOS! == .windows then
+    let ok ← testProc {
+      cmd := "nvidia-smi"
+      args := #[]
+    }
+    return ok
+  else
+    let out ← IO.Process.output {cmd := "which", args := #["nvcc"], stdin := .null}
+    return out.exitCode == 0
 
 def useCUDA : IO Bool := do
   return (get_config? noCUDA |>.isNone) ∧ (← hasCUDA)
@@ -81,14 +94,58 @@ def getPlatform! : IO SupportedPlatform := do
     error "Only 64-bit platforms are supported"
   return ⟨getOS!, ← getArch!⟩
 
+def copyFile (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #[s!"/c copy {src.toString.replace "/" "\\"} {dst.toString.replace "/" "\\"}"]
+    else
+      #[src.toString, dst.toString]
+
+  proc {
+    cmd := cmd
+    args := args
+  }
+
+def copyFolder (src dst : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "robocopy" else "cp"
+  let args :=
+    if getOS! == .windows then
+      #[src.toString, dst.toString, "/E"]
+    else
+      #["-r", src.toString, dst.toString]
+
+  let _out ← rawProc {
+    cmd := cmd
+    args := args
+  }
+
+def removeFolder (dir : FilePath) : LogIO Unit := do
+  let cmd := if getOS! == .windows then "cmd" else "rm"
+  let args :=
+    if getOS! == .windows then
+      #[s!"/c rmdir /s /q {dir.toString.replace "/" "\\"}"]
+    else
+      #["-rf", dir.toString]
+
+  proc {
+    cmd := cmd
+    args := args
+  }
+
+def removeFile (src: FilePath) : LogIO Unit := do
+  proc {
+    cmd := if getOS! == .windows then "cmd" else "rm"
+    args := if getOS! == .windows then #[s!"/c del {src.toString.replace "/" "\\"}"] else #[src.toString]
+  }
 
 package LeanCopilot where
   preferReleaseBuild := get_config? noCloudRelease |>.isNone
   buildArchive? := buildArchiveName
   precompileModules := true
   buildType := BuildType.release
-  moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-lctranslate2"]
-  weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib "ctranslate2"]
+  moreLinkArgs := #[s!"-L{__dir__}/.lake/build/lib", "-l" ++ if getOS! == .windows then "libctranslate2" else "ctranslate2"]
+  weakLeanArgs := #[s!"--load-dynlib={__dir__}/.lake/build/lib/" ++ nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")]
 
 
 @[default_target]
@@ -111,7 +168,7 @@ lean_lib LeanCopilotTests {
 
 
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
-  if Platform.isWindows then s!"{name}.dll"
+  if Platform.isWindows then s!"lib{name}.{v}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
   else s!"lib{name}.so.{v}"
 
@@ -138,7 +195,7 @@ def ensureDirExists (dir : FilePath) : IO Unit := do
 def gitClone (url : String) (cwd : Option FilePath) : LogIO Unit := do
   proc (quiet := true) {
     cmd := "git"
-    args := #["clone", "--recursive", url]
+    args := if getOS! == .windows then #["clone", url] else #["clone", "--recursive", url]
     cwd := cwd
   }
 
@@ -170,14 +227,27 @@ target libopenblas pkg : FilePath := do
   afterReleaseAsync pkg do
     let rootDir := pkg.buildDir / "OpenBLAS"
     ensureDirExists rootDir
-    let dst := pkg.nativeLibDir / (nameToSharedLib "openblas")
+    let dst := pkg.nativeLibDir / (nameToSharedLib (if getOS! == .windows then "libopenblas" else "openblas"))
     createParentDirs dst
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
-    try
-      let depTrace := Hash.ofString url
-      setTrace depTrace
-      buildFileUnlessUpToDate' dst do
+    let depTrace := Hash.ofString url
+    setTrace depTrace
+    buildFileUnlessUpToDate' dst do
+      if getOS! == .windows then
+        -- For Windows, the binary for OpenBLAS is provided.
+        let _out ← rawProc {
+          cmd := "curl"
+          args := #["-L", "-o", "OpenBLAS.zip", "https://sourceforge.net/projects/openblas/files/v0.3.29/OpenBLAS-0.3.29_x64.zip/download"]
+          cwd := pkg.buildDir
+        }
+        proc {
+          cmd := "tar"
+          args := #["-xvf", "OpenBLAS.zip"]
+          cwd := pkg.buildDir
+        }
+        copyFile (pkg.buildDir / "bin" / "libopenblas.dll") (pkg.buildDir / "lib" / "libopenblas.dll")
+      else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
 
@@ -189,22 +259,12 @@ target libopenblas pkg : FilePath := do
           args := flags
           cwd := rootDir
         }
-        proc {
-          cmd := "cp"
-          args := #[(rootDir / nameToSharedLib "openblas").toString, dst.toString]
-        }
+        copyFile (rootDir / nameToSharedLib "openblas") dst
         -- TODO: Don't hardcode the version "0".
         let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "openblas" "0")
-        proc {
-          cmd := "cp"
-          args := #[dst.toString, dst'.toString]
-        }
-      let _ := (← getTrace)
-      return dst
-
-    else
-      addTrace <| ← computeTrace dst
-      return dst
+        copyFile dst dst'
+    let _ := (← getTrace)
+    return dst
 
 
 def getCt2CmakeFlags : IO (Array String) := do
@@ -213,6 +273,7 @@ def getCt2CmakeFlags : IO (Array String) := do
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
   | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
+  | .windows => flags := flags
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
   -- if ← useCUDA then
@@ -225,23 +286,40 @@ def getCt2CmakeFlags : IO (Array String) := do
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
-  if getOS! == .linux then
+  if getOS! == .linux ∨ getOS! == .windows then
     let openblas ← libopenblas.fetch
     let _ ← openblas.await
 
   afterReleaseAsync pkg do
-    let dst := pkg.nativeLibDir / (nameToSharedLib "ctranslate2")
+    let dst := pkg.nativeLibDir / (nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2"))
     createParentDirs dst
     let ct2URL := "https://github.com/OpenNMT/CTranslate2"
 
-    try
-      let depTrace := Hash.ofString ct2URL
-      setTrace depTrace
-      buildFileUnlessUpToDate' dst do
-        logInfo s!"Cloning CTranslate2 from {ct2URL}"
-        gitClone ct2URL pkg.buildDir
+    let depTrace := Hash.ofString ct2URL
+    setTrace depTrace
+    buildFileUnlessUpToDate' dst do
+      logInfo s!"Cloning CTranslate2 from {ct2URL}"
+      if !(← (pkg.buildDir / "CTranslate2").pathExists) then
+        let _ ← gitClone ct2URL pkg.buildDir
+        if getOS! == .windows then
+          -- git clone --recursive doesn't work on powershell
+          let _ ← gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/NVIDIA/thrust.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/google/googletest.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/google/cpu_features.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/gabime/spdlog.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/google/ruy.git" (pkg.buildDir / "CTranslate2/third_party")
+          let _ ← gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
 
-        let ct2Dir := pkg.buildDir / "CTranslate2"
+      let ct2Dir := pkg.buildDir / "CTranslate2"
+      if getOS! == .windows then
+        ensureDirExists $ ct2Dir / "build"
+        let _out ← rawProc {
+          cmd := "curl"
+          args := #["-L", "-o", "libctranslate2.dll", "https://drive.google.com/uc?export=download&id=1W6ZsbBG8gK9FRoMedNCKkg8qqS-bDa9U"]
+          cwd := ct2Dir / "build"
+        }
+      else
         let flags ← getCt2CmakeFlags
         logInfo s!"Configuring CTranslate2 with `cmake{flags.foldl (· ++ " " ++ ·) ""} ..`"
         runCmake ct2Dir flags
@@ -253,38 +331,28 @@ target libctranslate2 pkg : FilePath := do
           cwd := ct2Dir / "build"
         }
 
-        ensureDirExists $ pkg.buildDir / "include"
-        proc {
-          cmd := "cp"
-          args := #[(ct2Dir / "build" / nameToSharedLib "ctranslate2").toString, dst.toString]
-        }
-        -- TODO: Don't hardcode the version "4".
-        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
-        proc {
-          cmd := "cp"
-          args := #[dst.toString, dst'.toString]
-        }
-        proc {
-          cmd := "cp"
-          args := #["-r", (ct2Dir / "include" / "ctranslate2").toString, (pkg.buildDir / "include" / "ctranslate2").toString]
-        }
-        proc {
-          cmd := "cp"
-          args := #["-r", (ct2Dir / "include" / "nlohmann").toString, (pkg.buildDir / "include" / "nlohmann").toString]
-        }
-        proc {
-          cmd := "cp"
-          args := #["-r", (ct2Dir / "include" / "half_float").toString, (pkg.buildDir / "include" / "half_float").toString]
-        }
-        proc {
-          cmd := "rm"
-          args := #["-rf", ct2Dir.toString]
-        }
-      let _ := (← getTrace)
-      return dst
-    else
-      addTrace <| ← computeTrace dst
-      return dst
+      ensureDirExists $ pkg.buildDir / "include"
+
+      copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
+
+      -- TODO: Don't hardcode the version "4".
+      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
+      copyFile dst dst'
+
+      copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
+
+      copyFolder (ct2Dir / "include" / "nlohmann") (pkg.buildDir / "include" / "nlohmann")
+
+      copyFolder (ct2Dir / "include" / "half_float") (pkg.buildDir / "include" / "half_float")
+
+      removeFolder ct2Dir
+
+      if getOS! == .windows then
+        removeFolder (pkg.buildDir / "OPENBLAS")
+        removeFile (pkg.buildDir / "OPENBLAS.zip")
+
+    let _ := (← getTrace)
+    return dst
 
 
 def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Job FilePath) := do
@@ -293,14 +361,25 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
   let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
+
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
     compileO oFile deps[0]! args "c++"
 
 
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
-  let build := buildCpp pkg "cpp/ct2.cpp" ct2
-  afterReleaseSync pkg build
+  if getOS! == .windows then
+    let _ ← ct2.await
+    ensureDirExists $ pkg.buildDir / "cpp"
+    proc {
+      cmd := "curl"
+      args := #["-L", "-o", "ct2.o", "https://drive.google.com/uc?export=download&id=17x-8eSTQtZesPGfzZZ5jRjUgBAzx9r-n"]
+      cwd := pkg.buildDir / "cpp"
+    }
+    return pure (pkg.buildDir / "cpp" / "ct2.o")
+  else
+    let build := buildCpp pkg "cpp/ct2.cpp" ct2
+    afterReleaseSync pkg build
 
 
 extern_lib libleanffi pkg := do
@@ -309,8 +388,8 @@ extern_lib libleanffi pkg := do
   buildStaticLib (pkg.nativeLibDir / name) #[ct2O]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "efcc7d9bd9936ecdc625baf0d033b60866565cd5"
-require aesop from git "https://github.com/leanprover-community/aesop" @ "56a2c80b209c253e0281ac4562a92122b457dcc0"
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "613510345e4d4b3ce3d8c129595e7241990d5b39"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "2bcdf2985dbe37cff63ca18346d8b26b8a448d3d"
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
-require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "b031cb6aa39c6db80532975c43594f247b8d4b51"
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"

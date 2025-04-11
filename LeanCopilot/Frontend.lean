@@ -1,5 +1,4 @@
-/- This frontend is adapted from part of `mathlib4/Mathlib/Tactic/Hint.lean`
-   originally authored by Scott Morrison. -/
+/- This frontend is developed partly based on `mathlib4/Mathlib/Tactic/Hint.lean` -/
 import Lean
 import LeanCopilot.Options
 import Lean.Meta.Tactic.TryThis
@@ -58,15 +57,6 @@ def withoutInfoTrees (t : TacticM Unit) : TacticM Unit := do
 
 
 open Lean.Meta.Tactic.TryThis in
-/--
-Run all tactics registered using `register_hint`.
-Print a "Try these:" suggestion for each of the successful tactics.
-
-If one tactic succeeds and closes the goal, we don't look at subsequent tactics.
--/
--- TODO We could run the tactics in parallel.
--- TODO With widget support, could we run the tactics in parallel
---      and do live updates of the widget as results come in?
 def hint (stx : Syntax) (tacStrs : Array String) (check : Bool) : TacticM Unit := do
   if check then
     let tacStxs ← tacStrs.filterMapM fun tstr : String => do match runParserCategory (← getEnv) `tactic tstr with
