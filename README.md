@@ -175,7 +175,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 ## Getting in Touch
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanCopilot/discussions).  
-* To report a potential bug, please open an issue. In the issue, please include your OS information and the exact steps to reproduce the error. The more details you provide, the better we will be able to help you.
+* To report a potential bug, please open an issue. In the issue, please include your OS information, the exact steps to reproduce the error on **the latest stable version of Lean Copilot**, and complete logs preferrably in debug mode. **Important: If your issue cannot be reproduced easily, it will be unlikely to receive help.**
 * Feature requests and other suggestions are extremely welcome. Please feel free to start a discussion!
 
 ## Acknowledgements
