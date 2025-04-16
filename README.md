@@ -8,20 +8,20 @@ Lean Copilot allows large language models (LLMs) to be used natively in Lean for
 ## Table of Contents
 
 1. [Requirements](#requirements)  
-2. [Using Lean Copilot in Your Project](#using-lean-copilot-in-your-project)
+1. [Using Lean Copilot in Your Project](#using-lean-copilot-in-your-project)
    1. [Adding Lean Copilot as a Dependency](#adding-lean-copilot-as-a-dependency)
-   3. [Getting Started with Lean Copilot](#getting-started-with-lean-copilot)
+   1. [Getting Started with Lean Copilot](#getting-started-with-lean-copilot)
       1. [Tactic Suggestion](#tactic-suggestion)
-      2. [Proof Search](#proof-search)
-      3. [Premise Selection](#premise-selection)
-5. [Advanced Usage](#advanced-usage)
+      1. [Proof Search](#proof-search)
+      1. [Premise Selection](#premise-selection)
+1. [Advanced Usage](#advanced-usage)
    1. [Tactic APIs](#tactic-apis)
-   2. [Model APIs](#model-apis)
-   3. [Bring Your Own Model](#bring-your-own-model)
-8. [Caveats](#caveats)
-9. [Getting in Touch](#getting-in-touch)
-10. [Acknowledgements](#acknowledgements)
-11. [Citation](#citation)
+   1. [Model APIs](#model-apis)
+   1. [Bring Your Own Model](#bring-your-own-model)
+1. [Caveats](#caveats)
+1. [Getting in Touch](#getting-in-touch)
+1. [Acknowledgements](#acknowledgements)
+1. [Citation](#citation)
 
 ## Requirements
 
