@@ -12,12 +12,39 @@ on:
       - stable
 
 jobs:
-  build:
+  build-release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    name: Build
+        os: [macos-latest, ubuntu-latest]
+    name: BuildRelease
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Git LFS
+        run: |
+          git lfs update --force
+          git lfs install
+      - name: Set up elan
+        run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
+      - name: Add .lake/build/lib to PATH
+        shell: bash
+        run: |
+          echo "$GITHUB_WORKSPACE/.lake/build/lib" >> $GITHUB_PATH
+      - name: Build project
+        run: ~/.elan/bin/lake build
+      - name: Download model
+        run: |
+          ~/.elan/bin/lake exe LeanCopilot/download
+      - name: Build tests
+        run: ~/.elan/bin/lake build LeanCopilotTests
+
+  build-beta:
+    runs-on: windows-latest
+    name: BuildBeta
+    continue-on-error: true
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
