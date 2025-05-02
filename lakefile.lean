@@ -227,7 +227,7 @@ target libopenblas pkg : FilePath := do
   afterReleaseAsync pkg do
     let rootDir := pkg.buildDir / "OpenBLAS"
     ensureDirExists rootDir
-    let dst := pkg.nativeLibDir / (nameToSharedLib (if getOS! == .windows then "libopenblas" else "openblas"))
+    let dst := pkg.sharedLibDir / (nameToSharedLib (if getOS! == .windows then "libopenblas" else "openblas"))
     createParentDirs dst
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
@@ -261,7 +261,7 @@ target libopenblas pkg : FilePath := do
         }
         copyFile (rootDir / nameToSharedLib "openblas") dst
         -- TODO: Don't hardcode the version "0".
-        let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "openblas" "0")
+        let dst' := pkg.sharedLibDir / (nameToVersionedSharedLib "openblas" "0")
         copyFile dst dst'
     let _ := (← getTrace)
     return dst
@@ -291,7 +291,7 @@ target libctranslate2 pkg : FilePath := do
     let _ ← openblas.await
 
   afterReleaseAsync pkg do
-    let dst := pkg.nativeLibDir / (nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2"))
+    let dst := pkg.sharedLibDir / (nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2"))
     createParentDirs dst
     let ct2URL := "https://github.com/OpenNMT/CTranslate2"
 
@@ -336,7 +336,7 @@ target libctranslate2 pkg : FilePath := do
       copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
 
       -- TODO: Don't hardcode the version "4".
-      let dst' := pkg.nativeLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
+      let dst' := pkg.sharedLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
       copyFile dst dst'
 
       copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
@@ -385,7 +385,7 @@ target ct2.o pkg : FilePath := do
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
   let ct2O ← ct2.o.fetch
-  buildStaticLib (pkg.nativeLibDir / name) #[ct2O]
+  buildStaticLib (pkg.sharedLibDir / name) #[ct2O]
 
 
 require batteries from git "https://github.com/leanprover-community/batteries.git" @ "f5d04a9c4973d401c8c92500711518f7c656f034"
