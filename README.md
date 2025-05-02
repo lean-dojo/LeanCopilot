@@ -25,7 +25,7 @@ Lean Copilot allows large language models (LLMs) to be used natively in Lean for
 
 ## Requirements
 
-* Supported platforms: Linux, macOS, and [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/install); native Windows is supported as a Beta release.
+* Supported platforms: Linux, macOS, and [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/install); native Windows is supported in a Beta stage.
 * [Git LFS](https://git-lfs.com/).
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn).
 * Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler.
