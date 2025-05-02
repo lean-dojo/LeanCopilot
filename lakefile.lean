@@ -373,7 +373,7 @@ target ct2.o pkg : FilePath := do
     ensureDirExists $ pkg.buildDir / "cpp"
     proc {
       cmd := "curl"
-      args := #["-L", "-o", "ct2.o", "https://drive.google.com/uc?export=download&id=17x-8eSTQtZesPGfzZZ5jRjUgBAzx9r-n"]
+      args := #["-L", "-o", "ct2.o", "https://drive.google.com/uc?export=download&id=1kJdQcrYyDCl-ko8Fa12BcXShfXap8WqM"]
       cwd := pkg.buildDir / "cpp"
     }
     return pure (pkg.buildDir / "cpp" / "ct2.o")
