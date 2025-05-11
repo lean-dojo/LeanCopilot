@@ -41,15 +41,15 @@ instance : TextToVec Encoder where
     | .generic ge => ge.encode input
 
 
-instance {α β : Type} [BEq α] [Hashable α] [Repr α] [Repr β] : Repr (HashMap α β) where
+instance {α β : Type} [BEq α] [Hashable α] [Repr α] [Repr β] : Repr (Std.HashMap α β) where
   reprPrec hm n := reprPrec hm.toList n
 
 
 structure ModelRegistry where
-  generators : HashMap String Generator :=
-    HashMap.ofList [(Builtin.generator.name, .native Builtin.generator)]
-  encoders : HashMap String Encoder :=
-    HashMap.ofList [(Builtin.encoder.name, .native Builtin.encoder)]
+  generators : Std.HashMap String Generator :=
+    Std.HashMap.ofList [(Builtin.generator.name, .native Builtin.generator)]
+  encoders : Std.HashMap String Encoder :=
+    Std.HashMap.ofList [(Builtin.encoder.name, .native Builtin.encoder)]
 
 
 namespace ModelRegistry
@@ -86,7 +86,7 @@ def getModelRegistry : IO ModelRegistry := modelRegistryRef.get
 
 def getGenerator (name : String) : Lean.CoreM Generator := do
   let mr ← getModelRegistry
-  match mr.generators.find? name with
+  match mr.generators[name]? with
   | some (.native model) =>
     if ¬(← isUpToDate model.url) then
       Lean.logWarning s!"The local model {model.name} is not up to date. You may want to run `lake exe LeanCopilot/download` to re-download it."
@@ -97,7 +97,7 @@ def getGenerator (name : String) : Lean.CoreM Generator := do
 
 def getEncoder (name : String) : IO Encoder := do
   let mr ← getModelRegistry
-  match mr.encoders.find? name with
+  match mr.encoders[name]? with
   | some descr => return descr
   | none => throw $ IO.userError s!"unknown encoder: {name}"
 
