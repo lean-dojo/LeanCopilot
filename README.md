@@ -68,7 +68,7 @@ git = "https://github.com/lean-dojo/LeanCopilot.git"
 rev = "LEAN_COPILOT_VERSION"
 ```
 
-3. If you are using native Windows, add `<path_to_your_project>/.lake/packages/LeanCopilot/.lake/build/lib` to your `PATH` variable in Advanced System Settings. 
+3. If you are using native Windows, add `<path_to_your_project>/.lake/packages/LeanCopilot/.lake/build/lib` to your `Path` variable in Advanced System Settings > Environment Variables... > System variables. 
 
 4. Run `lake update LeanCopilot`.
 
