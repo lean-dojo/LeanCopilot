@@ -358,28 +358,71 @@ target libctranslate2 pkg : FilePath := do
 def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Job FilePath) := do
   let optLevel := if pkg.buildType == .release then "-O3" else "-O0"
   let flags := #["-fPIC", "-std=c++17", optLevel]
-  let args := flags ++ #["-I", (← getLeanIncludeDir).toString, "-I", (pkg.buildDir / "include").toString]
+  let mut args := flags ++ #[
+    "-I", (← getLeanIncludeDir).toString,
+    "-I", (pkg.buildDir / "include").toString,
+  ]
+  if getOS! == .windows then
+    -- link the headers
+    args := args ++ #[
+      "-I", (pkg.buildDir / "clang64/include/c++/v1").toString,
+      "-I", (pkg.buildDir / "clang64/include").toString,
+      "-I", (pkg.buildDir / "clang64/lib/clang/20/include").toString,
+    ]
   let oFile := pkg.buildDir / (path.withExtension "o")
   let srcJob ← inputTextFile <| pkg.dir / path
+  let leanPath ← Lake.getLeanSysroot
 
   buildFileAfterDep oFile (.collectList [srcJob, dep]) (extraDepTrace := computeHash flags) fun deps =>
-    compileO oFile deps[0]! args "c++"
+    compileO oFile deps[0]! args (if getOS! == .windows then s!"{leanPath}/bin/clang.exe" else "c++")
 
 
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
   if getOS! == .windows then
-    let _ ← ct2.await
-    ensureDirExists $ pkg.buildDir / "cpp"
+    -- download headers from https://repo.msys2.org/mingw/clang64/
     proc {
       cmd := "curl"
-      args := #["-L", "-o", "ct2.o", "https://drive.google.com/uc?export=download&id=1kJdQcrYyDCl-ko8Fa12BcXShfXap8WqM"]
-      cwd := pkg.buildDir / "cpp"
+      args := #["-L", "-o", "headers.pkg.tar.zst", "https://repo.msys2.org/mingw/clang64/mingw-w64-clang-x86_64-headers-git-12.0.0.r81.g90abf784a-1-any.pkg.tar.zst"]
+      cwd := pkg.buildDir
     }
-    return pure (pkg.buildDir / "cpp" / "ct2.o")
-  else
-    let build := buildCpp pkg "cpp/ct2.cpp" ct2
-    afterReleaseSync pkg build
+    proc {
+      cmd := "curl"
+      args := #["-L", "-o", "clang.pkg.tar.zst", "https://repo.msys2.org/mingw/clang64/mingw-w64-clang-x86_64-clang-20.1.3-1-any.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+    proc {
+      cmd := "curl"
+      args := #["-L", "-o", "libcxx.pkg.tar.zst", "https://repo.msys2.org/mingw/clang64/mingw-w64-clang-x86_64-libc%2B%2B-20.1.3-1-any.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+    proc {
+      cmd := "curl"
+      args := #["-L", "-o", "pthread.pkg.tar.zst", "https://repo.msys2.org/mingw/clang64/mingw-w64-clang-x86_64-winpthreads-git-12.0.0.r724.g7e3f2dd90-1-any.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+    proc {
+      cmd := "tar"
+      args := #["-xvf", "clang.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+    proc {
+      cmd := "tar"
+      args := #["-xvf", "headers.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+    proc {
+      cmd := "tar"
+      args := #["-xvf", "libcxx.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+    proc {
+      cmd := "tar"
+      args := #["-xvf", "pthread.pkg.tar.zst"]
+      cwd := pkg.buildDir
+    }
+  let build := buildCpp pkg "cpp/ct2.cpp" ct2
+  afterReleaseSync pkg build
 
 
 extern_lib libleanffi pkg := do
