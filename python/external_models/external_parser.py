@@ -16,15 +16,15 @@ def pre_process_input(model_name, input):
             + "```\nPlease predict a possible tactic to help me prove the theorem."
         )
         prompt = f"""<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"""
-    elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
+    elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview" or model_name == "AI-MO/Kimina-Prover-Preview-Distill-7B":
         prompt = (
-            "Here is a theorom you need to prove in Lean:\n"
+            "Here is a theorem you need to prove in Lean:\n"
             + input
             + "\nNow you should suggest one line tactic in lean code:"
         )
     elif "gemini" in model_name or "claude" in model_name:
         prompt = (
-            "Here is a theorom you need to prove in Lean:\n"
+            "Here is a theorem you need to prove in Lean:\n"
             + input
             + "\nNow you should suggest one line tactic in lean code:"
         )

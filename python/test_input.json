@@ -1,0 +1,7 @@
+{
+  "input": {
+    "name": "kimina",
+    "input": "n : ℕ\n⊢ gcd n n = n",
+    "prefix": ""
+  }
+}

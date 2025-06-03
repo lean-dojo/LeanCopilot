@@ -64,7 +64,7 @@ class VLLMTacticGenerator(Generator, Transformer):
 
 if __name__ == "__main__":
     generation_kwargs = {
-        "model": "internlm/internlm2-math-plus-1_8b",
+        "model": "AI-MO/Kimina-Prover-Preview-Distill-7B",
         "tensor_parallel_size": 2,
         "temperature": 0.6,
         "max_tokens": 1024,
