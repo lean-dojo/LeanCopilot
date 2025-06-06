@@ -59,7 +59,7 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 
-For stable Lean versions (e.g., `v4.19.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions, set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
+For stable Lean versions (e.g., `v4.20.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.20.0-rc3`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
 
 ```toml
 [[require]]
@@ -68,7 +68,7 @@ git = "https://github.com/lean-dojo/LeanCopilot.git"
 rev = "LEAN_COPILOT_VERSION"
 ```
 
-3. If you are using native Windows, add `<path_to_your_project>/.lake/packages/LeanCopilot/.lake/build/lib` to your `PATH` variable in Advanced System Settings. 
+3. If you are using native Windows, add `<path_to_your_project>/.lake/packages/LeanCopilot/.lake/build/lib` to your `Path` variable in Advanced System Settings > Environment Variables... > System variables. 
 
 4. Run `lake update LeanCopilot`.
 
