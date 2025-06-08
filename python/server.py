@@ -10,7 +10,7 @@ app = FastAPI()
 models = {
     "kimina": VLLMTacticGenerator(
         model="AI-MO/Kimina-Prover-Preview-Distill-7B",
-        tensor_parallel_size=2,
+        tensor_parallel_size=1,
         temperature=0.6,
         max_tokens=1024,
         top_p=0.9,
