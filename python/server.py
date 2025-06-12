@@ -32,6 +32,20 @@ models = {
         return_dict_in_generate=True,
         device="auto",
     ),
+    "kimina": VLLMTacticGenerator(
+        model="AI-MO/Kimina-Prover-Preview-Distill-7B",
+        tensor_parallel_size=1,
+        temperature=0.6,
+        max_tokens=1024,
+        top_p=0.9,
+        length_penalty=0,
+        n=32,
+        do_sample=True,
+        output_scores=True,
+        output_logits=False,
+        return_dict_in_generate=True,
+        device="auto",
+    ),
     "wellecks/llmstep-mathlib4-pythia2.8b": PythiaTacticGenerator(
         num_return_sequences=32, max_length=1024, device="auto"
     ),
