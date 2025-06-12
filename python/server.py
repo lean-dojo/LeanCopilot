@@ -3,11 +3,35 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from models import *
-from external_models import VLLMTacticGenerator
+from external_models import *
 
 app = FastAPI()
 
 models = {
+    "gpt4": OpenAIRunner(
+        model="gpt-4-turbo-preview",
+        temperature=0.9,
+        max_tokens=1024,
+        top_p=0.9,
+        frequency_penalty=0,
+        presence_penalty=0,
+        num_return_sequences=16,
+        openai_timeout=45,
+    ),
+    "InternLM": VLLMTacticGenerator(
+        model="internlm/internlm2-math-plus-1_8b",
+        tensor_parallel_size=2,
+        temperature=0.6,
+        max_tokens=1024,
+        top_p=0.9,
+        length_penalty=0,
+        n=32,
+        do_sample=True,
+        output_scores=True,
+        output_logits=False,
+        return_dict_in_generate=True,
+        device="auto",
+    ),
     "kimina": VLLMTacticGenerator(
         model="AI-MO/Kimina-Prover-Preview-Distill-7B",
         tensor_parallel_size=1,
@@ -21,6 +45,20 @@ models = {
         output_logits=False,
         return_dict_in_generate=True,
         device="auto",
+    ),
+    "wellecks/llmstep-mathlib4-pythia2.8b": PythiaTacticGenerator(
+        num_return_sequences=32, max_length=1024, device="auto"
+    ),
+    "t5-small": EncoderDecoderTransformer(
+        "t5-small", num_return_sequences=3, max_length=1024
+    ),
+    "kaiyuy/leandojo-lean4-tacgen-byt5-small": EncoderDecoderTransformer(
+        "kaiyuy/leandojo-lean4-tacgen-byt5-small",
+        num_return_sequences=32,
+        max_length=1024,
+    ),
+    "kaiyuy/leandojo-lean4-retriever-byt5-small": EncoderOnlyTransformer(
+        "kaiyuy/leandojo-lean4-retriever-byt5-small"
     ),
 }
 

@@ -9,13 +9,13 @@ def get_cuda_if_available():
 
 
 def pre_process_input(model_name, input):
-    print("model_name", model_name)
     if model_name == "internlm/internlm2-math-plus-1_8b" or model_name == "AI-MO/Kimina-Prover-Preview-Distill-7B":    
         prompt = (
             "My LEAN 4 state is:\n```lean\n"
             + input
-            + "```\nOutput only a single Lean tactic that completes the proof. Do not include explanations, imports, or theorem statements. Your response must be only the single tactic line that completes the proof."
+            + "```\nPlease predict a possible tactic to help me prove the theorem."
         )
+        prompt = f"""<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"""
     elif model_name == "gpt-3.5-turbo" or model_name == "gpt-4-turbo-preview":
         prompt = (
             "Here is a theorem you need to prove in Lean:\n"
@@ -35,6 +35,13 @@ def pre_process_input(model_name, input):
 
 def post_process_output(model_name, output):
     if model_name == "internlm/internlm2-math-plus-1_8b" or model_name == "AI-MO/Kimina-Prover-Preview-Distill-7B":
+        result = (
+            output.split("assistant")[-1]
+            .split("lean")[-1]
+            .split("```")[0]
+            .split("\n")[1]
+        )
+    elif model_name == "AI-MO/Kimina-Prover-Preview-Distill-7B":
         result = (
             output.split("assistant")[-1]
             .split("lean")[-1]

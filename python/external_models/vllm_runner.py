@@ -47,12 +47,14 @@ class VLLMTacticGenerator(Generator, Transformer):
 
     def generate(self, input: str, target_prefix: str = "") -> List[Tuple[str, float]]:
         prompt = input + target_prefix
+        '''prompt= 'Here is a theorom you need to prove in Lean:\n'+prompt+'\nNow you should suggest one line tactic in lean code:'
+        prompt = f"""<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"""
+        '''
         prompt = pre_process_input(self.name, prompt)
-        print("prompt", prompt)
+
         vllm_outputs = self.llm.generate(prompt, self.sampling_params)
         result = []
         for output in vllm_outputs[0].outputs:  # bsz=1 for now
-            print(output.text)
             out = output.text.split("<|im_end|>")[0]
             result.append(
                 (post_process_output(self.name, out), np.exp(output.cumulative_logprob))

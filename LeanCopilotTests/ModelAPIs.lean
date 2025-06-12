@@ -15,7 +15,7 @@ def reprover : NativeGenerator := {
   }
 }
 
--- #eval generate reprover "n : ℕ\n⊢ gcd n n = n"
+#eval generate reprover "n : ℕ\n⊢ gcd n n = n"
 
 def reprover' : NativeGenerator := {reprover with
   device := .cpu
@@ -23,7 +23,7 @@ def reprover' : NativeGenerator := {reprover with
   params := {numReturnSequences := 4}
 }
 
--- #eval generate reprover' "n : ℕ\n⊢ gcd n n = n"
+#eval generate reprover' "n : ℕ\n⊢ gcd n n = n"
 
 
 /--
@@ -37,7 +37,7 @@ def byt5 : NativeGenerator := {
   }
 }
 
--- #eval generate byt5 "Hello, world!"
+#eval generate byt5 "Hello, world!"
 
 
 /--
@@ -48,7 +48,7 @@ def reproverEncoder : NativeEncoder := {
   tokenizer := ByT5.tokenizer
 }
 
--- #eval encode reproverEncoder "n : ℕ\n⊢ gcd n n = n"
+#eval encode reproverEncoder "n : ℕ\n⊢ gcd n n = n"
 
 
 /--
@@ -57,7 +57,7 @@ Arbitrary generator you can define.
 def dummyGenerator : GenericGenerator where
   generate _ _ := return #[⟨"Hello, world!", 0.5⟩, ("Hi!", 0.3)]
 
--- #eval generate dummyGenerator "n : ℕ\n⊢ gcd n n = n"
+#eval generate dummyGenerator "n : ℕ\n⊢ gcd n n = n"
 
 
 /--
@@ -66,7 +66,7 @@ Arbitrary encoder you can define.
 def dummyEncoder : GenericEncoder where
   encode _  := return FloatArray.mk #[1, 2, 3]
 
--- #eval encode dummyEncoder "Hi!"
+#eval encode dummyEncoder "Hi!"
 
 /-
 External Models
