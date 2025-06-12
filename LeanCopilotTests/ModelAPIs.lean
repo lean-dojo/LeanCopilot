@@ -124,6 +124,7 @@ def internLM : ExternalGenerator := {
 
 -/
 
+/--
 def kimina : ExternalGenerator := {
   name := "kimina"
   host := "localhost"
@@ -131,3 +132,4 @@ def kimina : ExternalGenerator := {
 }
 
 #eval generate kimina "n : ℕ\n⊢ gcd n n = n"
+-/
