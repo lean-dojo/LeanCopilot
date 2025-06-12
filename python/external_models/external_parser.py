@@ -34,7 +34,7 @@ def pre_process_input(model_name, input):
 
 
 def post_process_output(model_name, output):
-    if model_name == "internlm/internlm2-math-plus-1_8b" or model_name == "AI-MO/Kimina-Prover-Preview-Distill-7B":
+    if model_name == "internlm/internlm2-math-plus-1_8b":
         result = (
             output.split("assistant")[-1]
             .split("lean")[-1]
