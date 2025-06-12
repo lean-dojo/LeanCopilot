@@ -124,7 +124,7 @@ def internLM : ExternalGenerator := {
 
 -/
 
-/--
+/-
 def kimina : ExternalGenerator := {
   name := "kimina"
   host := "localhost"
