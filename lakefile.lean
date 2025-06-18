@@ -94,7 +94,7 @@ def getPlatform! : IO SupportedPlatform := do
     error "Only 64-bit platforms are supported"
   return ⟨getOS!, ← getArch!⟩
 
-def copyFile (src dst : FilePath) : LogIO Unit := do
+def copySingleFile (src dst : FilePath) : LogIO Unit := do
   let cmd := if getOS! == .windows then "cmd" else "cp"
   let args :=
     if getOS! == .windows then
@@ -246,7 +246,7 @@ target libopenblas pkg : FilePath := do
           args := #["-xvf", "OpenBLAS.zip"]
           cwd := pkg.buildDir
         }
-        copyFile (pkg.buildDir / "bin" / "libopenblas.dll") (pkg.buildDir / "lib" / "libopenblas.dll")
+        copySingleFile (pkg.buildDir / "bin" / "libopenblas.dll") (pkg.buildDir / "lib" / "libopenblas.dll")
       else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
@@ -259,10 +259,10 @@ target libopenblas pkg : FilePath := do
           args := flags
           cwd := rootDir
         }
-        copyFile (rootDir / nameToSharedLib "openblas") dst
+        copySingleFile (rootDir / nameToSharedLib "openblas") dst
         -- TODO: Don't hardcode the version "0".
         let dst' := pkg.sharedLibDir / (nameToVersionedSharedLib "openblas" "0")
-        copyFile dst dst'
+        copySingleFile dst dst'
     let _ := (← getTrace)
     return dst
 
@@ -333,11 +333,11 @@ target libctranslate2 pkg : FilePath := do
 
       ensureDirExists $ pkg.buildDir / "include"
 
-      copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
+      copySingleFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
 
       -- TODO: Don't hardcode the version "4".
       let dst' := pkg.sharedLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
-      copyFile dst dst'
+      copySingleFile dst dst'
 
       copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
 
