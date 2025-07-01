@@ -31,6 +31,8 @@ class VLLMTacticGenerator(Generator, Transformer):
             top_p=args["top_p"],
             frequency_penalty=0,
             presence_penalty=0,
+            logprobs=0,
+            prompt_logprobs=0,
         )
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -64,8 +66,8 @@ class VLLMTacticGenerator(Generator, Transformer):
 
 if __name__ == "__main__":
     generation_kwargs = {
-        "model": "internlm/internlm2-math-plus-1_8b",
-        "tensor_parallel_size": 2,
+        "model": "AI-MO/Kimina-Prover-Preview-Distill-7B",
+        "tensor_parallel_size": 1,
         "temperature": 0.6,
         "max_tokens": 1024,
         "top_p": 0.9,

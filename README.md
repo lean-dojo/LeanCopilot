@@ -25,7 +25,7 @@ Lean Copilot allows large language models (LLMs) to be used natively in Lean for
 
 ## Requirements
 
-* Supported platforms: Linux, macOS, and [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/install); native Windows is supported in its Beta stage.
+* Supported platforms: Linux, macOS, Windows and [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 * [Git LFS](https://git-lfs.com/).
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn).
 * Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler.
@@ -59,7 +59,7 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 
-For stable Lean versions (e.g., `v4.20.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.20.0-rc3`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
+For stable Lean versions (e.g., `v4.21.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.21.0-rc3`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
 
 ```toml
 [[require]]
