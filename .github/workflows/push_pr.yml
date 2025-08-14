@@ -20,7 +20,7 @@ jobs:
     name: BuildRelease
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Install Git LFS
@@ -47,7 +47,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Install Git LFS
