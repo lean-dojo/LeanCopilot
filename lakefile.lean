@@ -94,7 +94,7 @@ def getPlatform! : IO SupportedPlatform := do
     error "Only 64-bit platforms are supported"
   return ⟨getOS!, ← getArch!⟩
 
-def copyFile (src dst : FilePath) : LogIO Unit := do
+def copySingleFile (src dst : FilePath) : LogIO Unit := do
   let cmd := if getOS! == .windows then "cmd" else "cp"
   let args :=
     if getOS! == .windows then
@@ -246,7 +246,7 @@ target libopenblas pkg : FilePath := do
           args := #["-xvf", "OpenBLAS.zip"]
           cwd := pkg.buildDir
         }
-        copyFile (pkg.buildDir / "bin" / "libopenblas.dll") (pkg.buildDir / "lib" / "libopenblas.dll")
+        copySingleFile (pkg.buildDir / "bin" / "libopenblas.dll") (pkg.buildDir / "lib" / "libopenblas.dll")
       else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
@@ -259,10 +259,10 @@ target libopenblas pkg : FilePath := do
           args := flags
           cwd := rootDir
         }
-        copyFile (rootDir / nameToSharedLib "openblas") dst
+        copySingleFile (rootDir / nameToSharedLib "openblas") dst
         -- TODO: Don't hardcode the version "0".
         let dst' := pkg.sharedLibDir / (nameToVersionedSharedLib "openblas" "0")
-        copyFile dst dst'
+        copySingleFile dst dst'
     let _ := (← getTrace)
     return dst
 
@@ -301,15 +301,6 @@ target libctranslate2 pkg : FilePath := do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
       if !(← (pkg.buildDir / "CTranslate2").pathExists) then
         let _ ← gitClone ct2URL pkg.buildDir
-        -- if getOS! == .windows then
-        --   -- git clone --recursive doesn't work on powershell
-        --   let _ ← gitClone "https://github.com/jarro2783/cxxopts.git" (pkg.buildDir / "CTranslate2/third_party")
-        --   let _ ← gitClone "https://github.com/NVIDIA/thrust.git" (pkg.buildDir / "CTranslate2/third_party")
-        --   let _ ← gitClone "https://github.com/google/googletest.git" (pkg.buildDir / "CTranslate2/third_party")
-        --   let _ ← gitClone "https://github.com/google/cpu_features.git" (pkg.buildDir / "CTranslate2/third_party")
-        --   let _ ← gitClone "https://github.com/gabime/spdlog.git" (pkg.buildDir / "CTranslate2/third_party")
-        --   let _ ← gitClone "https://github.com/google/ruy.git" (pkg.buildDir / "CTranslate2/third_party")
-        --   let _ ← gitClone "https://github.com/NVIDIA/cutlass.git" (pkg.buildDir / "CTranslate2/third_party")
 
       let ct2Dir := pkg.buildDir / "CTranslate2"
       if getOS! == .windows then
@@ -333,11 +324,11 @@ target libctranslate2 pkg : FilePath := do
 
       ensureDirExists $ pkg.buildDir / "include"
 
-      copyFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
+      copySingleFile (pkg.buildDir / "CTranslate2" / "build" / nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2")) dst
 
-      -- TODO: Don't hardcode the version "4".
+      -- [TODO]: Don't hardcode the version "4".
       let dst' := pkg.sharedLibDir / (nameToVersionedSharedLib "ctranslate2" "4")
-      copyFile dst dst'
+      copySingleFile dst dst'
 
       copyFolder (ct2Dir / "include" / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
 
@@ -431,8 +422,8 @@ extern_lib libleanffi pkg := do
   buildStaticLib (pkg.sharedLibDir / name) #[ct2O]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "8d2067bf518731a70a255d4a61b5c103922c772e"
-require aesop from git "https://github.com/leanprover-community/aesop" @ "8ff27701d003456fd59f13a9212431239d902aef"
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "dc46fbd846e7baa6e426fbca683f1585aa5a9de9"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "9f9113462e6732a73a6a980be745ffccf68a682d"
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"

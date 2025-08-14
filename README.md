@@ -59,7 +59,7 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 
-For stable Lean versions (e.g., `v4.21.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.21.0-rc3`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
+For stable Lean versions (e.g., `v4.22.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.23.0-rc1`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
 
 ```toml
 [[require]]
@@ -188,13 +188,10 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 If you find our work useful, please consider citing [our paper](https://arxiv.org/abs/2404.12534):
 
 ```BibTeX
-@misc{song2025leancopilotlargelanguage,
-      title={Lean Copilot: Large Language Models as Copilots for Theorem Proving in Lean}, 
-      author={Peiyang Song and Kaiyu Yang and Anima Anandkumar},
-      year={2025},
-      eprint={2404.12534},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2404.12534}, 
+@article{song2024lean,
+  title={Lean copilot: Large language models as copilots for theorem proving in lean},
+  author={Song, Peiyang and Yang, Kaiyu and Anandkumar, Anima},
+  journal={arXiv preprint arXiv:2404.12534},
+  year={2024}
 }
 ```
