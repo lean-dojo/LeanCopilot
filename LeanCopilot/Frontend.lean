@@ -30,13 +30,12 @@ def suggestion (tac : String) (msgs : MessageLog := {}) : TacticM Suggestion := 
       let e ← g.withContext do (PrettyPrinter.ppExpr goalType)
       str := str ++ Format.pretty ("\n⊢ " ++ e)
     pure (some str)
-  let style? := if goals.isEmpty then some .success else none
   let msg? ← msgs.toList.findM? fun m => do pure <|
     m.severity == MessageSeverity.information && (← m.data.toString).startsWith "Try this: "
   let suggestion ← match msg? with
   | some m => pure <| SuggestionText.string (((← m.data.toString).drop 10).takeWhile (· != '\n'))
   | none => pure <| SuggestionText.string tac
-  return { suggestion, postInfo?, style? }
+  return { suggestion, postInfo? }
 
 
 /-- Run a tactic, returning any new messages rather than adding them to the message log. -/
