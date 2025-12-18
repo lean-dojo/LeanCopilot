@@ -1,6 +1,8 @@
 Lean Copilot: LLMs as Copilots for Theorem Proving in Lean
 ==========================================================
 
+🚩**News**: [Our paper](https://arxiv.org/abs/2404.12534) is accepted to the International Conference on Neuro-symbolic Systems (NeuS), 2025. See you in Philadelphia!
+
 Lean Copilot allows large language models (LLMs) to be used natively in Lean for proof automation, e.g., suggesting tactics/premises and searching for proofs. You can use our built-in models from [LeanDojo](https://leandojo.org/) or bring your own models that run either locally (w/ or w/o GPUs) or on the cloud.
 
 <https://github.com/lean-dojo/LeanCopilot/assets/114432581/ee0f56f8-849e-4099-9284-d8092cbd22a3>
@@ -175,7 +177,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanCopilot/discussions).  
 * To report a potential bug, please open an issue. In the issue, please include your OS information, the exact steps to reproduce the error on **the latest stable version of Lean Copilot**, and complete logs preferrably in debug mode. **Important: If your issue cannot be reproduced easily, it will be unlikely to receive help.**
-* Feature requests and contributions are extremely welcome. Please feel free to start a [discussion](https://github.com/lean-dojo/LeanCopilot/discussions) or open a [pull request](https://github.com/lean-dojo/LeanCopilot/pulls).
+* Feature requests and contributions are warmly welcomed. Please feel free to start a [discussion](https://github.com/lean-dojo/LeanCopilot/discussions) or open a [pull request](https://github.com/lean-dojo/LeanCopilot/pulls).
 
 ## Acknowledgements
 
