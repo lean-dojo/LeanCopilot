@@ -31,7 +31,7 @@ def nproc : IO Nat := do
   let cmd := if getOS! == .windows then "cmd" else "nproc"
   let args := if getOS! == .windows then #["/c echo %NUMBER_OF_PROCESSORS%"] else #[]
   let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
-  return out.stdout.trim.toNat!
+  return out.stdout.trimAscii.toNat!
 
 
 def getArch? : IO (Option SupportedArch) := do
@@ -39,7 +39,7 @@ def getArch? : IO (Option SupportedArch) := do
   let args := if getOS! == .windows then #["/c echo %PROCESSOR_ARCHITECTURE%\n"] else #["-m"]
 
   let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
-  let arch := out.stdout.trim
+  let arch := out.stdout.trimAscii.toString
 
   if arch ∈ ["arm64", "aarch64", "ARM64"] then
     return some .arm64
@@ -174,14 +174,14 @@ private def nameToVersionedSharedLib (name : String) (v : String) : String :=
 
 
 def afterReleaseSync {α : Type} (pkg : Package) (build : SpawnM (Job α)) : FetchM (Job α) := do
-  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+  if pkg.preferReleaseBuild ∧ pkg.baseName ≠ (← getRootPackage).baseName then
     (← pkg.optGitHubRelease.fetch).bindM fun _ => build
   else
     build
 
 
 def afterReleaseAsync {α : Type} (pkg : Package) (build : JobM α) : FetchM (Job α) := do
-  if pkg.preferReleaseBuild ∧ pkg.name ≠ (← getRootPackage).name then
+  if pkg.preferReleaseBuild ∧ pkg.baseName ≠ (← getRootPackage).baseName then
     (← pkg.optGitHubRelease.fetch).mapM fun _ => build
   else
     Job.async build
