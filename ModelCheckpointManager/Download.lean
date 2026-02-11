@@ -63,13 +63,13 @@ def isUpToDate (url : Url) : IO Bool := do
     cmd := "git"
     args := #["symbolic-ref", "refs/remotes/origin/HEAD","--short"]
     cwd := dir
-  }).trim
+  }).trimAscii.toString
 
   let hasRemoteChange := (← IO.Process.run {
     cmd := "git"
     args := #["diff", (branch.splitOn "/")[1]!, branch, "--shortstat"]
     cwd := dir
-  }).trim != ""
+  }).trimAscii.toString != ""
 
   return ¬hasRemoteChange
 
