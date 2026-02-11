@@ -20,7 +20,7 @@ def ppTacticState : List MVarId → MetaM String
   | [] => return "no goals"
   | [g] => return (← Meta.ppGoal g).pretty
   | goals =>
-      return (← goals.foldlM (init := "") (fun a b => do return s!"{a}\n\n{(← Meta.ppGoal b).pretty}")).trim
+      return (← goals.foldlM (init := "") (fun a b => do return s!"{a}\n\n{(← Meta.ppGoal b).pretty}")).trimAscii.toString
 
 
 /--
