@@ -28,9 +28,14 @@ deriving Inhabited, BEq
 
 
 def nproc : IO Nat := do
-  let cmd := if getOS! == .windows then "cmd" else "nproc"
-  let args := if getOS! == .windows then #["/c echo %NUMBER_OF_PROCESSORS%"] else #[]
+  let (cmd, args) :=
+    match getOS! with
+    | .windows => ("cmd", #["/c echo %NUMBER_OF_PROCESSORS%"])
+    | .macos => ("sysctl", #["-n", "hw.ncpu"])
+    | .linux => ("nproc", #[])
   let out ← IO.Process.output {cmd := cmd, args := args, stdin := .null}
+  if out.exitCode != 0 then
+    return 4
   return out.stdout.trimAscii.toNat!
 
 
