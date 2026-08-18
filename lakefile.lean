@@ -228,6 +228,15 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
     error "Failed to run cmake"
 
 
+/-- A commit on OpenBLAS's `develop` branch verified to build cleanly for us.
+Update deliberately (not by tracking HEAD) -- see the comment where it's used. -/
+def openblasPin : String := "d9f362aae842bfc4949ea2c786341e0332822239"
+
+/-- A tagged CTranslate2 release verified to build cleanly for us.
+Update deliberately (not by tracking `master`) -- see the comment where it's used. -/
+def ct2Pin : String := "v4.8.1"
+
+
 target libopenblas pkg : FilePath := do
   afterReleaseAsync pkg do
     let rootDir := pkg.buildDir / "OpenBLAS"
@@ -236,7 +245,7 @@ target libopenblas pkg : FilePath := do
     createParentDirs dst
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
-    let depTrace := Hash.ofString url
+    let depTrace := Hash.ofString (url ++ openblasPin)
     setTrace depTrace
     buildFileUnlessUpToDate' dst do
       if getOS! == .windows then
@@ -255,9 +264,26 @@ target libopenblas pkg : FilePath := do
       else
         logInfo s!"Cloning OpenBLAS from {url}"
         gitClone url pkg.buildDir
+        -- Pin to a commit on `develop` that includes the C++-compilation guard
+        -- around OpenBLAS's C11-atomics lock implementation
+        -- (OpenMathLib/OpenBLAS@52f0572564, "Guard use of C11 atomics against
+        -- C++ compilation"). Building an unpinned HEAD previously broke our CI
+        -- when a transient OpenBLAS regression made `common.h` fail to compile
+        -- as C++ (see lean-dojo/LeanCopilot#195). Bump this pin deliberately.
+        proc (quiet := true) {
+          cmd := "git"
+          args := #["checkout", openblasPin]
+          cwd := rootDir
+        }
 
         let numThreads := max 4 $ min 32 (← nproc)
-        let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", s!"-j{numThreads}"]
+        -- `DYNAMIC_ARCH=1` makes OpenBLAS embed kernels for multiple x86_64/arm64
+        -- microarchitectures and dispatch between them at runtime via CPUID,
+        -- instead of hardcoding whatever ISA extensions (e.g. AVX-512) happen to
+        -- be available on the machine that built the release artifact. Without
+        -- it, the artifact SIGILLs on any CPU lacking those extensions
+        -- (see lean-dojo/LeanCopilot#137).
+        let flags := #["NO_LAPACK=1", "NO_FORTRAN=1", "DYNAMIC_ARCH=1", s!"-j{numThreads}"]
         logInfo s!"Building OpenBLAS with `make{flags.foldl (· ++ " " ++ ·) ""}`"
         proc (quiet := true) {
           cmd := "make"
@@ -300,14 +326,28 @@ target libctranslate2 pkg : FilePath := do
     createParentDirs dst
     let ct2URL := "https://github.com/OpenNMT/CTranslate2"
 
-    let depTrace := Hash.ofString ct2URL
+    let depTrace := Hash.ofString (ct2URL ++ ct2Pin)
     setTrace depTrace
     buildFileUnlessUpToDate' dst do
       logInfo s!"Cloning CTranslate2 from {ct2URL}"
-      if !(← (pkg.buildDir / "CTranslate2").pathExists) then
-        let _ ← gitClone ct2URL pkg.buildDir
-
       let ct2Dir := pkg.buildDir / "CTranslate2"
+      if !(← ct2Dir.pathExists) then
+        let _ ← gitClone ct2URL pkg.buildDir
+        -- Pin to a tagged release instead of tracking `master` so that an
+        -- upstream regression can't silently break our CI the way an
+        -- unpinned OpenBLAS clone did (see lean-dojo/LeanCopilot#195 and the
+        -- `openblasPin` comment above). Bump this pin deliberately.
+        proc (quiet := true) {
+          cmd := "git"
+          args := #["checkout", ct2Pin]
+          cwd := ct2Dir
+        }
+        proc (quiet := true) {
+          cmd := "git"
+          args := #["submodule", "update", "--init", "--recursive"]
+          cwd := ct2Dir
+        }
+
       if getOS! == .windows then
         ensureDirExists $ ct2Dir / "build"
         let _out ← rawProc {
@@ -373,6 +413,37 @@ def buildCpp (pkg : Package) (path : FilePath) (dep : Job FilePath) : SpawnM (Jo
     compileO oFile deps[0]! args (if getOS! == .windows then s!"{leanPath}/bin/clang.exe" else "c++")
 
 
+/--
+Build the tiny glibc-version-compatibility shim (see `cpp/glibc_compat_stub.c`)
+with the system C compiler. Linux only; see `libleanffi` below for why.
+-/
+target glibc_compat_stub.o pkg : FilePath := do
+  let oFile := pkg.buildDir / "cpp" / "glibc_compat_stub.o"
+  let srcJob ← inputTextFile <| pkg.dir / "cpp/glibc_compat_stub.c"
+  afterReleaseSync pkg <|
+    buildFileAfterDep oFile (.collectList [srcJob]) fun deps =>
+      compileO oFile deps[0]! #["-fPIC", "-O2"] "cc"
+
+
+/--
+Find the absolute path to the system's static `libstdc++.a`, if the C++
+compiler's search paths include one (as opposed to only a dynamic
+`libstdc++.so`). Returns `none` when unavailable.
+-/
+def findLibstdcxxA : IO (Option FilePath) := do
+  let out ← IO.Process.output {cmd := "c++", args := #["-print-file-name=libstdc++.a"], stdin := .null}
+  if out.exitCode != 0 then
+    return none
+  let path : FilePath := out.stdout.trimAscii.toString
+  -- The driver echoes the bare name back, unresolved, when it can't find one.
+  if path.toString == "libstdc++.a" then
+    return none
+  if ← path.pathExists then
+    return some path
+  else
+    return none
+
+
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
   if getOS! == .windows then
@@ -424,7 +495,40 @@ target ct2.o pkg : FilePath := do
 extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanffi"
   let ct2O ← ct2.o.fetch
-  buildStaticLib (pkg.sharedLibDir / name) #[ct2O]
+  if getOS! != .linux then
+    buildStaticLib (pkg.sharedLibDir / name) #[ct2O]
+  else
+    let stubO ← glibc_compat_stub.o.fetch
+    -- Fold the glibc-compat shim and (when available) the system's static
+    -- libstdc++ directly into `ct2.o`'s object, so a downstream `lean_exe` --
+    -- which Lean links against its own bundled libc++, never libstdc++ --
+    -- doesn't hit undefined-symbol link errors for the libstdc++/glibc
+    -- entry points CTranslate2's headers pull into `ct2.cpp`
+    -- (see lean-dojo/LeanCopilot#196). A `lean_lib` dynlib target never
+    -- needed this: undefined symbols in a `-shared` object are tolerated and
+    -- resolved at load time via `libctranslate2.so`'s own libstdc++
+    -- dependency, but a plain executable link requires every symbol
+    -- resolved up front.
+    let out := pkg.buildDir / "cpp" / "ct2_selfcontained.o"
+    let selfContained ← afterReleaseSync pkg <| buildFileAfterDep out
+        (.collectList [ct2O, stubO]) fun deps => do
+      createParentDirs out
+      let objArgs := deps.map FilePath.toString
+      let mut merged := false
+      if let some libstdcxxA ← findLibstdcxxA then
+        merged ← testProc {
+          cmd := "ld"
+          args := #["-r", "-o", out.toString] ++ objArgs ++ #[libstdcxxA.toString]
+        }
+      if !merged then
+        -- No static libstdc++ found (or folding it in failed) -- still merge
+        -- in just the glibc-compat shim, matching the pre-existing behaviour
+        -- for `lean_lib` targets.
+        proc (quiet := true) {
+          cmd := "ld"
+          args := #["-r", "-o", out.toString] ++ objArgs
+        }
+    buildStaticLib (pkg.sharedLibDir / name) #[selfContained]
 
 
 require batteries from git "https://github.com/leanprover-community/batteries.git" @ "023ce7d62a0531e22a5331e20b587817a80d49ff"
