@@ -89,6 +89,35 @@ def buildArchiveName : String :=
     s!"{arch}-{os}.tar.gz"
 
 
+/-- The directory containing `libName` according to `compiler`'s own search
+paths, or `none` if `compiler` can't find one (e.g. it only has a `.a` where
+we asked for a `.so`, or vice versa). -/
+def findLibraryDir (compiler libName : String) : IO (Option FilePath) := do
+  let out ← IO.Process.output {cmd := compiler, args := #[s!"-print-file-name={libName}"], stdin := .null}
+  if out.exitCode != 0 then
+    return none
+  let path : FilePath := out.stdout.trimAscii.toString
+  -- The driver echoes the bare name back, unresolved, when it can't find one.
+  if path.toString == libName then
+    return none
+  return path.parent
+
+
+/--
+The `-Wl,...` flags a downstream `lean_exe` needs on Linux to dynamically
+link the system's libstdc++. `libleanffi.a` can't provide this on its own --
+see the README's Caveats section and lean-dojo/LeanCopilot#196 for why --
+so this exists to let `leanffi_exe_smoke_test` below actually validate that
+recipe in CI, the same way a downstream project's own `lakefile.toml` would.
+-/
+def linuxLibstdcxxLinkArgs : Array String :=
+  if getOS! != .linux then
+    #[]
+  else match run_io (findLibraryDir "c++" "libstdc++.so") with
+    | some dir => #[s!"-Wl,-L{dir}", "-Wl,-lstdc++"]
+    | none => #[]
+
+
 structure SupportedPlatform where
   os : SupportedOS
   arch : SupportedArch
@@ -173,9 +202,12 @@ lean_lib LeanCopilotTests {
 
 
 -- A minimal `lean_exe` depending on Lean Copilot -- see `ExeSmokeTest.lean`
--- for why this exists as a regression test on its own.
+-- for why this exists as a regression test on its own. `moreLinkArgs` here
+-- mirrors exactly what the README tells a downstream project to add on
+-- Linux, so this also validates that documented recipe in CI.
 lean_exe leanffi_exe_smoke_test {
   root := `LeanCopilotTests.ExeSmokeTest
+  moreLinkArgs := linuxLibstdcxxLinkArgs
 }
 
 
