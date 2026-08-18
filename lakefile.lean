@@ -432,25 +432,6 @@ target glibc_compat_stub.o pkg : FilePath := do
       compileO oFile deps[0]! #["-fPIC", "-O2"] "cc"
 
 
-/--
-Find the absolute path to the system's static `libstdc++.a`, if the C++
-compiler's search paths include one (as opposed to only a dynamic
-`libstdc++.so`). Returns `none` when unavailable.
--/
-def findLibstdcxxA : IO (Option FilePath) := do
-  let out ← IO.Process.output {cmd := "c++", args := #["-print-file-name=libstdc++.a"], stdin := .null}
-  if out.exitCode != 0 then
-    return none
-  let path : FilePath := out.stdout.trimAscii.toString
-  -- The driver echoes the bare name back, unresolved, when it can't find one.
-  if path.toString == "libstdc++.a" then
-    return none
-  if ← path.pathExists then
-    return some path
-  else
-    return none
-
-
 target ct2.o pkg : FilePath := do
   let ct2 ← libctranslate2.fetch
   if getOS! == .windows then
@@ -505,37 +486,29 @@ extern_lib libleanffi pkg := do
   if getOS! != .linux then
     buildStaticLib (pkg.sharedLibDir / name) #[ct2O]
   else
+    -- Bundle the glibc-compat shim as an extra archive member alongside
+    -- `ct2.o` (see `cpp/glibc_compat_stub.c`) so it's automatically available
+    -- to any downstream consumer, with no config needed on their end.
+    --
+    -- This does *not* fully fix lean-dojo/LeanCopilot#196: `ct2.cpp` is
+    -- compiled against the system's libstdc++, but Lean links a plain
+    -- `lean_exe` against its own bundled, *statically linked* libc++ --
+    -- never libstdc++. A `lean_lib` dynlib target never hits this, since
+    -- undefined symbols in a `-shared` object are tolerated and resolved at
+    -- load time via `libctranslate2.so`'s own libstdc++ dependency, but a
+    -- plain executable link requires every symbol resolved up front.
+    --
+    -- We deliberately do *not* statically fold libstdc++ itself into this
+    -- archive to plug that gap: libstdc++ and libc++ both define the same
+    -- Itanium-ABI-mangled symbols for standard types with out-of-line
+    -- definitions (`std::logic_error`, the `__cxa_*` exception-handling
+    -- runtime, etc., since that mangling has no implementation-specific
+    -- tag), so statically linking both into one executable is a hard
+    -- "duplicate symbol" error, not just a style choice. A downstream
+    -- `lean_exe` on Linux still needs to *dynamically* link libstdc++ itself
+    -- via its own `moreLinkArgs` -- see the README's Caveats section.
     let stubO ← glibc_compat_stub.o.fetch
-    -- Fold the glibc-compat shim and (when available) the system's static
-    -- libstdc++ directly into `ct2.o`'s object, so a downstream `lean_exe` --
-    -- which Lean links against its own bundled libc++, never libstdc++ --
-    -- doesn't hit undefined-symbol link errors for the libstdc++/glibc
-    -- entry points CTranslate2's headers pull into `ct2.cpp`
-    -- (see lean-dojo/LeanCopilot#196). A `lean_lib` dynlib target never
-    -- needed this: undefined symbols in a `-shared` object are tolerated and
-    -- resolved at load time via `libctranslate2.so`'s own libstdc++
-    -- dependency, but a plain executable link requires every symbol
-    -- resolved up front.
-    let out := pkg.buildDir / "cpp" / "ct2_selfcontained.o"
-    let selfContained ← afterReleaseSync pkg <| buildFileAfterDep out
-        (.collectList [ct2O, stubO]) fun deps => do
-      createParentDirs out
-      let objArgs := deps.map FilePath.toString
-      let mut merged := false
-      if let some libstdcxxA ← findLibstdcxxA then
-        merged ← testProc {
-          cmd := "ld"
-          args := #["-r", "-o", out.toString] ++ objArgs ++ #[libstdcxxA.toString]
-        }
-      if !merged then
-        -- No static libstdc++ found (or folding it in failed) -- still merge
-        -- in just the glibc-compat shim, matching the pre-existing behaviour
-        -- for `lean_lib` targets.
-        proc (quiet := true) {
-          cmd := "ld"
-          args := #["-r", "-o", out.toString] ++ objArgs
-        }
-    buildStaticLib (pkg.sharedLibDir / name) #[selfContained]
+    buildStaticLib (pkg.sharedLibDir / name) #[ct2O, stubO]
 
 
 require batteries from git "https://github.com/leanprover-community/batteries.git" @ "023ce7d62a0531e22a5331e20b587817a80d49ff"
