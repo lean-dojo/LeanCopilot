@@ -35,6 +35,8 @@ jobs:
           echo "$GITHUB_WORKSPACE/.lake/build/lib" >> $GITHUB_PATH
       - name: Build project
         run: ~/.elan/bin/lake build
+      - name: Build lean_exe smoke test
+        run: ~/.elan/bin/lake build leanffi_exe_smoke_test
       - name: Download model
         run: |
           ~/.elan/bin/lake exe LeanCopilot/download

@@ -61,7 +61,7 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 
-For stable Lean versions (e.g., `v4.29.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.30.0-rc1`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
+For stable Lean versions (e.g., `v4.32.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.33.0-rc1`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
 
 ```toml
 [[require]]
@@ -172,6 +172,17 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 ```
 
 * In some cases, `search_proof` produces an erroneous proof with error messages like `fail to show termination for ...`. A temporary workaround is changing the theorem's name before applying `search_proof`. You can change it back after `search_proof` completes.
+
+* On Linux, a downstream **`lean_exe`** target (as opposed to a `lean_lib`) links against Lean's own bundled, statically-linked `libc++`, while Lean Copilot's native code (`ct2.cpp`) is compiled against the system's `libstdc++`. A `lean_lib` never hits this (its `.so` tolerates undefined symbols, resolved later at load time), but a plain executable link requires every symbol resolved up front, so without extra configuration a `lean_exe` that depends on Lean Copilot fails to link with undefined `libstdc++` symbols. Lean Copilot cannot fully paper over this on its own: statically bundling libstdc++ itself would collide with Lean's already-statically-linked libc++ (both define the same ABI-mangled symbols for types like `std::logic_error`), so it can only be linked in dynamically, which downstream still has to opt into. If your project has a `lean_exe` target, add this to its `lakefile.toml`/`lakefile.lean` on Linux (adjust the `-L` path for your distro, e.g. via `gcc -print-file-name=libstdc++.so`):
+
+  ```toml
+  moreLinkArgs = [
+    "-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2",
+    "-Wl,-L/usr/lib/gcc/x86_64-linux-gnu/13", "-Wl,-lstdc++"
+  ]
+  ```
+
+  (`-Wl,-lstdc++`, not a plain `-lstdc++`: Lean's bundled clang driver silently rewrites a literal `-lstdc++` argument to link `libc++` instead, so it must be passed through to the linker directly.) See [#196](https://github.com/lean-dojo/LeanCopilot/issues/196) for the full root-cause writeup.
 
 ## Getting in Touch
 
