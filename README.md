@@ -173,6 +173,8 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 
 * In some cases, `search_proof` produces an erroneous proof with error messages like `fail to show termination for ...`. A temporary workaround is changing the theorem's name before applying `search_proof`. You can change it back after `search_proof` completes.
 
+* On Linux, a downstream `lean_exe` target links against Lean's own bundled `libc++`, while Lean Copilot's native code (`ct2.cpp`) is compiled against the system's `libstdc++`. Lean Copilot bundles the needed `libstdc++`/glibc compatibility symbols directly into `libleanffi.a` so this is transparent when using an official release build. If you build Lean Copilot from source on a machine without a static `libstdc++.a` available (e.g. some minimal container images), a downstream `lean_exe` may still fail to link with undefined `libstdc++` symbols; see [#196](https://github.com/lean-dojo/LeanCopilot/issues/196) for a manual `moreLinkArgs` workaround in that case.
+
 ## Getting in Touch
 
 * For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanCopilot/discussions).  

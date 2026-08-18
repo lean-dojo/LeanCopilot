@@ -172,6 +172,13 @@ lean_lib LeanCopilotTests {
 }
 
 
+-- A minimal `lean_exe` depending on Lean Copilot -- see `ExeSmokeTest.lean`
+-- for why this exists as a regression test on its own.
+lean_exe leanffi_exe_smoke_test {
+  root := `LeanCopilotTests.ExeSmokeTest
+}
+
+
 private def nameToVersionedSharedLib (name : String) (v : String) : String :=
   if Platform.isWindows then s!"lib{name}.{v}.dll"
   else if Platform.isOSX  then s!"lib{name}.{v}.dylib"
