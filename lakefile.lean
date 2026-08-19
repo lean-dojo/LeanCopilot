@@ -278,10 +278,25 @@ def ct2Pin : String := "v4.8.1"
 
 target libopenblas pkg : FilePath := do
   afterReleaseAsync pkg do
-    let rootDir := pkg.buildDir / "OpenBLAS"
-    ensureDirExists rootDir
     let dst := pkg.sharedLibDir / (nameToSharedLib (if getOS! == .windows then "libopenblas" else "openblas"))
     createParentDirs dst
+
+    -- Distros that already package OpenBLAS (e.g. Nix) can point `-KsystemOpenblas=<path
+    -- to libopenblas.so/.dylib>` at their own build instead of us cloning and compiling one
+    -- from source (see lean-dojo/LeanCopilot#187).
+    if let some path := get_config? systemOpenblas then
+      let depTrace := Hash.ofString s!"systemOpenblas:{path}"
+      setTrace depTrace
+      buildFileUnlessUpToDate' dst do
+        logInfo s!"Using system OpenBLAS from {path}"
+        copySingleFile (FilePath.mk path) dst
+        -- TODO: Don't hardcode the version "0".
+        copySingleFile dst (pkg.sharedLibDir / (nameToVersionedSharedLib "openblas" "0"))
+      let _ := (← getTrace)
+      return dst
+
+    let rootDir := pkg.buildDir / "OpenBLAS"
+    ensureDirExists rootDir
     let url := "https://github.com/OpenMathLib/OpenBLAS"
 
     let depTrace := Hash.ofString (url ++ openblasPin)
@@ -356,6 +371,28 @@ def getCt2CmakeFlags : IO (Array String) := do
 
 /- Download and build CTranslate2. Copy its C++ header files to `build/include` and shared libraries to `build/lib` -/
 target libctranslate2 pkg : FilePath := do
+  -- Distros that already package CTranslate2 (e.g. Nix) can point `-KsystemCtranslate2Lib=<path
+  -- to libctranslate2.so/.dylib>` and `-KsystemCtranslate2Include=<path to a directory containing
+  -- the ctranslate2/, nlohmann/, and half_float/ header trees>` at their own build instead of us
+  -- cloning and compiling one (and its OpenBLAS dependency) from source (see lean-dojo/LeanCopilot#187).
+  if let (some libPath, some includePath) := (get_config? systemCtranslate2Lib, get_config? systemCtranslate2Include) then
+    return ← afterReleaseAsync pkg do
+      let dst := pkg.sharedLibDir / (nameToSharedLib (if getOS! == .windows then "libctranslate2" else "ctranslate2"))
+      createParentDirs dst
+      let depTrace := Hash.ofString s!"systemCtranslate2:{libPath}:{includePath}"
+      setTrace depTrace
+      buildFileUnlessUpToDate' dst do
+        logInfo s!"Using system CTranslate2 from {libPath} (headers: {includePath})"
+        copySingleFile (FilePath.mk libPath) dst
+        -- TODO: Don't hardcode the version "4".
+        copySingleFile dst (pkg.sharedLibDir / (nameToVersionedSharedLib "ctranslate2" "4"))
+        ensureDirExists $ pkg.buildDir / "include"
+        copyFolder (FilePath.mk includePath / "ctranslate2") (pkg.buildDir / "include" / "ctranslate2")
+        copyFolder (FilePath.mk includePath / "nlohmann") (pkg.buildDir / "include" / "nlohmann")
+        copyFolder (FilePath.mk includePath / "half_float") (pkg.buildDir / "include" / "half_float")
+      let _ := (← getTrace)
+      return dst
+
   if getOS! == .linux ∨ getOS! == .windows then
     let openblas ← libopenblas.fetch
     let _ ← openblas.await
@@ -543,8 +580,8 @@ extern_lib libleanffi pkg := do
     buildStaticLib (pkg.sharedLibDir / name) #[ct2O, stubO]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "023ce7d62a0531e22a5331e20b587817a80d49ff"
-require aesop from git "https://github.com/leanprover-community/aesop" @ "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3"
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "4488d40d070b9700d4d5a6aa342f0d40c31b2a2d"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "3448c0bcc5ce01b2d1546e483ec3620e32df3d0e"
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"

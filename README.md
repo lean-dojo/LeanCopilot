@@ -20,6 +20,7 @@ Lean Copilot allows large language models (LLMs) to be used natively in Lean for
    1. [Tactic APIs](#tactic-apis)
    1. [Model APIs](#model-apis)
    1. [Bring Your Own Model](#bring-your-own-model)
+   1. [Using Prebuilt System Libraries](#using-prebuilt-system-libraries)
 1. [Caveats](#caveats)
 1. [Getting in Touch](#getting-in-touch)
 1. [Acknowledgements](#acknowledgements)
@@ -30,7 +31,7 @@ Lean Copilot allows large language models (LLMs) to be used natively in Lean for
 * Supported platforms: Linux (priority), macOS (priority), Windows and [Windows WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 * [Git LFS](https://git-lfs.com/).
 * Optional (recommended if you have a [CUDA-enabled GPU](https://developer.nvidia.com/cuda-gpus)): CUDA and [cuDNN](https://developer.nvidia.com/cudnn).
-* Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler.
+* Required for building Lean Copilot itself (rather than a downstream package): CMake >= 3.7 and a C++17 compatible compiler. A downstream package normally downloads a prebuilt release instead of needing these, *except* on a platform we don't publish a release for (e.g. Intel macOS), where it automatically falls back to building from source and so needs them too.
 
 ## Using Lean Copilot in Your Project
 
@@ -61,7 +62,7 @@ moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2
 require LeanCopilot from git "https://github.com/lean-dojo/LeanCopilot.git" @ "LEAN_COPILOT_VERSION"
 ```
 
-For stable Lean versions (e.g., `v4.32.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.33.0-rc1`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
+For stable Lean versions (e.g., `v4.33.0`), set `LEAN_COPILOT_VERSION` to be that version. For the latest unstable Lean versions (e.g., `v4.34.0-rc1`), set `LEAN_COPILOT_VERSION` to `main`. In either case, make sure the version is compatible with other dependencies such as mathlib. If your project uses lakefile.toml instead of lakefile.lean, it should include:
 
 ```toml
 [[require]]
@@ -161,6 +162,22 @@ Similar to generators, we have `NativeEncoder`, `ExternalEncoder`, and `GenericE
 ### Bring Your Own Model
 
 In principle, it is possible to run any model using Lean Copilot through `ExternalGenerator` or `ExternalEncoder` (examples in [ModelAPIs.lean](LeanCopilotTests/ModelAPIs.lean)). To use a model, you need to wrap it properly to expose the APIs in [external_model_api.yaml](./external_model_api.yaml). As an example, we provide a [Python API server](./python) and use it to run a few models.
+
+### Using Prebuilt System Libraries
+
+By default, building Lean Copilot from source clones and compiles its native dependencies, OpenBLAS and CTranslate2, which can be slow or awkward on systems (e.g., Nix-based distros) that already package these libraries or make it difficult to compile them from source. If you already have compatible builds available, you can point Lean Copilot at them instead with `lake`'s `-K` flag (add `-R` too if you already have a `.lake/build` from a previous build, so that the new options take effect):
+
+* `-KsystemOpenblas=<path to your libopenblas.so/.dylib>` skips cloning and building OpenBLAS (Linux/Windows only; macOS uses Apple's Accelerate framework instead of OpenBLAS).
+* `-KsystemCtranslate2Lib=<path to your libctranslate2.so/.dylib>` together with `-KsystemCtranslate2Include=<path to a directory containing the ctranslate2/, nlohmann/, and half_float/ header trees>` skips cloning and building CTranslate2.
+
+For example, on Linux:
+
+```sh
+lake -R -KsystemOpenblas=/usr/lib/libopenblas.so \
+        -KsystemCtranslate2Lib=/usr/lib/libctranslate2.so \
+        -KsystemCtranslate2Include=/usr/include \
+        build
+```
 
 ## Caveats
 
