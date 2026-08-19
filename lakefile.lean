@@ -580,8 +580,8 @@ extern_lib libleanffi pkg := do
     buildStaticLib (pkg.sharedLibDir / name) #[ct2O, stubO]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "4488d40d070b9700d4d5a6aa342f0d40c31b2a2d"
-require aesop from git "https://github.com/leanprover-community/aesop" @ "3448c0bcc5ce01b2d1546e483ec3620e32df3d0e"
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "main"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "master"
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
