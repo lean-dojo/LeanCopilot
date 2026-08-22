@@ -199,7 +199,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
   ]
   ```
 
-  (`-Wl,-lstdc++`, not a plain `-lstdc++`: Lean's bundled clang driver silently rewrites a literal `-lstdc++` argument to link `libc++` instead, so it must be passed through to the linker directly.) See [#196](https://github.com/lean-dojo/LeanCopilot/issues/196) for the full root-cause writeup.
+  (`-Wl,-lstdc++`, not a plain `-lstdc++`: Lean's bundled clang driver silently rewrites a literal `-lstdc++` argument to link `libc++` instead, so it must be passed through to the linker directly.)
 
 ## Getting in Touch
 
