@@ -217,7 +217,7 @@ theorem mul_left_comm : ∀ a b c : G, a * (b * c) = b * (a * c)
 If you find our work useful, please consider citing [our paper](https://arxiv.org/abs/2404.12534):
 
 ```BibTeX
-@article{song2024lean,
+@article{song2024leancopilot,
   title={Lean copilot: Large language models as copilots for theorem proving in lean},
   author={Song, Peiyang and Yang, Kaiyu and Anandkumar, Anima},
   journal={arXiv preprint arXiv:2404.12534},
