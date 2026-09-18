@@ -136,72 +136,84 @@ extern "C" lean_obj_res generate(
     double length_penalty,                 // Float
     double patience,                       // Float
     double temperature) {                  // Float
-  // Check the arguments.
-  std::string name = std::string(lean_string_cstr(_name));
-  if (!is_initialized_aux<ctranslate2::Translator>(name)) {
-    throw std::runtime_error(name + " hasn't been initialized.");
-  }
-  if (num_return_sequences <= 0) {
-    throw std::invalid_argument("num_return_sequences must be positive.");
-  }
-  if (beam_size <= 0) {
-    throw std::invalid_argument("beam_size must be positive.");
-  }
-  if (min_length < 0 || max_length < 0 || min_length > max_length) {
-    throw std::invalid_argument("Invalid min_length or max_length.");
-  }
-  if (patience < 1.0) {
-    throw std::invalid_argument("patience must be at least 1.0.");
-  }
-  if (temperature <= 0) {
-    throw std::invalid_argument("temperature must be positive.");
-  }
-
-  // Set beam search's hyperparameters.
-  ctranslate2::TranslationOptions opts;
-  opts.num_hypotheses = num_return_sequences;
-  opts.beam_size = beam_size;
-  opts.patience = patience;
-  opts.length_penalty = length_penalty;
-  opts.min_decoding_length = min_length;
-  opts.max_decoding_length = max_length;
-  opts.sampling_temperature = temperature;
-  opts.sampling_topk = 0;
-  opts.sampling_topp = 1.0;
-  opts.max_input_length = 0;
-  opts.use_vmap = true;
-  opts.disable_unk = true;
-  opts.return_scores = true;
-
-  // Get the input tokens ready.
-  std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
-  std::vector<std::string> target_prefix_tokens =
-      convert_tokens(_target_prefix_tokens);
-
-  // Generate tactics with beam search.
-  ctranslate2::TranslationResult results = generators.at(name)->translate_batch(
-      {input_tokens}, {target_prefix_tokens}, opts)[0];
-  assert(results.hypotheses.size() == num_return_sequences &&
-         results.scores.size() == num_return_sequences);
-
-  // Return the output.
-  lean_object *output = lean_mk_empty_array();
-
-  for (int i = 0; i < num_return_sequences; i++) {
-    int l = results.hypotheses[i].size();
-
-    lean_object *tokens = lean_mk_empty_array();
-    for (int j = 0; j < l; j++) {
-      tokens = lean_array_push(
-          tokens, lean_mk_string(results.hypotheses[i][j].c_str()));
+  // C++ exceptions must not cross the C ABI boundary into the Lean runtime.
+  try {
+    // Check the arguments.
+    std::string name = std::string(lean_string_cstr(_name));
+    if (!is_initialized_aux<ctranslate2::Translator>(name)) {
+      throw std::runtime_error(name + " hasn't been initialized.");
     }
-    double score = std::exp(results.scores[i]);
-    assert(0.0 <= score && score <= 1.0);
-    output =
-        lean_array_push(output, lean_mk_pair(tokens, lean_box_float(score)));
-  }
+    if (num_return_sequences <= 0) {
+      throw std::invalid_argument("num_return_sequences must be positive.");
+    }
+    if (beam_size <= 0) {
+      throw std::invalid_argument("beam_size must be positive.");
+    }
+    if (min_length > max_length) {
+      throw std::invalid_argument("Invalid min_length or max_length.");
+    }
+    if (patience < 1.0) {
+      throw std::invalid_argument("patience must be at least 1.0.");
+    }
+    if (temperature <= 0) {
+      throw std::invalid_argument("temperature must be positive.");
+    }
 
-  return output;
+    // Set beam search's hyperparameters.
+    ctranslate2::TranslationOptions opts;
+    opts.num_hypotheses = num_return_sequences;
+    opts.beam_size = beam_size;
+    opts.patience = patience;
+    opts.length_penalty = length_penalty;
+    opts.min_decoding_length = min_length;
+    opts.max_decoding_length = max_length;
+    opts.sampling_temperature = temperature;
+    opts.sampling_topk = 0;
+    opts.sampling_topp = 1.0;
+    opts.max_input_length = 0;
+    opts.use_vmap = true;
+    opts.disable_unk = true;
+    opts.return_scores = true;
+
+    // Get the input tokens ready.
+    std::vector<std::string> input_tokens = convert_tokens(_input_tokens);
+    std::vector<std::string> target_prefix_tokens =
+        convert_tokens(_target_prefix_tokens);
+
+    // Generate tactics with beam search.
+    ctranslate2::TranslationResult results =
+        generators.at(name)->translate_batch(
+            {input_tokens}, {target_prefix_tokens}, opts)[0];
+    assert(results.hypotheses.size() == num_return_sequences &&
+           results.scores.size() == num_return_sequences);
+
+    // Return the output.
+    lean_object *output = lean_mk_empty_array();
+
+    for (int i = 0; i < num_return_sequences; i++) {
+      int l = results.hypotheses[i].size();
+
+      lean_object *tokens = lean_mk_empty_array();
+      for (int j = 0; j < l; j++) {
+        tokens = lean_array_push(
+            tokens, lean_mk_string(results.hypotheses[i][j].c_str()));
+      }
+      double score = std::exp(results.scores[i]);
+      assert(0.0 <= score && score <= 1.0);
+      output = lean_array_push(
+          output, lean_mk_pair(tokens, lean_box_float(score)));
+    }
+
+    return lean_io_result_mk_ok(output);
+  } catch (const std::exception &e) {
+    std::string message = "CTranslate2 generation failed: ";
+    message += e.what();
+    return lean_io_result_mk_error(
+        lean_mk_io_user_error(lean_mk_string(message.c_str())));
+  } catch (...) {
+    return lean_io_result_mk_error(lean_mk_io_user_error(
+        lean_mk_string("CTranslate2 generation failed with an unknown error")));
+  }
 }
 
 extern "C" lean_obj_res encode(b_lean_obj_arg _name,            // String

@@ -25,7 +25,7 @@ opaque initEncoder (name : @& String) (modelPath : @& String) (computeType : @& 
 @[extern "generate"]
 opaque generate (name : @& String) (inputTokens : @& Array String) (targetPrefixTokens : @& Array String) (numReturnSequences : UInt64) (beamSize : UInt64)
   (minLength : UInt64) (maxLength : UInt64) (lengthPenalty : Float) (patience : Float) (temperature : Float)
-  : Array (Array String × Float)
+  : IO (Array (Array String × Float))
 
 @[extern "encode"]
 opaque encode (name : @& String) (inputTokens : @& Array String) : FloatArray
@@ -78,7 +78,7 @@ def generate (model : NativeGenerator) (input : String) (targetPrefix : String) 
   let lengthPenalty := model.params.lengthPenalty
   let patience := model.params.patience
   let temperature := model.params.temperature
-  let tokensWithScores := FFI.generate model.name inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
+  let tokensWithScores ← FFI.generate model.name inputTokens targetPrefixTokens numReturnSequences beamSize minLength maxLength lengthPenalty patience temperature
 
   return tokensWithScores.filterMap fun ((ts, s) : Array String × Float) => (tokenizer.detokenize ts, s)
 
