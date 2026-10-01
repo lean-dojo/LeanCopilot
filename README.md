@@ -82,7 +82,7 @@ rev = "LEAN_COPILOT_VERSION"
 * [premise-embeddings-leandojo-lean4-retriever-byt5-small](https://huggingface.co/kaiyuy/premise-embeddings-leandojo-lean4-retriever-byt5-small)
 * [ct2-byt5-small](https://huggingface.co/kaiyuy/ct2-byt5-small)
 
-6. Run `lake build`.
+6. Run `lake build`. Note that this only builds your project's default targets. If none of them imports `LeanCopilot` yet, also run `lake build LeanCopilot`. (If you skip this, Lean Copilot and its dependencies are instead built the first time you open a file that imports it, which can take a few minutes.)
 
 [Here](https://github.com/yangky11/lean4-example/blob/LeanCopilot-demo) is an example of a Lean package depending on Lean Copilot. If you have problems building the project, our [Dockerfile](./Dockerfile), [build.sh](scripts/build.sh) or [build_example.sh](scripts/build_example.sh) may be helpful.
 
