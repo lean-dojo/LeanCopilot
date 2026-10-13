@@ -405,24 +405,26 @@ target libctranslate2 pkg : FilePath := do
     let depTrace := Hash.ofString (ct2URL ++ ct2Pin)
     setTrace depTrace
     buildFileUnlessUpToDate' dst do
-      logInfo s!"Cloning CTranslate2 from {ct2URL}"
       let ct2Dir := pkg.buildDir / "CTranslate2"
-      if !(← ct2Dir.pathExists) then
-        let _ ← gitClone ct2URL pkg.buildDir
-        -- Pin to a tagged release instead of tracking `master` so that an
-        -- upstream regression can't silently break our CI the way an
-        -- unpinned OpenBLAS clone did (see lean-dojo/LeanCopilot#195 and the
-        -- `openblasPin` comment above). Bump this pin deliberately.
-        proc (quiet := true) {
-          cmd := "git"
-          args := #["checkout", ct2Pin]
-          cwd := ct2Dir
-        }
-        proc (quiet := true) {
-          cmd := "git"
-          args := #["submodule", "update", "--init", "--recursive"]
-          cwd := ct2Dir
-        }
+      if ← ct2Dir.pathExists then
+        logInfo "Removing leftover CTranslate2 checkout from an previous interrupted build"
+        removeFolder ct2Dir
+      logInfo s!"Cloning CTranslate2 from {ct2URL}"
+      let _ ← gitClone ct2URL pkg.buildDir
+      -- Pin to a tagged release instead of tracking `master` so that an
+      -- upstream regression can't silently break our CI the way an
+      -- unpinned OpenBLAS clone did (see lean-dojo/LeanCopilot#195 and the
+      -- `openblasPin` comment above). Bump this pin deliberately.
+      proc (quiet := true) {
+        cmd := "git"
+        args := #["checkout", ct2Pin]
+        cwd := ct2Dir
+      }
+      proc (quiet := true) {
+        cmd := "git"
+        args := #["submodule", "update", "--init", "--recursive"]
+        cwd := ct2Dir
+      }
 
       if getOS! == .windows then
         ensureDirExists $ ct2Dir / "build"
