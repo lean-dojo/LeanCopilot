@@ -354,7 +354,10 @@ def getCt2CmakeFlags : IO (Array String) := do
   -- `cmake_minimum_required` < 3.5. CTranslate2's bundled `third_party/cpu_features` (used on
   -- x86_64) declares 3.0, so configure fails without this. Upstream applies the same flag in
   -- their own build scripts (OpenNMT/CTranslate2#1899, #1925). Older CMake ignores it.
-  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF", "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"]
+  --
+  -- `BUILD_CLI=OFF`: we only need `libctranslate2` and its headers. The CLI clients also pull in
+  -- CTranslate2's bundled `cxxopts`, which fails to compile with GCC 15+ (missing `<cstdint>`).
+  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF", "-DCMAKE_POLICY_VERSION_MINIMUM=3.5", "-DBUILD_CLI=OFF"]
 
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
