@@ -25,19 +25,33 @@
  * https://github.com/lean-dojo/LeanCopilot/issues/196.
  */
 
-#include <stdlib.h>
+/*
+ * The forwarders must call glibc's *classic* `strtoul`/`strtoull`/`strtoll`
+ * symbols, so we bind to them explicitly via asm labels instead of calling
+ * `strtoul(...)` through <stdlib.h>. With glibc >= 2.38 headers in C23 mode
+ * (the default for GCC >= 15, e.g. Ubuntu 26.04), <stdlib.h> redirects
+ * `strtoul` to `__isoc23_strtoul` itself, which would turn each forwarder into
+ * an infinite self-call (observed as `PremiseSelection` hanging forever while
+ * parsing the `.npy` header).
+ */
+extern unsigned long lc_classic_strtoul(const char *, char **, int)
+    __asm__("strtoul");
+extern unsigned long long lc_classic_strtoull(const char *, char **, int)
+    __asm__("strtoull");
+extern long long lc_classic_strtoll(const char *, char **, int)
+    __asm__("strtoll");
 
 unsigned long __isoc23_strtoul(const char *nptr, char **endptr, int base) {
-  return strtoul(nptr, endptr, base);
+  return lc_classic_strtoul(nptr, endptr, base);
 }
 
 unsigned long long __isoc23_strtoull(const char *nptr, char **endptr,
                                       int base) {
-  return strtoull(nptr, endptr, base);
+  return lc_classic_strtoull(nptr, endptr, base);
 }
 
 long long __isoc23_strtoll(const char *nptr, char **endptr, int base) {
-  return strtoll(nptr, endptr, base);
+  return lc_classic_strtoll(nptr, endptr, base);
 }
 
 _Bool __libc_single_threaded = 0;
