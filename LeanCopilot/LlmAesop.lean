@@ -21,10 +21,9 @@ def tacGen : Aesop.TacGen := fun (mvarId : MVarId) => do
     let theoremName := match declName.toString with
       | "_example" => ""
       | n => n.splitOn "." |>.getLast!
-    let theoremNameMatcher := String.Matcher.ofString theoremName
     let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
       let isAesop := t == "aesop"
-      let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
+      let isSelfReference := ¬ (theoremName == "") ∧ t.contains theoremName
       if isSelfReference ∨ isAesop then none else some (t, s)
     return filteredSuggestions
   else

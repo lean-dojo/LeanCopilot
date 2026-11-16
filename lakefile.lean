@@ -250,19 +250,16 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   if ← buildDir.pathExists then
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
-  let ok ← testProc {
-    cmd := "cmake"
-    args := flags ++ #[".."]
-    cwd := buildDir
-  }
-  if ¬ ok then
+  -- Run cmake, surfacing its output on failure (otherwise the only diagnostic
+  -- is "Failed to run cmake", which makes CI failures impossible to debug).
+  let tryCmake (flags : Array String) : LogIO Bool := do
+    let out ← IO.Process.output { cmd := "cmake", args := flags ++ #[".."], cwd := buildDir }
+    if out.exitCode != 0 then
+      logWarning s!"cmake exited with code {out.exitCode}\nstdout:\n{out.stdout}\nstderr:\n{out.stderr}"
+    return out.exitCode == 0
+  if ¬ (← tryCmake flags) then
     if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
-      let ok' ← testProc {
-        cmd := "cmake"
-        args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
-        cwd := buildDir
-      }
-      if ok' then
+      if ← tryCmake (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") then
         return ()
     error "Failed to run cmake"
 
@@ -353,11 +350,29 @@ target libopenblas pkg : FilePath := do
 
 
 def getCt2CmakeFlags : IO (Array String) := do
-  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF"]
+  -- CMake 4 (e.g., Ubuntu 26.04, the current `ubuntu-latest` CI image) refuses projects declaring
+  -- `cmake_minimum_required` < 3.5. CTranslate2's bundled `third_party/cpu_features` (used on
+  -- x86_64) declares 3.0, so configure fails without this. Upstream applies the same flag in
+  -- their own build scripts (OpenNMT/CTranslate2#1899, #1925). Older CMake ignores it.
+  --
+  -- `BUILD_CLI=OFF`: we only need `libctranslate2` and its headers. The CLI clients also pull in
+  -- CTranslate2's bundled `cxxopts`, which fails to compile with GCC 15+ (missing `<cstdint>`).
+  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF", "-DCMAKE_POLICY_VERSION_MINIMUM=3.5", "-DBUILD_CLI=OFF"]
 
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
-  | .linux => flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
+  | .linux =>
+    flags := flags ++ #["-DWITH_ACCELERATE=OFF", "-DWITH_OPENBLAS=ON", "-DOPENBLAS_INCLUDE_DIR=../../OpenBLAS", "-DOPENBLAS_LIBRARY=../../OpenBLAS/libopenblas.so"]
+    -- CTranslate2 compiles `src/cpu/kernels.cc` once as the GENERIC fallback and again as
+    -- `kernels_{avx,avx2,avx512}.cc` with `-mavx`/`-mavx2 -mfma`/`-mavx512*`, picking each
+    -- copy's ISA from predefined macros like `__AVX2__`. Toolchains whose default target already
+    -- enables AVX2 (e.g., GCC on GitHub's `ubuntu-latest`/Ubuntu 26.04 runner image defaults to
+    -- `-march=x86-64-v3`), or an AVX2-enabling `-march` in the environment, make the generic,
+    -- AVX, and AVX2 copies all instantiate the AVX2 kernels, so linking fails with "multiple
+    -- definition of ctranslate2::cpu::...<(CpuIsa)2>". Pin the baseline to plain x86-64 so the
+    -- fallback really is generic and runtime dispatch picks the best ISA.
+    if (← getArch!) == .x86_64 then
+      flags := flags.push "-DCMAKE_CXX_FLAGS=-march=x86-64"
   | .windows => flags := flags
 
   -- [TODO] Temporary fix: Do not use CUDA even if it is available.
@@ -582,8 +597,8 @@ extern_lib libleanffi pkg := do
     buildStaticLib (pkg.sharedLibDir / name) #[ct2O, stubO]
 
 
-require batteries from git "https://github.com/leanprover-community/batteries.git" @ "66e469188fe07963e5cf666c7d4433f45b8131c5"
-require aesop from git "https://github.com/leanprover-community/aesop" @ "4a174c490d8707121c4a9290800489f105d85e07"
+require batteries from git "https://github.com/leanprover-community/batteries.git" @ "b4b25a3886a16daacaf6615c2eea7170a6e8f458"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "66ff77cf0c4c898799e4b94d14db55f7a02d0c5a"
 
 meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
 require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"

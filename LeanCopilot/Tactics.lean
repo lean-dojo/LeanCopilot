@@ -3,7 +3,6 @@ import LeanCopilot.Options
 import LeanCopilot.Frontend
 import Aesop.Util.Basic
 import Batteries.Data.String.Basic
-import Batteries.Data.String.Matcher
 
 open Lean Meta Parser Elab Term Tactic
 
@@ -46,13 +45,12 @@ def suggestTactics (targetPrefix : String) : TacticM (Array (String × Float)) :
     let theoremName := match declName.toString with
       | "_example" => ""
       | n => n.splitOn "." |>.getLast!
-    let theoremNameMatcher := String.Matcher.ofString theoremName
     if ← isVerbose then
       logInfo s!"State:\n{state}"
       logInfo s!"Theorem name:\n{theoremName}"
     let filteredSuggestions := suggestions.filterMap fun ((t, s) : String × Float) =>
       let isAesop := t == "aesop"
-      let isSelfReference := ¬ (theoremName == "") ∧ (theoremNameMatcher.find? t |>.isSome)
+      let isSelfReference := ¬ (theoremName == "") ∧ t.contains theoremName
       if isSelfReference ∨ isAesop then none else some (t, s)
     return filteredSuggestions
   else
