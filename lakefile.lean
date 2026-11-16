@@ -250,19 +250,16 @@ def runCmake (root : FilePath) (flags : Array String) : LogIO Unit := do
   if ← buildDir.pathExists then
     IO.FS.removeDirAll buildDir
   IO.FS.createDirAll buildDir
-  let ok ← testProc {
-    cmd := "cmake"
-    args := flags ++ #[".."]
-    cwd := buildDir
-  }
-  if ¬ ok then
+  -- Run cmake, surfacing its output on failure (otherwise the only diagnostic
+  -- is "Failed to run cmake", which makes CI failures impossible to debug).
+  let tryCmake (flags : Array String) : LogIO Bool := do
+    let out ← IO.Process.output { cmd := "cmake", args := flags ++ #[".."], cwd := buildDir }
+    if out.exitCode != 0 then
+      logWarning s!"cmake exited with code {out.exitCode}\nstdout:\n{out.stdout}\nstderr:\n{out.stderr}"
+    return out.exitCode == 0
+  if ¬ (← tryCmake flags) then
     if flags.contains "-DWITH_CUDNN=ON" then  -- Some users may have CUDA but not cuDNN.
-      let ok' ← testProc {
-        cmd := "cmake"
-        args := (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") ++ #[".."]
-        cwd := buildDir
-      }
-      if ok' then
+      if ← tryCmake (flags.erase "-DWITH_CUDNN=ON" |>.push "-DWITH_CUDNN=OFF") then
         return ()
     error "Failed to run cmake"
 
@@ -353,7 +350,11 @@ target libopenblas pkg : FilePath := do
 
 
 def getCt2CmakeFlags : IO (Array String) := do
-  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF"]
+  -- CMake 4 (e.g., Ubuntu 26.04, the current `ubuntu-latest` CI image) refuses projects declaring
+  -- `cmake_minimum_required` < 3.5. CTranslate2's bundled `third_party/cpu_features` (used on
+  -- x86_64) declares 3.0, so configure fails without this. Upstream applies the same flag in
+  -- their own build scripts (OpenNMT/CTranslate2#1899, #1925). Older CMake ignores it.
+  let mut flags := #["-DOPENMP_RUNTIME=NONE", "-DWITH_MKL=OFF", "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"]
 
   match getOS! with
   | .macos => flags := flags ++ #["-DWITH_ACCELERATE=ON", "-DWITH_OPENBLAS=OFF"]
