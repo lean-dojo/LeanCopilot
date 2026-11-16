@@ -366,7 +366,8 @@ def getCt2CmakeFlags : IO (Array String) := do
     -- CTranslate2 compiles `src/cpu/kernels.cc` once as the GENERIC fallback and again as
     -- `kernels_{avx,avx2,avx512}.cc` with `-mavx`/`-mavx2 -mfma`/`-mavx512*`, picking each
     -- copy's ISA from predefined macros like `__AVX2__`. Toolchains whose default target already
-    -- enables AVX2 (e.g., Ubuntu 26.04, the current `ubuntu-latest` CI image) make the generic,
+    -- enables AVX2 (e.g., GCC on GitHub's `ubuntu-latest`/Ubuntu 26.04 runner image defaults to
+    -- `-march=x86-64-v3`), or an AVX2-enabling `-march` in the environment, make the generic,
     -- AVX, and AVX2 copies all instantiate the AVX2 kernels, so linking fails with "multiple
     -- definition of ctranslate2::cpu::...<(CpuIsa)2>". Pin the baseline to plain x86-64 so the
     -- fallback really is generic and runtime dispatch picks the best ISA.
